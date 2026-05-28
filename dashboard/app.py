@@ -20,7 +20,7 @@ ZONES_PATH = os.path.join(BASE, "data", "external", "zones_config.json")
 
 COMMODITIES = [
     "Hibiscus","Sesame","Ginger","Cocoa","Soybeans","Cashew Nuts",
-    "Sorghum","Beans (white)","Beans (red)","Maize (white)","Maize (yellow)","Wheat"
+    "Sorghum","Beans (white)","Beans (red)","Maize (white)","Maize (yellow)","Wheat","Rice"
 ]
 ZONE_ORDER = ["North West","North Central","North East","South West","South East","South South"]
 

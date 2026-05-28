@@ -54,21 +54,26 @@ os.makedirs(VALIDATED_DIR, exist_ok=True)
 # Leave as None if you don't have a fresh price for that commodity.
 # These take highest priority in validation.
 MANUAL_PRICES = {
-    # Agricome Africa (@agricomeafrica) April 2026 confirmed posts
-    "Hibiscus":      2_325_000,   # N2.1M-N2.65M  Agricome Apr 16 2026
-    "Sesame":        1_245_000,   # N1.1M-N1.35M  Agricome Apr 16 2026
-    "Ginger":        9_700_000,   # N8.5M-N11M    Agricome Apr 16 2026
-    "Cocoa":         5_650_000,   # N5.1M-N6.5M   Agricome Apr 16 2026
-    "Soybeans":        745_000,   # N650K-N850K   Agricome Apr 16 2026
-    "Cashew Nuts":   1_950_000,   # N1.7M-N2.2M   Agricome Apr 16 2026
-    # WFP Nigeria Mar 2026 + market research
-    "Sorghum":         335_000,   # WFP Mar 2026 + trend
+    # ── Agricome Africa (@agricomeafrica) April 2026 confirmed posts ──────────
+    "Hibiscus":      2_325_000,   # N2.1M-N2.65M   Agricome Apr 16 2026
+    "Sesame":        1_650_000,   # RECALIBRATED: LCFE N1,650-N2,000/kg May 2026
+                                  # (was N1,245,000 -- farmgate anchor was too low)
+    "Ginger":       12_000_000,   # RECALIBRATED: NGX confirmed N13,000/kg Feb 2026
+                                  # Using N12M as conservative mid-market estimate
+                                  # (was N9,700,000 -- 25-35% below exchange level)
+    "Cocoa":         5_650_000,   # N5.1M-N6.5M    Agricome Apr 16 2026
+    "Soybeans":        745_000,   # N650K-N850K    Agricome Apr 16 2026
+    "Cashew Nuts":   1_950_000,   # N1.7M-N2.2M    Agricome Apr 16 2026
+    # ── WFP Nigeria + market research ────────────────────────────────────────
+    "Sorghum":         420_000,   # RECALIBRATED: Market Naija TV N44K/bag = N880K
+                                  # retail; wholesale mid-chain ~N420K
+                                  # (was N335,000 -- northern farmgate dragging low)
     "Beans (white)":   813_000,   # WFP Mar 2026 confirmed
     "Beans (red)":     915_000,   # WFP Mar 2026 confirmed
-    "Maize (white)":   370_000,   # Current market N290K-N450K
-    "Maize (yellow)":  400_000,   # Current market N310K-N480K
-    "Wheat":           706_833,   # Agrolinking primary Apr 13, 2026
-    "Rice":          1_550_000,   # Market research May 2026 (50kg bag N75K-N87K)
+    "Maize (white)":   370_000,   # Market 2026 N290K-N450K (well-calibrated)
+    "Maize (yellow)":  400_000,   # Market 2026 N310K-N480K (well-calibrated)
+    "Wheat":           706_833,   # Agrolinking primary Apr 13 2026
+    "Rice":          1_550_000,   # Market research May 2026 (50kg N75K-N87K)
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
