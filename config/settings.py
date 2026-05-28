@@ -51,6 +51,7 @@ COMMODITIES = [
     "Maize (white)",
     "Maize (yellow)",
     "Wheat",
+    "Rice"
 ]
 
 # WFP name mapping → our standard names

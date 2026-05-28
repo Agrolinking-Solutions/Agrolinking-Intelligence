@@ -415,7 +415,7 @@ if page == "Dashboard":
         section_head(
             "Daily Intelligence Report",
             "Nigerian Agricultural Commodity Prices",
-            "Cross-referenced ensemble forecasts for 12 commodities across 6 geopolitical zones. "
+            "Cross-referenced ensemble forecasts for 13 commodities across 6 geopolitical zones. "
             "Validated against Agricome Africa, WFP Nigeria, and live market sources."
         )
 
@@ -433,7 +433,10 @@ if page == "Dashboard":
           <p style="font-size:13px;color:{T3};margin:0;">National wholesale benchmarks, validated daily</p>
         </div>""", unsafe_allow_html=True)
 
-        for ri, row_c in enumerate([COMMODITIES[:4], COMMODITIES[4:8], COMMODITIES[8:]]):
+        # Dynamic grid - works for any number of commodities
+        all_comms = [c for c in COMMODITIES if c in forecast]
+        rows_of_4 = [all_comms[i:i+4] for i in range(0, len(all_comms), 4)]
+        for ri, row_c in enumerate(rows_of_4):
             cols2 = st.columns(len(row_c))
             for ci, (c, col) in enumerate(zip(row_c, cols2)):
                 if c not in forecast: continue

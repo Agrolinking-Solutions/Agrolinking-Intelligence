@@ -68,6 +68,7 @@ MANUAL_PRICES = {
     "Maize (white)":   370_000,   # Current market N290K-N450K
     "Maize (yellow)":  400_000,   # Current market N310K-N480K
     "Wheat":           706_833,   # Agrolinking primary Apr 13, 2026
+    "Rice":          1_550_000,   # Market research May 2026 (50kg bag N75K-N87K)
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -86,6 +87,7 @@ WEB_REFERENCE_PRICES = {
     "Sorghum":         340_000,   # Agricome Apr 16 confirmed: ₦340k/MT
     "Soybeans":        750_000,   # Agricome Apr 16 confirmed: ₦750k/MT
     "Wheat":           706_833,   # Agrolinking primary Apr 13: ₦706,833/MT
+    "Rice":          1_550_000,   # Market research May 2026 (50kg bag N75K-N87K)
     # Beans/Maize: latest WFP + Market Naija data
     "Maize (white)":   380_000,   # Interpolated bridge to current market
     "Maize (yellow)":  410_000,   # Interpolated bridge to current market
@@ -249,6 +251,34 @@ def scale_horizon(
 # VALIDATE ONE COMMODITY
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+def get_horizon_endpoint(h_data):
+    """
+    Handle both old and new forecast JSON horizon structures.
+    Old: h_data["forecast_end"] = {"date": "...", "price": 123}
+    New: h_data["forecast_end"] = "2026-05-25" (string)
+         h_data["forecast_end_detail"] = {"date": "...", "price": 123, ...}
+    """
+    fc_end = h_data.get("forecast_end", {})
+    if isinstance(fc_end, str):
+        detail = h_data.get("forecast_end_detail", {})
+        vals   = h_data.get("ensemble", {}).get("values", [0])
+        return {
+            "date":                  fc_end,
+            "price":                 detail.get("price", vals[-1] if vals else 0),
+            "pct_change_from_today": detail.get("pct_change_from_today", 0),
+        }
+    elif isinstance(fc_end, dict) and fc_end:
+        return fc_end
+    else:
+        vals  = h_data.get("ensemble", {}).get("values", [0])
+        dates = h_data.get("dates", [""])
+        return {
+            "date":                  dates[-1] if dates else "",
+            "price":                 vals[-1] if vals else 0,
+            "pct_change_from_today": 0,
+        }
+
 def validate_commodity(
     commodity: str,
     fc_data: dict,
@@ -304,7 +334,7 @@ def validate_commodity(
 
             # Recompute forecast_end with corrected values
             h_copy["forecast_end"] = {
-                "date":  h_data["forecast_end"]["date"],
+                "date":  get_horizon_endpoint(h_data)["date"],
                 "price": corrected_vals[-1],
                 "pct_change_from_today": round(
                     (corrected_vals[-1] - fc_data["last_known_price"])
