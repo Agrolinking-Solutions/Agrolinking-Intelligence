@@ -54,26 +54,19 @@ os.makedirs(VALIDATED_DIR, exist_ok=True)
 # Leave as None if you don't have a fresh price for that commodity.
 # These take highest priority in validation.
 MANUAL_PRICES = {
-    # ── Agricome Africa (@agricomeafrica) April 2026 confirmed posts ──────────
-    "Hibiscus":      2_325_000,   # N2.1M-N2.65M   Agricome Apr 16 2026
-    "Sesame":        1_650_000,   # RECALIBRATED: LCFE N1,650-N2,000/kg May 2026
-                                  # (was N1,245,000 -- farmgate anchor was too low)
-    "Ginger":       12_000_000,   # RECALIBRATED: NGX confirmed N13,000/kg Feb 2026
-                                  # Using N12M as conservative mid-market estimate
-                                  # (was N9,700,000 -- 25-35% below exchange level)
-    "Cocoa":         5_650_000,   # N5.1M-N6.5M    Agricome Apr 16 2026
-    "Soybeans":        745_000,   # N650K-N850K    Agricome Apr 16 2026
-    "Cashew Nuts":   1_950_000,   # N1.7M-N2.2M    Agricome Apr 16 2026
-    # ── WFP Nigeria + market research ────────────────────────────────────────
-    "Sorghum":         420_000,   # RECALIBRATED: Market Naija TV N44K/bag = N880K
-                                  # retail; wholesale mid-chain ~N420K
-                                  # (was N335,000 -- northern farmgate dragging low)
-    "Beans (white)":   813_000,   # WFP Mar 2026 confirmed
-    "Beans (red)":     915_000,   # WFP Mar 2026 confirmed
-    "Maize (white)":   370_000,   # Market 2026 N290K-N450K (well-calibrated)
-    "Maize (yellow)":  400_000,   # Market 2026 N310K-N480K (well-calibrated)
+    "Hibiscus":      2_325_000,   # Agricome Apr 16 2026
+    "Sesame":        1_650_000,   # LCFE May 2026 (recalibrated)
+    "Ginger":       12_000_000,   # NGX Feb 2026 N13,000/kg; mid-market N12M
+    "Cocoa":         5_650_000,   # Agricome Apr 16 2026
+    "Soybeans":        745_000,   # Agricome Apr 16 2026
+    "Cashew Nuts":   1_950_000,   # Agricome Apr 16 2026
+    "Sorghum":         420_000,   # Market Naija TV mid-chain (recalibrated)
+    "Beans (white)":   813_000,   # WFP Mar 2026
+    "Beans (red)":     915_000,   # WFP Mar 2026
+    "Maize (white)":   370_000,   # Market 2026
+    "Maize (yellow)":  400_000,   # Market 2026
     "Wheat":           706_833,   # Agrolinking primary Apr 13 2026
-    "Rice":          1_550_000,   # Market research May 2026 (50kg N75K-N87K)
+    "Rice":          1_550_000,   # Market research May 2026
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -83,34 +76,39 @@ MANUAL_PRICES = {
 # Sources: NGX (BusinessDay Feb 2026), WFP March 2026, Market Naija,
 #          Selinawamucii, Proshare, ICO cocoa data.
 WEB_REFERENCE_PRICES = {
-    # Updated April 2026 — cross-referenced NGX, WFP, Market Naija, Agricome
-    "Cocoa":         5_700_000,   # Agricome Apr 16 confirmed: ₦5.7M/MT
-    "Ginger":        9_700_000,   # Agricome Apr 16 confirmed: ₦9.7M/MT
-    "Sesame":        1_250_000,   # Agricome Apr 16 confirmed: ₦1.25M/MT
-    "Hibiscus":      2_300_000,   # Agricome Apr 16 confirmed: ₦2.3M/MT
-    "Cashew Nuts":   1_950_000,   # Agricome Apr 16 confirmed: ₦1.95M/MT
-    "Sorghum":         340_000,   # Agricome Apr 16 confirmed: ₦340k/MT
-    "Soybeans":        750_000,   # Agricome Apr 16 confirmed: ₦750k/MT
-    "Wheat":           706_833,   # Agrolinking primary Apr 13: ₦706,833/MT
-    "Rice":          1_550_000,   # Market research May 2026 (50kg bag N75K-N87K)
-    # Beans/Maize: latest WFP + Market Naija data
-    "Maize (white)":   380_000,   # Interpolated bridge to current market
-    "Maize (yellow)":  410_000,   # Interpolated bridge to current market
-    "Beans (white)":   850_000,   # WFP Mar 2026 ₦813k + inflation trend
-    "Beans (red)":     915_000,   # WFP Mar 2026 ₦915k + inflation trend
+    # Cocoa: ICO ~$3,613/ton × ₦1,640/$ = ₦5.9M/MT (BusinessDay Feb 2026 confirmed crash)
+    "Cocoa":         5_925_000,
+    # Ginger: NGX N13,000/kg = N13M/MT (BusinessDay Feb 2026, held steady due to blight)
+    "Ginger":       13_000_000,
+    # Sesame: NGX N1,150-1,200/kg (BusinessDay Feb 2026)
+    "Sesame":        1_200_000,
+    # Hibiscus: Agricom March 2026 ₦2,650,000
+    "Hibiscus":      2_650_000,
+    # Cashew: Agricom March 2026 ₦1,800,000 (harvest season = lower)
+    "Cashew Nuts":   1_800_000,
+    # Maize: carry_forward trend ₦325–350k/MT (WFP last: ₦208k 2023, inflated since)
+    "Maize (white)":   350_000,
+    "Maize (yellow)":  380_000,
+    # Sorghum: Market Naija ₦44k/100kg = ₦440k/MT
+    "Sorghum":         440_000,
+    # Soybeans: Market Naija ₦79k/100kg = ₦790k/MT, CEIC ~₦786k
+    "Soybeans":        750_000,
+    # Beans: WFP March 2026 confirmed
+    "Beans (white)":   820_000,
+    "Beans (red)":     915_000,
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # VALIDATION SETTINGS
 # ─────────────────────────────────────────────────────────────────────────────
-MAX_ERROR_PCT      = 5.0    # Target: flag anything above this
-HARD_CORRECT_PCT   = 15.0   # Above this: apply strong correction
-SOFT_CORRECT_PCT   = 5.0    # 5–15%: apply soft correction (blend)
-EXTREME_CORRECT_PCT = 50.0  # Above this: use reference price almost entirely
+MAX_ERROR_PCT      = 3.0    # Target: flag anything above this
+HARD_CORRECT_PCT   = 10.0   # Above this: apply strong correction
+SOFT_CORRECT_PCT   = 2.0    # 5–15%: apply soft correction (blend)
+EXTREME_CORRECT_PCT = 30.0  # Above this: use reference price almost entirely
 # Blend ratios — how much weight given to the reference price
-SOFT_BLEND_RATIO    = 0.50  # 5-15% error:  50% reference
-HARD_BLEND_RATIO    = 0.75  # 15-50% error: 75% reference
-EXTREME_BLEND_RATIO = 0.92  # >50% error:   92% reference (model just sets direction)
+SOFT_BLEND_RATIO    = 0.75  # 5-15% error:  50% reference
+HARD_BLEND_RATIO    = 0.90  # 15-50% error: 75% reference
+EXTREME_BLEND_RATIO = 0.96  # >50% error:   92% reference (model just sets direction)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -210,10 +208,10 @@ def apply_correction(
     """
     Apply correction to bring forecast within acceptable range.
     Correction strength scales with error magnitude:
-      0-5%:   no correction (model is trusted)
-      5-15%:  soft blend (50% reference)
-      15-50%: hard blend (75% reference)
-      >50%:   extreme blend (92% reference — model only sets direction)
+      0-2%:   no correction (model is trusted)
+      2-10%:  soft blend (75% reference)
+      10-30%: hard blend (90% reference)
+      >30%:   extreme blend (96% reference — model only sets direction)
     Returns (corrected_price, correction_type)
     """
     if error_pct <= SOFT_CORRECT_PCT:
@@ -256,34 +254,6 @@ def scale_horizon(
 # VALIDATE ONE COMMODITY
 # ─────────────────────────────────────────────────────────────────────────────
 
-
-def get_horizon_endpoint(h_data):
-    """
-    Handle both old and new forecast JSON horizon structures.
-    Old: h_data["forecast_end"] = {"date": "...", "price": 123}
-    New: h_data["forecast_end"] = "2026-05-25" (string)
-         h_data["forecast_end_detail"] = {"date": "...", "price": 123, ...}
-    """
-    fc_end = h_data.get("forecast_end", {})
-    if isinstance(fc_end, str):
-        detail = h_data.get("forecast_end_detail", {})
-        vals   = h_data.get("ensemble", {}).get("values", [0])
-        return {
-            "date":                  fc_end,
-            "price":                 detail.get("price", vals[-1] if vals else 0),
-            "pct_change_from_today": detail.get("pct_change_from_today", 0),
-        }
-    elif isinstance(fc_end, dict) and fc_end:
-        return fc_end
-    else:
-        vals  = h_data.get("ensemble", {}).get("values", [0])
-        dates = h_data.get("dates", [""])
-        return {
-            "date":                  dates[-1] if dates else "",
-            "price":                 vals[-1] if vals else 0,
-            "pct_change_from_today": 0,
-        }
-
 def validate_commodity(
     commodity: str,
     fc_data: dict,
@@ -291,6 +261,12 @@ def validate_commodity(
     """Validate and correct forecasts for one commodity."""
 
     # Get reference price
+
+    # Cap last_known_date to today - features forward-fills future rows
+    _today_str = run_date.strftime("%Y-%m-%d")
+    if fc_data.get("last_known_date", "") > _today_str:
+        fc_data["last_known_date"] = _today_str
+
     ref_price, ref_source = get_reference_price(commodity)
 
     # Try live fetch first (may upgrade the reference)
@@ -339,7 +315,7 @@ def validate_commodity(
 
             # Recompute forecast_end with corrected values
             h_copy["forecast_end"] = {
-                "date":  get_horizon_endpoint(h_data)["date"],
+                "date":  h_data["forecast_end"]["date"],
                 "price": corrected_vals[-1],
                 "pct_change_from_today": round(
                     (corrected_vals[-1] - fc_data["last_known_price"])
@@ -580,7 +556,7 @@ def run_validation() -> dict:
     avg_err_after  = np.mean([r["error_after"]  for r in results]) if results else 0
 
     logger.info(f"\n  {'-' * 85}")
-    logger.info(f"  Within <5% target : {within_target}/{len(results)} commodities")
+    logger.info(f"  Within <3% target : {within_target}/{len(results)} commodities")
     logger.info(f"  Avg error before  : {avg_err_before:.1f}%")
     logger.info(f"  Avg error after   : {avg_err_after:.1f}%")
 
@@ -630,7 +606,7 @@ def run_validation() -> dict:
     logger.info("=" * 65)
     logger.success(
         f"VALIDATION COMPLETE — "
-        f"{within_target}/{len(results)} within <5% target | "
+        f"{within_target}/{len(results)} within <3% target | "
         f"avg error {avg_err_after:.1f}%"
     )
     logger.info("=" * 65)
