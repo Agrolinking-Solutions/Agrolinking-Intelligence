@@ -263,7 +263,7 @@ def validate_commodity(
     # Get reference price
 
     # Cap last_known_date to today - features forward-fills future rows
-    _today_str = run_date.strftime("%Y-%m-%d")
+    _today_str = datetime.now().strftime("%Y-%m-%d")
     if fc_data.get("last_known_date", "") > _today_str:
         fc_data["last_known_date"] = _today_str
 
@@ -337,13 +337,18 @@ def validate_commodity(
             compute_error(corrected_daily, ref_price), 2
         ),
         "correction_applied": correction_type,
-        "within_target":      error_pct <= MAX_ERROR_PCT,
+        "within_target":      compute_error(corrected_daily, ref_price) <= MAX_ERROR_PCT,
         "validated_at":       datetime.now().isoformat(),
     }
 
     result = dict(fc_data)
     result["horizons"]   = validated_horizons
     result["validation"] = validation_meta
+
+    # Ensure last_known_date is never in the future in the output JSON
+    _today = datetime.now().strftime("%Y-%m-%d")
+    if result.get("last_known_date", "") > _today:
+        result["last_known_date"] = _today
 
     return result
 

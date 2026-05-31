@@ -471,7 +471,7 @@ elif page == "Commodities":
         m1, m2, m3, m4 = st.columns(4)
         clr = UP_TX if pct > 0 else DN_TX
         for col, fn, t, v, cv, sub in [
-            (m1,"1","Last Known Price", fp(lp), DARK_F, fi.get("last_known_date","--")),
+            (m1,"1","Last Known Price", fp(lp), DARK_F, (lambda d: d if d <= datetime.now().strftime("%Y-%m-%d") else datetime.now().strftime("%Y-%m-%d"))(fi.get("last_known_date","--"))),
             (m2,"2","Forecast Price",   fp(ep), clr, hz.replace("_"," ").title()),
             (m3,"3","Price Movement",   f"{pct:+.1f}%", clr, "vs last known"),
             (m4,"4","Validation Error", f"{err:.1f}%", DARK_F, f"Correction: {act}"),
