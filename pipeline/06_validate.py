@@ -254,6 +254,29 @@ def scale_horizon(
 # VALIDATE ONE COMMODITY
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+def get_horizon_endpoint(h_data):
+    """Handle both old (dict) and new (string) forecast_end structures."""
+    fc_end = h_data.get("forecast_end", {})
+    if isinstance(fc_end, str):
+        detail = h_data.get("forecast_end_detail", {})
+        vals   = h_data.get("ensemble", {}).get("values", [0])
+        return {
+            "date":                  fc_end,
+            "price":                 detail.get("price", vals[-1] if vals else 0),
+            "pct_change_from_today": detail.get("pct_change_from_today", 0),
+        }
+    elif isinstance(fc_end, dict) and fc_end:
+        return fc_end
+    else:
+        vals  = h_data.get("ensemble", {}).get("values", [0])
+        dates = h_data.get("dates", [""])
+        return {
+            "date":                  dates[-1] if dates else "",
+            "price":                 vals[-1] if vals else 0,
+            "pct_change_from_today": 0,
+        }
+
 def validate_commodity(
     commodity: str,
     fc_data: dict,
@@ -314,13 +337,18 @@ def validate_commodity(
             ensemble["upper_ci"] = [round(v * ratio, 2) for v in ensemble.get("upper_ci", corrected_vals)]
 
             # Recompute forecast_end with corrected values
-            h_copy["forecast_end"] = {
-                "date":  h_data["forecast_end"]["date"],
+            # Handle both old (dict) and new (string) forecast_end structure
+            _fc_end = h_data.get("forecast_end", "")
+            _fc_date = _fc_end if isinstance(_fc_end, str) else _fc_end.get("date", "")
+            h_copy["forecast_end"] = _fc_date  # keep as string (new format)
+            h_copy["forecast_end_detail"] = {
+                "date":  _fc_date,
                 "price": corrected_vals[-1],
                 "pct_change_from_today": round(
                     (corrected_vals[-1] - fc_data["last_known_price"])
                     / fc_data["last_known_price"] * 100, 2
                 ) if fc_data["last_known_price"] > 0 else None,
+                "direction": "up" if corrected_vals[-1] > fc_data["last_known_price"] else "down",
             }
 
         validated_horizons[h_name] = h_copy

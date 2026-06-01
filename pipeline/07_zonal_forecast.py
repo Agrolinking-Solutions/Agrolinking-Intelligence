@@ -73,15 +73,45 @@ def get_daily_price(fc_item, run_date):
     last_known_str = fc_item.get("last_known_date", "")
     try:
         day0 = datetime.strptime(last_known_str[:10], "%Y-%m-%d")
+
+        # CRITICAL FIX: last_known_date must NEVER be in the future.
+        # Features.py sometimes writes a future row date as last_known_date.
+        # If last_known_date > today, cap it to (today - 7 days) as anchor.
+        if day0 > run_date:
+            logger.debug(f"  last_known_date {last_known_str[:10]} is in future. "
+                         f"Capping to 7 days ago.")
+            day0 = run_date - timedelta(days=7)
+
+        # Also guard against stale dates (> 2 years old = synthetic bridge anchor)
+        elif (run_date - day0).days > 730:
+            logger.debug(f"  last_known_date {last_known_str[:10]} is stale (>2yr). "
+                         f"Using forecast_start as anchor.")
+            try:
+                day0 = datetime.strptime(
+                    fc_item.get("forecast_start","")[:10], "%Y-%m-%d")
+                # Apply same future cap to forecast_start too
+                if day0 > run_date:
+                    day0 = run_date - timedelta(days=7)
+            except Exception:
+                day0 = run_date - timedelta(days=41)
+
     except Exception:
-        # Fallback: try forecast_start, then run_date
         try:
             day0 = datetime.strptime(
                 fc_item.get("forecast_start","")[:10], "%Y-%m-%d")
+            if day0 > run_date:
+                day0 = run_date - timedelta(days=7)
         except Exception:
-            day0 = run_date
+            day0 = run_date - timedelta(days=7)
 
     days_elapsed = (run_date - day0).days
+
+    # Hard floor: if still negative or zero after all caps above,
+    # force 7 days elapsed so we always interpolate meaningfully
+    if days_elapsed < 1:
+        days_elapsed = 7
+        day0 = run_date - timedelta(days=7)
+
     logger.debug(f"  last_known={last_known_str[:10]}, run={run_date.date()}, "
                  f"elapsed={days_elapsed}d")
 
@@ -155,38 +185,32 @@ def build_zonal_output(forecast, diff, zones, run_date):
     logger.info(f"  {'Commodity':<22} {'Today Price':>14}  {'Day Chg':>8}  {'vs Ref':>8}  Source")
     logger.info("  " + "-" * 80)
 
-    # Load previous zonal for day-change calculation
-    prev_anchors = {}
-    prev_files = sorted(glob.glob(os.path.join(ZONAL_DIR, "zonal_forecast_*.json")))
-    if len(prev_files) >= 2:
-        try:
-            with open(prev_files[-2]) as f:
-                prev_data = json.load(f)
-            for c, info in prev_data.get("national_anchors", {}).items():
-                prev_anchors[c] = info.get("price", 0)
-        except Exception:
-            pass
+    # Calculate yesterday's price directly from the forecast curve
+    # (more reliable than loading prev JSON which may have stale/broken data)
+    yesterday = run_date - timedelta(days=1)
 
     for commodity in COMMODITIES:
         if commodity not in forecast:
             national_anchors[commodity] = {"price": 0, "source": "missing"}
             continue
-        fc_item = forecast[commodity]
-        today_price, src = get_daily_price(fc_item, run_date)
+        fc_item     = forecast[commodity]
+        today_price, src  = get_daily_price(fc_item, run_date)
+        yest_price,  _    = get_daily_price(fc_item, yesterday)
         ref_price = float(
             fc_item.get("validation",{}).get("reference_price") or
             fc_item.get("last_known_price", 0)
         )
         pct_vs_ref = round((today_price - ref_price)/ref_price*100, 2) if ref_price > 0 else 0
-        prev_p     = prev_anchors.get(commodity, today_price)
-        day_chg    = round((today_price - prev_p)/prev_p*100, 2) if prev_p > 0 else 0
+        # Day change: today vs yesterday from same forecast curve
+        day_chg    = round((today_price - yest_price)/yest_price*100, 2) if yest_price > 0 else 0
 
         national_anchors[commodity] = {
-            "price":      today_price,
-            "ref_price":  ref_price,
-            "pct_vs_ref": pct_vs_ref,
-            "day_change": day_chg,
-            "source":     src,
+            "price":          today_price,
+            "yesterday_price": yest_price,
+            "ref_price":      ref_price,
+            "pct_vs_ref":     pct_vs_ref,
+            "day_change":     day_chg,
+            "source":         src,
         }
         ar = "+" if pct_vs_ref >= 0 else ""
         logger.info(f"  {commodity:<22} N{today_price:>12,.0f}  {day_chg:>+7.2f}%  "
@@ -207,10 +231,11 @@ def build_zonal_output(forecast, diff, zones, run_date):
                 if commodity not in forecast: continue
                 anchor     = national_anchors[commodity]["price"]
                 if anchor <= 0: continue
-                prev_anchor = prev_anchors.get(commodity, anchor)
+                # Yesterday's national price from forecast curve (same as national anchor calc)
+                yest_national = national_anchors[commodity].get("yesterday_price", anchor)
                 factor     = diff.get(state, {}).get(commodity, zone_info["zone_default"])
                 state_price = round(anchor * factor, 2)
-                prev_state  = round(prev_anchor * factor, 2)
+                prev_state  = round(yest_national * factor, 2)
                 day_chg     = round((state_price-prev_state)/prev_state*100, 2) if prev_state > 0 else 0
 
                 fc_item = forecast[commodity]
