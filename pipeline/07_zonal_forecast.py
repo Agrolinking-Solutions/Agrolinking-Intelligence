@@ -1,3 +1,4 @@
+import sys
 """
 AGROLINKING COMMODITY INTELLIGENCE SYSTEM
 Pipeline Step 7: Zonal & State-Level Forecasting
@@ -49,7 +50,7 @@ HORIZON_DAYS = {
 
 def fmt(n):
     if n is None: return "--"
-    if n >= 1_000_000: return f"N{n/1_000_000:.2f}M"
+    if n >= 1_000_000: return f"N{n/1_000_000:.3f}M"
     return f"N{n/1_000:.0f}K"
 
 
@@ -115,39 +116,80 @@ def get_daily_price(fc_item, run_date):
     logger.debug(f"  last_known={last_known_str[:10]}, run={run_date.date()}, "
                  f"elapsed={days_elapsed}d")
 
-    # Build (days, price) curve from all horizon values
-    # day 0 = reference price (last known validated price)
-    points = [(0, ref_price)]
-    for h_name, h_days in HORIZON_DAYS.items():
-        h_data = fc_item.get("horizons", {}).get(h_name, {})
-        if not h_data: continue
-        vals = h_data.get("ensemble", {}).get("values", [])
-        if vals:
-            points.append((h_days, float(vals[-1])))
+    # Build a DENSE daily curve from weekly_series across all horizons.
+    # This is the key fix: use the actual weekly data points, not just
+    # the horizon endpoint (vals[-1]), so prices differ by day.
+    #
+    # We collect every (days_from_day0, price) pair from every horizon's
+    # weekly_series, then interpolate to today's exact day position.
+    # This gives a unique price every single day.
 
-    points.sort(key=lambda x: x[0])
+    dense_points = [(0, ref_price)]
+
+    # Use forecast_start date to calculate days offset for each weekly step
+    try:
+        fc_start = datetime.strptime(
+            fc_item.get("forecast_start", "")[:10], "%Y-%m-%d")
+    except Exception:
+        fc_start = day0
+
+    for h_name in HORIZON_DAYS:
+        h_data = fc_item.get("horizons", {}).get(h_name, {})
+        if not h_data:
+            continue
+        dates  = h_data.get("dates", [])
+        vals   = h_data.get("ensemble", {}).get("values", [])
+        if not dates or not vals:
+            # Fallback: use endpoint with horizon day offset
+            v = h_data.get("ensemble", {}).get("values", [])
+            if v:
+                days_from_day0 = HORIZON_DAYS[h_name] + (fc_start - day0).days
+                dense_points.append((days_from_day0, float(v[-1])))
+            continue
+        for d_str, price_val in zip(dates, vals):
+            try:
+                d_date       = datetime.strptime(d_str[:10], "%Y-%m-%d")
+                days_from_d0 = (d_date - day0).days
+                if days_from_d0 > 0:
+                    dense_points.append((days_from_d0, float(price_val)))
+            except Exception:
+                continue
+
+    # Sort and deduplicate by day
+    dense_points.sort(key=lambda x: x[0])
+    seen = set()
+    unique_points = []
+    for dp, pp in dense_points:
+        if dp not in seen:
+            seen.add(dp)
+            unique_points.append((dp, pp))
+    dense_points = unique_points
 
     if days_elapsed <= 0:
         return ref_price, f"ref_price (day 0, last_known={last_known_str[:10]})"
 
-    # Find bracketing horizon points and interpolate
-    for i in range(len(points) - 1):
-        d0, p0 = points[i]
-        d1, p1 = points[i + 1]
-        if d0 <= days_elapsed <= d1:
-            t      = (days_elapsed - d0) / (d1 - d0) if d1 != d0 else 0
-            price  = round(p0 + t * (p1 - p0), 2)
-            pct    = round((price - ref_price) / ref_price * 100, 2) if ref_price > 0 else 0
-            source = f"interp d{days_elapsed} ({h_names_str(d0,d1)} | {pct:+.2f}% vs ref)"
-            return price, source
+    if len(dense_points) < 2:
+        # Not enough points - use ref_price with tiny daily drift
+        drift = ref_price * (1 + 0.0003 * days_elapsed)
+        pct   = round((drift - ref_price) / ref_price * 100, 2)
+        return round(drift, 2), f"drift d{days_elapsed} ({pct:+.2f}% vs ref)"
 
-    # Beyond all horizons: use last horizon value with small daily decay
-    last_d, last_p = points[-1]
-    extra_days = days_elapsed - last_d
-    # Apply gentle 0.01% per day drift beyond last horizon
-    price = round(last_p * (1 - 0.0001 * extra_days), 2)
+    # Interpolate today's price from the dense curve
+    for i in range(len(dense_points) - 1):
+        d0_i, p0_i = dense_points[i]
+        d1_i, p1_i = dense_points[i + 1]
+        if d0_i <= days_elapsed <= d1_i:
+            t     = (days_elapsed - d0_i) / (d1_i - d0_i) if d1_i != d0_i else 0
+            price = round(p0_i + t * (p1_i - p0_i), 2)
+            pct   = round((price - ref_price) / ref_price * 100, 2) if ref_price > 0 else 0
+            return price, f"interp d{days_elapsed} (weekly series | {pct:+.2f}% vs ref)"
+
+    # Beyond all forecast points: gentle decay from last point
+    last_d2, last_p2 = dense_points[-1]
+    extra = days_elapsed - last_d2
+    price = round(last_p2 * (1 - 0.0001 * extra), 2)
     pct   = round((price - ref_price) / ref_price * 100, 2) if ref_price > 0 else 0
-    return price, f"beyond horizon d{days_elapsed} ({pct:+.2f}% vs ref)"
+    return price, f"beyond series d{days_elapsed} ({pct:+.2f}% vs ref)"
 
 
 def h_names_str(d0, d1):
@@ -167,13 +209,73 @@ def load_all():
     with open(ZONES_PATH) as f:
         zones = json.load(f)
 
+    # Auto-run steps 05+06 if today's validated file doesn't exist yet
+    # Uses direct Python import instead of subprocess to avoid path issues
+    today_str  = datetime.now().strftime("%Y-%m-%d")
+    today_file = os.path.join(VAL_DIR, f"forecast_validated_{today_str}.json")
+
+    if not os.path.exists(today_file):
+        logger.info(f"  No validated forecast for {today_str}. Running steps 5+6 directly...")
+        pipeline_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir     = os.path.dirname(pipeline_dir)
+
+        # Add pipeline dir to path so imports work
+        import sys as _sys
+        if pipeline_dir not in _sys.path:
+            _sys.path.insert(0, pipeline_dir)
+        if base_dir not in _sys.path:
+            _sys.path.insert(0, base_dir)
+
+        # Run step 5 - forecast
+        try:
+            logger.info("  > Running 05_forecast.py...")
+            import importlib.util
+            spec5 = importlib.util.spec_from_file_location(
+                "forecast", os.path.join(pipeline_dir, "05_forecast.py"))
+            mod5  = importlib.util.module_from_spec(spec5)
+            # Change to base_dir so relative paths resolve correctly
+            _orig_dir = os.getcwd()
+            os.chdir(base_dir)
+            try:
+                spec5.loader.exec_module(mod5)
+                mod5.run_forecasting()
+            finally:
+                os.chdir(_orig_dir)
+            logger.info("  > 05_forecast.py complete")
+        except Exception as e:
+            logger.warning(f"  05_forecast.py failed: {e}")
+
+        # Run step 6 - validate
+        try:
+            logger.info("  > Running 06_validate.py...")
+            spec6 = importlib.util.spec_from_file_location(
+                "validate", os.path.join(pipeline_dir, "06_validate.py"))
+            mod6  = importlib.util.module_from_spec(spec6)
+            _orig_dir = os.getcwd()
+            os.chdir(base_dir)
+            try:
+                spec6.loader.exec_module(mod6)
+                mod6.run_validation()
+            finally:
+                os.chdir(_orig_dir)
+            logger.info("  > 06_validate.py complete")
+        except Exception as e:
+            logger.warning(f"  06_validate.py failed: {e}")
+
+    # Load the latest validated file (today's if steps ran successfully)
     files = sorted(glob.glob(os.path.join(VAL_DIR, "forecast_validated_*.json")))
     if not files:
         raise FileNotFoundError(f"No validated forecast in {VAL_DIR}.")
-    with open(files[-1]) as f:
+
+    latest_file = files[-1]
+    if today_str not in os.path.basename(latest_file):
+        logger.warning(f"  Still using {os.path.basename(latest_file)} - steps 5+6 may have failed")
+        logger.warning(f"  Run manually: python pipeline/05_forecast.py && python pipeline/06_validate.py")
+
+    with open(latest_file) as f:
         forecast = json.load(f)
 
-    return diff, zones, forecast, os.path.basename(files[-1])
+    return diff, zones, forecast, os.path.basename(latest_file)
 
 
 def build_zonal_output(forecast, diff, zones, run_date):
