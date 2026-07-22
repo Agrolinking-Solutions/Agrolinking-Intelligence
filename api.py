@@ -828,6 +828,275 @@ def latest_intelligence():
 
 
 # ── Run locally ─────────────────────────────────────────────────────────────
+
+
+@app.get("/supply", tags=["Trade Intelligence"])
+def supply_availability(
+    zone: Optional[str] = Query(None, description="Filter by zone e.g. North West"),
+):
+    """
+    Supply availability per zone per commodity.
+    Returns Tight / Balanced / Surplus label + numeric score (0-100).
+    Derived from shortage/surplus scores in the intelligence layer.
+
+    Score interpretation:
+      0-30:  Shortage / Tight supply
+      31-64: Balanced
+      65-100: Surplus
+    """
+    intel, fname = load_latest_intelligence()
+    scores = intel.get("shortage_surplus", {}).get("per_commodity", {})
+    zonal,  zf   = load_latest_zonal()
+    zones_data   = zonal.get("zones", {})
+
+    ZONE_LIST = [
+        "North West", "North Central", "North East",
+        "South West", "South East", "South South"
+    ]
+
+    # Filter zones if requested
+    if zone:
+        match = next((z for z in ZONE_LIST if z.lower() == zone.lower()), None)
+        if not match:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Zone '{zone}' not found. Available: {ZONE_LIST}"
+            )
+        ZONE_LIST = [match]
+
+    result = {}
+    for zone_name in ZONE_LIST:
+        zone_commodities = {}
+        zone_data = zones_data.get(zone_name, {})
+
+        for commodity, score_data in scores.items():
+            # Get the zone-specific price to adjust the national score
+            zone_states = zone_data.get("states", {})
+            zone_prices = []
+            for state_data in zone_states.values():
+                p = state_data.get(commodity, {}).get("state_price", 0)
+                if p > 0:
+                    zone_prices.append(p)
+
+            national_score = score_data.get("score", 50)
+
+            # Adjust score slightly by zone price vs national price
+            national_anchor = zonal.get("national_anchors", {}).get(commodity, {})
+            nat_price = national_anchor.get("price", 0)
+            if zone_prices and nat_price > 0:
+                zone_avg = sum(zone_prices) / len(zone_prices)
+                price_ratio = zone_avg / nat_price
+                # Higher zone price = tighter supply in that zone
+                zone_score = round(national_score * (2 - price_ratio), 1)
+                zone_score = max(0, min(100, zone_score))
+            else:
+                zone_score = national_score
+
+            label = score_data.get("label", "Balanced")
+            # Recalculate label from zone-adjusted score
+            if zone_score >= 65:
+                zone_label = "Surplus"
+            elif zone_score >= 31:
+                zone_label = "Balanced"
+            else:
+                zone_label = "Tight"
+
+            zone_commodities[commodity] = {
+                "score":          zone_score,
+                "label":          zone_label,
+                "national_score": national_score,
+                "color":          "#4CAF50" if zone_label == "Surplus"
+                                  else "#FF8C00" if zone_label == "Tight"
+                                  else "#2196F3",
+            }
+
+        # Zone summary
+        labels = [v["label"] for v in zone_commodities.values()]
+        result[zone_name] = {
+            "commodities": zone_commodities,
+            "summary": {
+                "tight":    labels.count("Tight"),
+                "balanced": labels.count("Balanced"),
+                "surplus":  labels.count("Surplus"),
+                "dominant": max(set(labels), key=labels.count) if labels else "Balanced",
+            }
+        }
+
+    return {
+        "as_of":        intel.get("run_date", ""),
+        "methodology":  "Score 0-30=Tight, 31-64=Balanced, 65-100=Surplus. "
+                        "Combines price signal, seasonality, and trend direction.",
+        "zones":        result,
+    }
+
+
+@app.get("/supply/{zone}", tags=["Trade Intelligence"])
+def supply_by_zone(zone: str):
+    """Supply availability for a specific zone — all commodities with score and label."""
+    return supply_availability(zone=zone)
+
+
+@app.get("/routes", tags=["Trade Intelligence"])
+def route_distances():
+    """
+    All state-to-state route distances and freight cost estimates.
+    Freight rate: NGN 12 per kg per 100km (diesel haulage, July 2026).
+    Useful for the route cost calculator on the trade tools page.
+    """
+    # State capital coordinates and distances from major hubs
+    STATES = {
+        "Kano":    {"zone": "North West",    "lat": 12.00, "lng": 8.52,  "hub": True},
+        "Kaduna":  {"zone": "North West",    "lat": 10.52, "lng": 7.44,  "hub": False},
+        "Plateau": {"zone": "North Central", "lat": 9.93,  "lng": 8.89,  "hub": False},
+        "Kogi":    {"zone": "North Central", "lat": 7.80,  "lng": 6.74,  "hub": False},
+        "Adamawa": {"zone": "North East",    "lat": 9.33,  "lng": 12.39, "hub": False},
+        "Borno":   {"zone": "North East",    "lat": 11.85, "lng": 13.16, "hub": False},
+        "Oyo":     {"zone": "South West",    "lat": 7.85,  "lng": 3.93,  "hub": False},
+        "Lagos":   {"zone": "South West",    "lat": 6.52,  "lng": 3.38,  "hub": True},
+        "Anambra": {"zone": "South East",    "lat": 6.21,  "lng": 7.07,  "hub": False},
+        "Imo":     {"zone": "South East",    "lat": 5.49,  "lng": 7.03,  "hub": False},
+        "Rivers":  {"zone": "South South",   "lat": 4.82,  "lng": 7.03,  "hub": True},
+        "Delta":   {"zone": "South South",   "lat": 5.70,  "lng": 5.95,  "hub": False},
+    }
+
+    # Road distances (km) between state pairs - from FMWORKS Nigeria road atlas
+    DISTANCES = {
+        ("Kano",    "Kaduna"):  185,
+        ("Kano",    "Plateau"): 420,
+        ("Kano",    "Kogi"):    560,
+        ("Kano",    "Adamawa"): 680,
+        ("Kano",    "Borno"):   580,
+        ("Kano",    "Oyo"):     870,
+        ("Kano",    "Lagos"):   1050,
+        ("Kano",    "Anambra"): 890,
+        ("Kano",    "Imo"):     950,
+        ("Kano",    "Rivers"):  1100,
+        ("Kano",    "Delta"):   950,
+        ("Kaduna",  "Plateau"): 235,
+        ("Kaduna",  "Kogi"):    375,
+        ("Kaduna",  "Lagos"):   865,
+        ("Kaduna",  "Rivers"):  915,
+        ("Plateau", "Kogi"):    340,
+        ("Plateau", "Lagos"):   750,
+        ("Plateau", "Rivers"):  780,
+        ("Kogi",    "Lagos"):   490,
+        ("Kogi",    "Anambra"): 310,
+        ("Kogi",    "Rivers"):  590,
+        ("Adamawa", "Borno"):   410,
+        ("Adamawa", "Lagos"):   1150,
+        ("Borno",   "Lagos"):   1380,
+        ("Oyo",     "Lagos"):   130,
+        ("Oyo",     "Rivers"):  590,
+        ("Lagos",   "Anambra"): 530,
+        ("Lagos",   "Imo"):     590,
+        ("Lagos",   "Rivers"):  650,
+        ("Lagos",   "Delta"):   500,
+        ("Anambra", "Imo"):     90,
+        ("Anambra", "Rivers"):  180,
+        ("Anambra", "Delta"):   220,
+        ("Imo",     "Rivers"):  130,
+        ("Rivers",  "Delta"):   160,
+    }
+
+    FREIGHT_RATE = 12.0  # NGN per kg per 100km
+
+    # Build complete route table (both directions)
+    routes = []
+    all_states = list(STATES.keys())
+    for i, origin in enumerate(all_states):
+        for dest in all_states[i+1:]:
+            key1 = (origin, dest)
+            key2 = (dest, origin)
+            dist = DISTANCES.get(key1) or DISTANCES.get(key2)
+            if not dist:
+                # Estimate via Kano hub if direct not available
+                d1 = DISTANCES.get(("Kano", origin)) or DISTANCES.get((origin, "Kano")) or 500
+                d2 = DISTANCES.get(("Kano", dest))   or DISTANCES.get((dest, "Kano"))   or 500
+                dist = d1 + d2
+                method = "estimated_via_hub"
+            else:
+                method = "direct"
+
+            freight_per_kg = round(FREIGHT_RATE * dist / 100, 2)
+
+            routes.append({
+                "origin":           origin,
+                "origin_zone":      STATES[origin]["zone"],
+                "destination":      dest,
+                "destination_zone": STATES[dest]["zone"],
+                "distance_km":      dist,
+                "freight_ngn_per_kg": freight_per_kg,
+                "freight_ngn_per_mt": round(freight_per_kg * 1000, 0),
+                "method":           method,
+            })
+
+    return {
+        "freight_rate_basis": "NGN 12 per kg per 100km (diesel haulage, July 2026)",
+        "note":               "Distances are road km between state capitals. "
+                              "Actual routes may vary by commodity type and season.",
+        "total_routes":       len(routes),
+        "states":             STATES,
+        "routes":             routes,
+    }
+
+
+@app.get("/routes/{origin}/{destination}", tags=["Trade Intelligence"])
+def route_detail(origin: str, destination: str):
+    """
+    Freight cost for a specific origin-destination pair.
+    Also shows which commodities make financial sense to trade on this route
+    based on current arbitrage data.
+    """
+    # Get route data
+    all_routes = route_distances()
+    route = next(
+        (r for r in all_routes["routes"]
+         if (r["origin"].lower() == origin.lower() and
+             r["destination"].lower() == destination.lower()) or
+            (r["origin"].lower() == destination.lower() and
+             r["destination"].lower() == origin.lower())),
+        None
+    )
+
+    if not route:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No route found between '{origin}' and '{destination}'. "
+                   f"Available states: {list(all_routes['states'].keys())}"
+        )
+
+    # Get arbitrage data and filter to this route
+    try:
+        intel, _ = load_latest_intelligence()
+        arb_data  = intel.get("arbitrage", {})
+        viable_on_route = []
+        for commodity, arb in arb_data.items():
+            src = arb.get("source_state", "")
+            dst = arb.get("destination_state", "")
+            # Check if this route is relevant (either direction)
+            route_states = {origin.title(), destination.title()}
+            arb_states   = {src.split(" (")[0], dst.split(" (")[0]}
+            if route_states & arb_states:  # any overlap
+                viable_on_route.append({
+                    "commodity":              commodity,
+                    "net_arbitrage_ngn_kg":   arb.get("net_arbitrage_ngn_kg", 0),
+                    "gross_arbitrage_ngn_kg": arb.get("gross_arbitrage_ngn_kg", 0),
+                    "route_freight_ngn_kg":   route["freight_ngn_per_kg"],
+                    "viable":                 arb.get("net_arbitrage_ngn_kg", 0) > 0,
+                })
+        viable_on_route.sort(key=lambda x: x["net_arbitrage_ngn_kg"], reverse=True)
+    except Exception:
+        viable_on_route = []
+
+    return {
+        "route":            route,
+        "commodities_to_trade": viable_on_route,
+        "interpretation":   (
+            f"Transporting goods from {route['origin']} to {route['destination']} "
+            f"costs NGN {route['freight_ngn_per_kg']:.2f}/kg over {route['distance_km']}km."
+        ),
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
