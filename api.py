@@ -712,16 +712,46 @@ def seasonality_profile(commodity: str):
     intel, fname = load_latest_intelligence()
     profiles = intel.get("seasonality_profiles", {})
     key = next((k for k in profiles if normalise(k) == normalise(commodity)), None)
-    if not key:
-        raise HTTPException(status_code=404,
-            detail=f"No seasonality data for '{commodity}'. "
-                   f"Available: {list(profiles.keys())}")
-    profile = profiles[key]
+
+    # If no seasonality data from season_calendar.csv, use built-in estimates
+    # based on known Nigerian agricultural seasonal patterns
+    if not key or not profiles.get(key):
+        BUILTIN_SEASONALITY = {
+            "Maize (white)":  {1:35,2:30,3:40,4:55,5:65,6:75,7:80,8:85,9:90,10:75,11:55,12:40},
+            "Maize (yellow)": {1:35,2:30,3:40,4:55,5:65,6:75,7:80,8:85,9:90,10:75,11:55,12:40},
+            "Sorghum":        {1:55,2:45,3:40,4:35,5:30,6:35,7:40,8:50,9:70,10:85,11:80,12:65},
+            "Rice":           {1:45,2:40,3:35,4:40,5:50,6:60,7:65,8:70,9:80,10:85,11:75,12:55},
+            "Wheat":          {1:70,2:75,3:80,4:85,5:70,6:55,7:45,8:40,9:35,10:40,11:55,12:65},
+            "Beans (white)":  {1:50,2:45,3:40,4:50,5:60,6:70,7:75,8:80,9:85,10:80,11:65,12:55},
+            "Beans (red)":    {1:50,2:45,3:40,4:50,5:60,6:70,7:75,8:80,9:85,10:80,11:65,12:55},
+            "Soybeans":       {1:55,2:50,3:45,4:40,5:45,6:55,7:65,8:75,9:85,10:90,11:75,12:60},
+            "Ginger":         {1:60,2:55,3:50,4:45,5:40,6:35,7:30,8:35,9:45,10:65,11:75,12:70},
+            "Hibiscus":       {1:65,2:60,3:55,4:50,5:45,6:35,7:30,8:35,9:45,10:60,11:75,12:70},
+            "Sesame":         {1:50,2:45,3:40,4:35,5:40,6:50,7:60,8:70,9:85,10:90,11:75,12:60},
+            "Cocoa":          {1:45,2:40,3:35,4:30,5:35,6:45,7:55,8:65,9:75,10:85,11:90,12:70},
+            "Cashew Nuts":    {1:30,2:35,3:50,4:80,5:90,6:85,7:70,8:55,9:45,10:35,11:30,12:30},
+            "Meat (beef)":    {1:55,2:50,3:55,4:60,5:55,6:50,7:45,8:50,9:55,10:60,11:65,12:60},
+            "Meat (goat)":    {1:55,2:50,3:55,4:60,5:55,6:50,7:45,8:50,9:55,10:60,11:65,12:60},
+            "Fish (dried)":   {1:60,2:65,3:70,4:65,5:55,6:45,7:40,8:45,9:50,10:60,11:65,12:62},
+            "Eggs":           {1:55,2:50,3:55,4:60,5:65,6:60,7:55,8:55,9:55,10:60,11:65,12:60},
+        }
+        # Find matching key case-insensitively
+        key = next((k for k in BUILTIN_SEASONALITY if normalise(k) == normalise(commodity)), None)
+        if not key:
+            raise HTTPException(status_code=404,
+                detail=f"Commodity '{commodity}' not found. "
+                       f"Available: {list(BUILTIN_SEASONALITY.keys())}")
+        profile_data = {str(k): v for k, v in BUILTIN_SEASONALITY[key].items()}
+        data_source = "built-in seasonal estimates (season_calendar.csv not yet loaded)"
+    else:
+        profile_data = profiles[key]
+        data_source = "season_calendar.csv"
     current_month = datetime.now().month
     months = {
         1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",
         7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"
     }
+    profile = profile_data
     enriched = {
         months[int(m)]: {
             "score":          v,
@@ -736,6 +766,7 @@ def seasonality_profile(commodity: str):
         "current_month":    months[current_month],
         "current_score":    profile.get(str(current_month), 50),
         "note":             "100=peak harvest (low prices), 0=lean season (high prices)",
+        "data_source":      data_source,
         "monthly_profile":  enriched,
     }
 
