@@ -192,6 +192,8 @@ def root():
             "DELETE /alerts/saved/{alert_id}",
             "GET /alerts/check",
             "GET /meta",
+            "GET /forecasts/factors",
+            "GET /forecasts/factors?commodity={commodity}",
         ]
     }
 
@@ -1615,6 +1617,289 @@ def platform_meta():
                 "Wheat":          "7%",
             }
         }
+    }
+
+
+
+@app.get("/forecasts/factors", tags=["Forecasts"])
+def forecast_factor_drivers(
+    commodity: Optional[str] = Query(None, description="Filter by commodity e.g. Rice")
+):
+    """
+    Forecast factor drivers per commodity.
+    Each factor rated High / Mid / Low with a direction signal.
+
+    Factors:
+      - rainfall_season:   Seasonal rainfall and harvest calendar position
+      - fuel_transport:    Fuel price impact on haulage and transport costs
+      - fx_import_parity:  NGN/USD exchange rate impact on import-dependent commodities
+      - harvest_supply:    Current harvest cycle supply availability
+      - policy_tariffs:    Known Nigerian trade policy and tariff impacts
+
+    Rating scale:
+      High = strong upward price pressure
+      Mid  = moderate or neutral impact
+      Low  = downward price pressure or minimal impact
+    """
+    from datetime import datetime
+    import pandas as pd
+
+    run_date = datetime.now()
+    current_month = run_date.month
+    months = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",
+              7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
+
+    # ── Load intelligence for shortage/surplus scores ─────────────────────
+    try:
+        intel, _ = load_latest_intelligence()
+        shortage_scores = intel.get("shortage_surplus", {}).get("per_commodity", {})
+    except Exception:
+        shortage_scores = {}
+
+    # ── Factor 2: Fuel price signal ───────────────────────────────────────
+    fuel_signal = "Mid"
+    fuel_note   = "Fuel prices stable (no fuel_prices.csv data)"
+    fuel_pct    = 0.0
+    try:
+        fuel_path = os.path.join(BASE_DIR, "data", "external", "fuel_prices.csv")
+        if os.path.exists(fuel_path):
+            fuel_df = pd.read_csv(fuel_path, parse_dates=["date"])
+            fuel_df = fuel_df.sort_values("date")
+            latest_fuel = fuel_df["price"].iloc[-1]
+            avg_3m_fuel = fuel_df["price"].tail(13).mean()  # ~3 months weekly
+            fuel_pct    = (latest_fuel - avg_3m_fuel) / avg_3m_fuel * 100
+            if fuel_pct > 10:
+                fuel_signal = "High"
+                fuel_note   = f"Fuel {fuel_pct:+.1f}% above 3-month avg — transport costs elevated"
+            elif fuel_pct < -5:
+                fuel_signal = "Low"
+                fuel_note   = f"Fuel {fuel_pct:+.1f}% below 3-month avg — transport costs easing"
+            else:
+                fuel_signal = "Mid"
+                fuel_note   = f"Fuel {fuel_pct:+.1f}% vs 3-month avg — transport costs stable"
+    except Exception:
+        pass
+
+    # ── Factor 3: FX / Import parity signal ──────────────────────────────
+    fx_signal = "Mid"
+    fx_note   = "NGN/USD stable"
+    fx_pct    = 0.0
+    try:
+        fx_path = os.path.join(BASE_DIR, "data", "external", "fx_rates.csv")
+        if os.path.exists(fx_path):
+            fx_df = pd.read_csv(fx_path, parse_dates=["date"])
+            fx_df = fx_df.sort_values("date")
+            # Higher NGN/USD = weaker naira = more expensive imports
+            latest_fx = fx_df.iloc[-1].get("usd_ngn", fx_df.iloc[-1].get("rate", 1600))
+            avg_fx    = fx_df.tail(13)["usd_ngn"].mean() if "usd_ngn" in fx_df.columns else                         fx_df.tail(13).iloc[:, 1].mean()
+            fx_pct    = (latest_fx - avg_fx) / avg_fx * 100
+            if fx_pct > 5:
+                fx_signal = "High"
+                fx_note   = f"NGN weakened {fx_pct:+.1f}% — imports more expensive"
+            elif fx_pct < -5:
+                fx_signal = "Low"
+                fx_note   = f"NGN strengthened {fx_pct:+.1f}% — import pressure easing"
+            else:
+                fx_signal = "Mid"
+                fx_note   = f"NGN/USD relatively stable ({fx_pct:+.1f}%)"
+    except Exception:
+        pass
+
+    # ── Seasonality scores (built-in) ─────────────────────────────────────
+    SEASONALITY = {
+        "Maize (white)":  {1:35,2:30,3:40,4:55,5:65,6:75,7:80,8:85,9:90,10:75,11:55,12:40},
+        "Maize (yellow)": {1:35,2:30,3:40,4:55,5:65,6:75,7:80,8:85,9:90,10:75,11:55,12:40},
+        "Sorghum":        {1:55,2:45,3:40,4:35,5:30,6:35,7:40,8:50,9:70,10:85,11:80,12:65},
+        "Rice":           {1:45,2:40,3:35,4:40,5:50,6:60,7:65,8:70,9:80,10:85,11:75,12:55},
+        "Wheat":          {1:70,2:75,3:80,4:85,5:70,6:55,7:45,8:40,9:35,10:40,11:55,12:65},
+        "Beans (white)":  {1:50,2:45,3:40,4:50,5:60,6:70,7:75,8:80,9:85,10:80,11:65,12:55},
+        "Beans (red)":    {1:50,2:45,3:40,4:50,5:60,6:70,7:75,8:80,9:85,10:80,11:65,12:55},
+        "Soybeans":       {1:55,2:50,3:45,4:40,5:45,6:55,7:65,8:75,9:85,10:90,11:75,12:60},
+        "Ginger":         {1:60,2:55,3:50,4:45,5:40,6:35,7:30,8:35,9:45,10:65,11:75,12:70},
+        "Hibiscus":       {1:65,2:60,3:55,4:50,5:45,6:35,7:30,8:35,9:45,10:60,11:75,12:70},
+        "Sesame":         {1:50,2:45,3:40,4:35,5:40,6:50,7:60,8:70,9:85,10:90,11:75,12:60},
+        "Cocoa":          {1:45,2:40,3:35,4:30,5:35,6:45,7:55,8:65,9:75,10:85,11:90,12:70},
+        "Cashew Nuts":    {1:30,2:35,3:50,4:80,5:90,6:85,7:70,8:55,9:45,10:35,11:30,12:30},
+        "Meat (beef)":    {1:55,2:50,3:55,4:60,5:55,6:50,7:45,8:50,9:55,10:60,11:65,12:60},
+        "Meat (goat)":    {1:55,2:50,3:55,4:60,5:55,6:50,7:45,8:50,9:55,10:60,11:65,12:60},
+        "Fish (dried)":   {1:60,2:65,3:70,4:65,5:55,6:45,7:40,8:45,9:50,10:60,11:65,12:62},
+        "Eggs":           {1:55,2:50,3:55,4:60,5:65,6:60,7:55,8:55,9:55,10:60,11:65,12:60},
+    }
+
+    # ── Policy signals (rule-based, July 2026) ────────────────────────────
+    POLICY_SIGNALS = {
+        "Rice":          ("High", "Import levy active — 50% tariff on imported rice"),
+        "Wheat":         ("High", "Import-dependent — FX and tariff sensitive"),
+        "Maize (white)": ("Mid",  "Export restrictions in place to protect domestic supply"),
+        "Maize (yellow)":("Mid",  "Export restrictions in place to protect domestic supply"),
+        "Cocoa":         ("Mid",  "Export levy 1.5% — minimal impact on domestic prices"),
+        "Sesame":        ("Low",  "Free trade — minimal policy intervention"),
+        "Hibiscus":      ("Low",  "Free trade — minimal policy intervention"),
+        "Ginger":        ("Mid",  "Export-grade subject to NAFDAC quality certification costs"),
+        "Soybeans":      ("Mid",  "Export duty applies — domestic supply generally protected"),
+        "Cashew Nuts":   ("Mid",  "Raw cashew export levy incentivises local processing"),
+        "Sorghum":       ("Low",  "Minimal trade policy — primarily domestic crop"),
+        "Beans (white)": ("Low",  "Minimal policy intervention — subsistence crop"),
+        "Beans (red)":   ("Low",  "Minimal policy intervention — subsistence crop"),
+        "Meat (beef)":   ("Mid",  "Live cattle import restrictions protect local producers"),
+        "Meat (goat)":   ("Low",  "Minimal trade policy — domestic supply dominant"),
+        "Fish (dried)":  ("High", "Import ban on frozen fish — stockfish import duty 20%"),
+        "Eggs":          ("Low",  "Minimal policy intervention — domestic poultry sector"),
+    }
+
+    # ── FX sensitivity (which commodities are most import-dependent) ──────
+    FX_SENSITIVE = {
+        "Wheat": True, "Rice": True, "Fish (dried)": True,
+        "Cocoa": False, "Sesame": False, "Ginger": False,
+    }
+
+    # ── Build per-commodity factor drivers ────────────────────────────────
+    COMMODITIES_LIST = list(SEASONALITY.keys())
+
+    def get_rating(score_or_pct, high_threshold, low_threshold, invert=False):
+        """Convert a numeric score to High/Mid/Low rating."""
+        if invert:
+            if score_or_pct < low_threshold:   return "High"
+            if score_or_pct > high_threshold:  return "Low"
+            return "Mid"
+        else:
+            if score_or_pct > high_threshold:  return "High"
+            if score_or_pct < low_threshold:   return "Low"
+            return "Mid"
+
+    result = {}
+    for comm in COMMODITIES_LIST:
+        # Factor 1: Rainfall & Season
+        season_score = SEASONALITY.get(comm, {}).get(current_month, 50)
+        if season_score < 35:
+            rain_rating = "High"
+            rain_note   = f"Lean season ({months[current_month]}) — low supply, potential drought stress"
+        elif season_score > 65:
+            rain_rating = "Low"
+            rain_note   = f"Harvest season ({months[current_month]}) — good supply availability"
+        else:
+            rain_rating = "Mid"
+            rain_note   = f"Transitional season ({months[current_month]}) — mixed supply signals"
+
+        # Factor 2: Fuel (same for all, transport cost is universal)
+        comm_fuel_signal = fuel_signal
+        comm_fuel_note   = fuel_note
+
+        # Factor 3: FX — amplified for import-dependent commodities
+        if FX_SENSITIVE.get(comm, False):
+            comm_fx_signal = fx_signal
+            if fx_signal == "High":
+                comm_fx_note = f"Import-dependent — {fx_note}"
+            elif fx_signal == "Low":
+                comm_fx_note = f"Import cost reducing — {fx_note}"
+            else:
+                comm_fx_note = f"Import parity stable — {fx_note}"
+        else:
+            # Export commodities benefit from weak NGN (higher export earnings)
+            if fx_pct > 5:
+                comm_fx_signal = "Low"    # weak NGN = good for exporters
+                comm_fx_note   = f"Weak NGN boosts export competitiveness — price support likely"
+            elif fx_pct < -5:
+                comm_fx_signal = "Mid"
+                comm_fx_note   = f"Stronger NGN reduces export incentive slightly"
+            else:
+                comm_fx_signal = "Low"
+                comm_fx_note   = "Export commodity — FX impact minimal at domestic level"
+
+        # Factor 4: Harvest Supply from shortage_surplus scores
+        supply_data   = shortage_scores.get(comm, {})
+        supply_score  = supply_data.get("score", 50)
+        supply_label  = supply_data.get("label", "Balanced")
+        if supply_score < 35:
+            supply_rating = "High"
+            supply_note   = f"Tight supply ({supply_label}, score={supply_score:.0f}) — upward price pressure"
+        elif supply_score > 65:
+            supply_rating = "Low"
+            supply_note   = f"Good supply ({supply_label}, score={supply_score:.0f}) — price support limited"
+        else:
+            supply_rating = "Mid"
+            supply_note   = f"Balanced supply ({supply_label}, score={supply_score:.0f})"
+
+        # Factor 5: Policy & Tariffs
+        policy_rating, policy_note = POLICY_SIGNALS.get(comm, ("Low", "Minimal policy impact"))
+
+        # Overall pressure score (how many factors are High)
+        ratings = [rain_rating, comm_fuel_signal, comm_fx_signal, supply_rating, policy_rating]
+        high_count = ratings.count("High")
+        low_count  = ratings.count("Low")
+        if high_count >= 3:
+            overall = "Bullish"
+            overall_note = "Multiple factors pointing to price increases"
+        elif low_count >= 3:
+            overall = "Bearish"
+            overall_note = "Multiple factors pointing to price decreases"
+        elif high_count >= 2:
+            overall = "Mildly Bullish"
+            overall_note = "More upward than downward pressure"
+        elif low_count >= 2:
+            overall = "Mildly Bearish"
+            overall_note = "More downward than upward pressure"
+        else:
+            overall = "Neutral"
+            overall_note = "Balanced factors — no strong directional pressure"
+
+        result[comm] = {
+            "overall_pressure": overall,
+            "overall_note":     overall_note,
+            "factors": {
+                "rainfall_season": {
+                    "rating":         rain_rating,
+                    "note":           rain_note,
+                    "season_score":   season_score,
+                    "current_month":  months[current_month],
+                },
+                "fuel_transport": {
+                    "rating":         comm_fuel_signal,
+                    "note":           comm_fuel_note,
+                    "fuel_pct_vs_avg": round(fuel_pct, 2),
+                },
+                "fx_import_parity": {
+                    "rating":          comm_fx_signal,
+                    "note":            comm_fx_note,
+                    "import_dependent": FX_SENSITIVE.get(comm, False),
+                    "fx_pct_vs_avg":   round(fx_pct, 2),
+                },
+                "harvest_supply": {
+                    "rating":        supply_rating,
+                    "note":          supply_note,
+                    "supply_score":  round(supply_score, 1),
+                    "supply_label":  supply_label,
+                },
+                "policy_tariffs": {
+                    "rating": policy_rating,
+                    "note":   policy_note,
+                },
+            }
+        }
+
+    # Filter by commodity if requested
+    if commodity:
+        key = next((k for k in result if normalise(k) == normalise(commodity)), None)
+        if not key:
+            raise HTTPException(status_code=404,
+                detail=f"Commodity '{commodity}' not found. Available: {list(result.keys())}")
+        return {
+            "as_of":     run_date.strftime("%Y-%m-%d"),
+            "commodity": key,
+            **result[key],
+        }
+
+    return {
+        "as_of":       run_date.strftime("%Y-%m-%d"),
+        "methodology": {
+            "rainfall_season":  "Based on Nigerian agricultural season calendar. High=lean season, Low=harvest season.",
+            "fuel_transport":   "Based on fuel_prices.csv vs 3-month rolling average.",
+            "fx_import_parity": "Based on fx_rates.csv NGN/USD vs 3-month avg. Import-dependent commodities amplified.",
+            "harvest_supply":   "Based on shortage/surplus composite score from intelligence layer.",
+            "policy_tariffs":   "Rule-based scoring from known Nigerian trade policy as of July 2026.",
+        },
+        "rating_scale": "High=upward price pressure, Mid=neutral, Low=downward pressure",
+        "commodities":  result,
     }
 
 if __name__ == "__main__":
