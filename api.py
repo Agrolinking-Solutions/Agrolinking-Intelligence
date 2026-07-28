@@ -192,8 +192,8 @@ def root():
             "DELETE /alerts/saved/{alert_id}",
             "GET /alerts/check",
             "GET /meta",
-            "GET /forecasts/factors",
-            "GET /forecasts/factors?commodity={commodity}",
+            "GET /factors",
+            "GET /factors?commodity={commodity}",
         ]
     }
 
@@ -1621,7 +1621,7 @@ def platform_meta():
 
 
 
-@app.get("/forecasts/factors", tags=["Forecasts"])
+@app.get("/factors", tags=["Forecasts"])
 def forecast_factor_drivers(
     commodity: Optional[str] = Query(None, description="Filter by commodity e.g. Rice")
 ):
