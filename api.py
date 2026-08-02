@@ -197,8 +197,10 @@ def root():
         ]
     }
 
-
-
+@app.get("/health", tags=["Info"])
+def health():
+    """Lightweight liveness check for uptime monitoring — no file I/O."""
+    return {"status": "ok"}
 
 @app.get("/health", tags=["Info"])
 def health_check():
