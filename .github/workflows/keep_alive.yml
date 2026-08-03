@@ -1,0 +1,21 @@
+name: Keep Agrolinking Intelligence API Alive
+
+on:
+  schedule:
+    # Runs every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API health endpoint
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://agrolinking-intelligence.onrender.com/health)
+          echo "Response code: $response"
+          if [ "$response" = "200" ]; then
+            echo "API is alive and responding"
+          else
+            echo "WARNING: API returned $response"
+          fi
