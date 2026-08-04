@@ -202,10 +202,6 @@ def health():
     """Lightweight liveness check for uptime monitoring — no file I/O."""
     return {"status": "ok"}
 
-@app.get("/health", tags=["Info"])
-def health_check():
-    """Dedicated health check endpoint for uptime monitoring services."""
-    return {"status": "operational", "timestamp": datetime.now().isoformat()}
 
 @app.get("/summary", tags=["Dashboard"])
 def summary():
