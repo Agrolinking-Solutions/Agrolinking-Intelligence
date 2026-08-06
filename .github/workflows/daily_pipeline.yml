@@ -1,0 +1,45 @@
+name: Daily Agrolinking Pipeline
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 6am UTC = 7am WAT (Nigeria time) every day
+  workflow_dispatch:        # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pipeline dependencies
+        run: |
+          pip install pandas numpy scikit-learn prophet pmdarima \
+                      statsmodels xgboost lightgbm loguru
+
+      - name: Run forecast pipeline (steps 5-8)
+        run: |
+          python pipeline/05_forecast.py
+          python pipeline/06_validate.py
+          python pipeline/07_zonal_forecast.py
+          python pipeline/08_intelligence.py
+
+      - name: Commit and push fresh outputs
+        run: |
+          git config user.name "Agrolinking Pipeline Bot"
+          git config user.email "pipeline@agrolinking.com"
+          git add outputs/forecasts/validated/
+          git add outputs/forecasts/zonal/
+          git add outputs/daily_alerts/
+          git add outputs/intelligence/
+          git diff --cached --quiet && echo "No changes to commit" || \
+            git commit -m "Auto daily update $(date '+%Y-%m-%d')"
+          git push origin main
