@@ -2,31 +2,24 @@ name: Keep Agrolinking Intelligence API Alive
 
 on:
   schedule:
-    - cron: '*/4 * * * *'   # Every 4 minutes - tighter than Render's 15min sleep window
+    - cron: '*/4 * * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   ping-api:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping health endpoint
+      - name: Ping Railway (primary)
         run: |
-          for i in 1 2 3; do
-            response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
-              https://agrolinking-intelligence.onrender.com/health)
-            echo "Attempt $i - Response: $response"
-            if [ "$response" = "200" ]; then
-              echo "SUCCESS: API alive"
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "WARNING: API may be cold starting"
+          response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            https://agrolinking-intelligence-production.up.railway.app/health)
+          echo "Railway response: $response"
 
-      - name: Warm up key endpoints
+      - name: Ping Render (backup)
         run: |
-          # Hit a few endpoints to fully warm the app, not just the health check
-          curl -s -o /dev/null "https://agrolinking-intelligence.onrender.com/summary" &
-          curl -s -o /dev/null "https://agrolinking-intelligence.onrender.com/commodities" &
-          wait
-          echo "Warmup complete"
+          response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            https://agrolinking-intelligence.onrender.com/health)
+          echo "Render response: $response"
