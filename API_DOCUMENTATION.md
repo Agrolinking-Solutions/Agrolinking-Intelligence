@@ -1,351 +1,175 @@
 # Agrolinking Commodity Intelligence API
 
-**Live Base URL:** `https://agrolinking-intelligence-api.onrender.com`
+**Primary URL (Railway — never sleeps):** `https://agrolinking-intelligence-production.up.railway.app`
 
-**Local Base URL:** `http://localhost:8000`
+**Backup URL (Render):** `https://agrolinking-intelligence.onrender.com`
 
-**Interactive Docs (Swagger UI):** `https://agrolinking-intelligence-api.onrender.com/docs`
+**Interactive Docs:** `https://agrolinking-intelligence-production.up.railway.app/docs`
 
-All responses are JSON. All prices are in NGN/MT (Nigerian Naira per metric tonne).
-CORS is open so any frontend domain can call the API without configuration.
+**API Version:** 2.1.0 | **Last Updated:** August 2026
 
-> Note: The API is hosted on Render's free tier. The first request after 15 minutes
-> of inactivity takes approximately 30 seconds to wake up. Subsequent requests are instant.
-> Contact the Agrolinking data team to upgrade to always-on when integrating into production.
+All responses are JSON. All prices in NGN/MT unless otherwise stated. CORS open — callable from any domain or frontend framework.
 
 ---
 
-## Endpoints
+## Infrastructure
 
-### GET /
-Health check and API overview.
-
-```json
-{
-  "status": "operational",
-  "api": "Agrolinking Commodity Intelligence",
-  "version": "1.0.0",
-  "commodities": 13,
-  "last_updated": "2026-06-03",
-  "docs": "/docs"
-}
-```
+| Component | Service | URL | Status |
+|---|---|---|---|
+| Primary API | Railway | agrolinking-intelligence-production.up.railway.app | Always on |
+| Backup API | Render | agrolinking-intelligence.onrender.com | Always on (keep-alive) |
+| Dashboard | Streamlit Cloud | agrolinking-intelligence-f8qq4uhupaax2qny8rpcpx.streamlit.app | Live |
+| Keep-alive | GitHub Actions | Pings every 4 minutes | Active |
+| Daily pipeline | GitHub Actions | Runs 7am WAT daily | Active |
+| Uptime monitor | UptimeRobot | Monitors /health endpoint | Active |
 
 ---
+
+## Endpoint Directory
+
+### V1 — Core Data
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | / | Health check and full endpoint directory |
+| GET | /health | Dedicated health check for monitoring |
+| GET | /summary | Dashboard hero card — accuracy, error, run date |
+| GET | /commodities | All 17 live prices with daily change and validation |
+| GET | /forecasts/latest | Full forecast all commodities. Optional ?horizon= filter |
+| GET | /forecasts/{commodity} | Single commodity 6-horizon forecast with weekly series |
+| GET | /forecasts/{commodity}/{horizon} | Chart-ready weekly series with confidence bands |
+| GET | /zonal/latest | All zonal and state prices |
+| GET | /zonal/{commodity} | State-level prices with best sourcing intelligence |
+| GET | /alerts/latest | WhatsApp/email ready daily broadcast text |
+
+### V2 — Intelligence Layer
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | /prices/kg | All 17 prices in NGN/kg (Eggs in NGN/crate) |
+| GET | /prices/kg/{commodity} | Single commodity NGN/kg |
+| GET | /index/food | Food Price Index (base 2025=100) with MoM change |
+| GET | /index/volatility | 30-day rolling volatility index per commodity |
+| GET | /outlook/30d | Aggregate 30-day price outlook + per commodity |
+| GET | /confidence | Model confidence scores per commodity |
+| GET | /movers | Biggest riser and faller today |
+| GET | /alerts/early-warning | WFP ALPS alert status (Severe/High/Watch/Normal) |
+| GET | /shortage-surplus | Shortage/surplus score 0-100 per commodity |
+| GET | /seasonality/{commodity} | Monthly seasonality profile |
+| GET | /spreads | State price high/low spread per commodity |
+| GET | /arbitrage | Net arbitrage per kg after freight all commodities |
+| GET | /arbitrage/{commodity} | Single commodity arbitrage detail |
+| GET | /intelligence/latest | Full intelligence bundle — all metrics in one call |
+| GET | /supply | Supply availability per zone (Tight/Balanced/Surplus) |
+| GET | /supply/{zone} | Supply availability for specific zone |
+| GET | /routes | All state-to-state distances and freight costs |
+| GET | /routes/{origin}/{destination} | Route detail with viable commodities |
+
+### V3 — History, Alerts, Meta
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | /history/{commodity} | Historical price series from 2016. ?days=90 or ?from_date= |
+| GET | /history/compare | Multi-commodity comparison with indexed values |
+| GET | /history/fpi | Historical Food Price Index series |
+| GET | /alerts/saved | List all saved price threshold alerts |
+| POST | /alerts/saved | Create a price threshold alert |
+| DELETE | /alerts/saved/{alert_id} | Delete a saved alert |
+| GET | /alerts/check | Check all alerts against current prices |
+| GET | /factors | Forecast factor drivers per commodity (Rainfall/FX/Fuel/Harvest/Policy) |
+| GET | /meta | Platform metadata, source counts, field documentation |
+
+**Valid horizons:** daily | weekly | 2_weeks | monthly | 3_months | 6_months
+
+---
+
+## Key Endpoints — Request & Response Examples
 
 ### GET /commodities
-All 13 commodities with current price, daily change, and validation status.
-
 ```
-GET https://agrolinking-intelligence-api.onrender.com/commodities
+GET https://agrolinking-intelligence-production.up.railway.app/commodities
 ```
-
 ```json
 {
-  "count": 13,
-  "as_of": "2026-06-03",
+  "count": 17,
+  "as_of": "2026-08-06",
   "commodities": [
     {
       "commodity": "Rice",
-      "price_ngn_mt": 1584417,
-      "last_known_date": "2026-06-03",
-      "forecast_price": 1584417,
-      "pct_change_daily": -2.5,
-      "validation_error": 2.2,
-      "validation_status": "verified",
+      "price_ngn_mt": 1337074,
+      "price_per_unit": 1337.07,
+      "unit": "NGN/kg",
+      "day_change_pct": 0.09,
+      "forecast_price": 1351709,
       "within_target": true,
-      "currency": "NGN",
-      "unit": "NGN/MT"
+      "currency": "NGN"
     }
   ]
 }
 ```
 
----
-
-### GET /forecasts/latest
-Full forecast for all 13 commodities. Optional horizon filter.
-
-```
-GET https://agrolinking-intelligence-api.onrender.com/forecasts/latest
-GET https://agrolinking-intelligence-api.onrender.com/forecasts/latest?horizon=monthly
-```
-
-Query parameters:
-
-| Parameter | Type | Values |
-|---|---|---|
-| horizon | string (optional) | daily, weekly, 2_weeks, monthly, 3_months, 6_months |
-
----
-
-### GET /forecasts/{commodity}
-Full 6-horizon forecast for one commodity including weekly price series and confidence bands.
-
-```
-GET https://agrolinking-intelligence-api.onrender.com/forecasts/Rice
-GET https://agrolinking-intelligence-api.onrender.com/forecasts/Maize%20(white)
-GET https://agrolinking-intelligence-api.onrender.com/forecasts/Ginger
-```
-
-Response includes the `horizons` block with `weekly_series` array suitable for charting:
-
-```json
-{
-  "commodity": "Rice",
-  "run_date": "2026-06-03",
-  "last_known_price": 1584417,
-  "last_known_date": "2026-06-03",
-  "currency": "NGN",
-  "unit": "NGN/MT",
-  "models_used": ["arima", "prophet", "holt_winters", "xgboost"],
-  "validation": {
-    "reference_price": 1550000,
-    "error_before_pct": 8.9,
-    "error_after_pct": 2.2,
-    "action": "soft_blend",
-    "within_target": true
-  },
-  "horizons": {
-    "monthly": {
-      "forecast_date": "2026-06-29",
-      "forecast_price": 1620000,
-      "pct_change": 2.3,
-      "direction": "up",
-      "weekly_series": [
-        {
-          "date": "2026-06-08",
-          "price": 1598000,
-          "lower_ci": 1520000,
-          "upper_ci": 1680000
-        }
-      ]
-    }
-  }
-}
-```
-
----
-
 ### GET /forecasts/{commodity}/{horizon}
-Single commodity at a specific forecast horizon. Returns chart-ready weekly series.
-
 ```
-GET https://agrolinking-intelligence-api.onrender.com/forecasts/Rice/monthly
-GET https://agrolinking-intelligence-api.onrender.com/forecasts/Cocoa/3_months
-GET https://agrolinking-intelligence-api.onrender.com/forecasts/Maize%20(white)/6_months
+GET /forecasts/Rice/monthly
+GET /forecasts/Maize%20(white)/3_months
+GET /forecasts/Ginger/6_months
 ```
-
-Valid horizons: `daily`, `weekly`, `2_weeks`, `monthly`, `3_months`, `6_months`
-
+Returns `weekly_series` array — drop directly into Chart.js, Recharts, or D3:
 ```json
 {
   "commodity": "Rice",
   "horizon": "monthly",
-  "run_date": "2026-06-03",
-  "last_known_price": 1584417,
-  "forecast_date": "2026-06-29",
-  "forecast_price_ngn": 1620000,
-  "pct_change": 2.3,
+  "forecast_price_ngn": 1351709,
+  "pct_change": 1.1,
   "direction": "up",
-  "currency": "NGN",
-  "unit": "NGN/MT",
-  "validation_error_pct": 2.2,
-  "within_target": true,
   "weekly_series": [
-    {
-      "date": "2026-06-08",
-      "price": 1598000,
-      "lower_ci": 1520000,
-      "upper_ci": 1680000
-    },
-    {
-      "date": "2026-06-15",
-      "price": 1607000,
-      "lower_ci": 1528000,
-      "upper_ci": 1690000
-    }
+    {"date": "2026-08-09", "price": 1340000, "lower_ci": 1280000, "upper_ci": 1400000},
+    {"date": "2026-08-16", "price": 1345000, "lower_ci": 1285000, "upper_ci": 1408000}
   ]
 }
 ```
 
----
-
-### GET /zonal/latest
-All zonal and state prices for all 13 commodities across 6 zones and 12 states.
-
-```
-GET https://agrolinking-intelligence-api.onrender.com/zonal/latest
-GET https://agrolinking-intelligence-api.onrender.com/zonal/latest?zone=North%20West
-GET https://agrolinking-intelligence-api.onrender.com/zonal/latest?commodity=Rice
-```
-
-Query parameters:
-
-| Parameter | Type | Example |
-|---|---|---|
-| zone | string (optional) | North West, North Central, North East, South West, South East, South South |
-| commodity | string (optional) | Rice, Ginger, Maize (white) |
-
----
-
-### GET /zonal/{commodity}
-State-level prices for one commodity with best sourcing intelligence.
-
-```
-GET https://agrolinking-intelligence-api.onrender.com/zonal/Rice
-GET https://agrolinking-intelligence-api.onrender.com/zonal/Ginger
-GET https://agrolinking-intelligence-api.onrender.com/zonal/Maize%20(white)
-```
-
+### GET /factors?commodity=Rice
 ```json
 {
   "commodity": "Rice",
-  "run_date": "2026-06-03",
-  "national_price": 1584417,
-  "day_change_pct": 0.4,
-  "currency": "NGN",
-  "unit": "NGN/MT",
-  "best_sourcing": {
-    "state": "Plateau",
-    "price_ngn_mt": 1425976,
-    "spread_pct": 31,
-    "vs_state": "Lagos"
-  },
-  "state_prices": {
-    "Kano":    { "zone": "North West",    "price_ngn_mt": 1506000, "day_change_pct": 0.4, "is_primary": false },
-    "Kaduna":  { "zone": "North West",    "price_ngn_mt": 1474000, "day_change_pct": 0.4, "is_primary": true  },
-    "Plateau": { "zone": "North Central", "price_ngn_mt": 1426000, "day_change_pct": 0.4, "is_primary": true  },
-    "Lagos":   { "zone": "South West",    "price_ngn_mt": 1870000, "day_change_pct": 0.4, "is_primary": false }
+  "overall_pressure": "Neutral",
+  "factors": {
+    "rainfall_season":  {"rating": "Low",  "note": "Harvest season — good supply"},
+    "fuel_transport":   {"rating": "Mid",  "note": "Fuel prices stable"},
+    "fx_import_parity": {"rating": "High", "note": "Import-dependent — FX pressure"},
+    "harvest_supply":   {"rating": "Low",  "note": "Surplus (score=69)"},
+    "policy_tariffs":   {"rating": "High", "note": "50% import levy active"}
   }
 }
 ```
 
----
-
-### GET /alerts/latest
-Latest validated daily price alert, formatted for WhatsApp or email.
-
+### GET /history/{commodity}?days=90
 ```
-GET https://agrolinking-intelligence-api.onrender.com/alerts/latest
+GET /history/Rice?days=90
+GET /history/Ginger?from_date=2026-01-01
+GET /history/compare?commodities=Rice,Wheat&days=180
 ```
 
+### POST /alerts/saved
+```
+POST /alerts/saved?commodity=Rice&threshold_price=1500000&direction=above&email=buyer@company.com
+```
 ```json
 {
-  "date": "2026-06-03",
-  "source": "alert_validated_2026-06-03.txt",
-  "text": "AGROLINKING COMMODITY INTELLIGENCE ALERT\nMonday, 03 June 2026\n...",
-  "format": "WhatsApp / Email ready"
+  "message": "Alert created successfully.",
+  "alert": {
+    "id": "a3f2b1c4",
+    "commodity": "Rice",
+    "threshold_price": 1500000,
+    "direction": "above",
+    "active": true
+  }
 }
-```
-
----
-
-### GET /summary
-Dashboard hero data for the website header widget.
-
-```
-GET https://agrolinking-intelligence-api.onrender.com/summary
-```
-
-```json
-{
-  "commodities_tracked": 13,
-  "verified_accuracy": "13/13",
-  "verified_accuracy_pct": 100.0,
-  "avg_model_error_pct": 1.5,
-  "last_pipeline_run": "2026-06-03",
-  "accuracy_target": "within 3% of live market prices",
-  "data_sources": ["Agricome Africa", "WFP Nigeria", "NGX", "Market Naija TV", "LCFE"],
-  "zones": 6,
-  "states": 12,
-  "forecast_horizons": ["daily", "weekly", "2_weeks", "monthly", "3_months", "6_months"]
-}
-```
-
----
-
-## Frontend Integration Examples
-
-### Summary widget for homepage hero section
-
-```javascript
-const res  = await fetch('https://agrolinking-intelligence-api.onrender.com/summary');
-const data = await res.json();
-
-// data.commodities_tracked    -> 13
-// data.verified_accuracy      -> "13/13"
-// data.avg_model_error_pct    -> 1.5
-// data.last_pipeline_run      -> "2026-06-03"
-```
-
-### Live commodity price cards
-
-```javascript
-const res  = await fetch('https://agrolinking-intelligence-api.onrender.com/commodities');
-const data = await res.json();
-
-data.commodities.forEach(c => {
-  console.log(c.commodity);       // "Rice"
-  console.log(c.price_ngn_mt);    // 1584417
-  console.log(c.pct_change_daily); // -2.5
-  console.log(c.within_target);   // true
-});
-```
-
-### Price forecast chart (Chart.js / Recharts)
-
-```javascript
-const res  = await fetch(
-  'https://agrolinking-intelligence-api.onrender.com/forecasts/Rice/monthly'
-);
-const data = await res.json();
-
-// data.weekly_series is chart-ready
-const labels = data.weekly_series.map(p => p.date);
-const prices = data.weekly_series.map(p => p.price);
-const lower  = data.weekly_series.map(p => p.lower_ci);
-const upper  = data.weekly_series.map(p => p.upper_ci);
-
-// Pass directly into Chart.js, Recharts, or D3
-```
-
-### Nigeria map widget (state-level prices)
-
-```javascript
-const res  = await fetch(
-  'https://agrolinking-intelligence-api.onrender.com/zonal/Rice'
-);
-const data = await res.json();
-
-const states = data.state_prices;
-// states["Lagos"].price_ngn_mt   -> 1870000
-// states["Kano"].price_ngn_mt    -> 1506000
-// states["Plateau"].price_ngn_mt -> 1426000
-
-// Bind to Leaflet.js, Datawrapper, or any Nigeria map library
-```
-
-### All commodities at one horizon (forecast table)
-
-```javascript
-const res  = await fetch(
-  'https://agrolinking-intelligence-api.onrender.com/forecasts/latest?horizon=monthly'
-);
-const data = await res.json();
-
-Object.entries(data.forecasts).forEach(([name, fc]) => {
-  console.log(name, fc.forecast_price_ngn, fc.pct_change);
-});
 ```
 
 ---
 
 ## Commodity Name Reference
 
-Use these exact names in endpoint paths (URL-encode spaces as %20):
-
-| Name in URL | Display Name |
+| URL-encoded | Display Name |
 |---|---|
 | Hibiscus | Hibiscus |
 | Sesame | Sesame |
@@ -360,63 +184,98 @@ Use these exact names in endpoint paths (URL-encode spaces as %20):
 | Maize%20(yellow) | Maize (yellow) |
 | Wheat | Wheat |
 | Rice | Rice |
+| Meat%20(beef) | Meat (beef) |
+| Meat%20(goat) | Meat (goat) |
+| Fish%20(dried) | Fish (dried) |
+| Eggs | Eggs |
 
 ---
 
-## Deployment on Render
+## Zones and States
 
-The API is deployed on Render as a Web Service from the same GitHub repository
-as the Streamlit dashboard.
-
-### How to redeploy or set up from scratch
-
-1. Go to https://render.com and sign in with GitHub
-2. Click New, then Web Service
-3. Connect repository: `Agrolinking-Solutions/Agrolinking-Intelligence`
-4. Set branch to `main`
-5. Set build command: `pip install -r requirements.txt`
-6. Set start command: `uvicorn api:app --host 0.0.0.0 --port $PORT`
-7. Set plan to Free
-8. Click Create Web Service
-
-Render auto-redeploys on every push to `main`. New forecast data pushed to GitHub
-appears in the API within 2 minutes.
-
-### Environment Variables
-
-None required. The API reads directly from the JSON files in the `outputs/` folder
-that are committed to the GitHub repository.
-
-### Upgrading from Free to Always-On
-
-The free tier spins down after 15 minutes of inactivity, causing a 30-second cold
-start on the next request. When the API is integrated into the live agrolinking.com
-website, upgrade to the Starter plan ($7/month) on Render for always-on service.
+| Zone | States |
+|---|---|
+| North West | Kano, Kaduna |
+| North Central | Plateau, Kogi |
+| North East | Adamawa, Borno |
+| South West | Oyo, Lagos |
+| South East | Anambra, Imo |
+| South South | Rivers, Delta |
 
 ---
 
-## Update Frequency
+## Frontend Integration Examples
 
-The API serves static JSON files written by the pipeline. Files update when the
-pipeline runs and new outputs are pushed to GitHub.
-
-Daily cadence (run from your local machine or automate with Windows Task Scheduler):
-
-```powershell
-python pipeline\run_pipeline.py --skip-train
-
-git add outputs\forecasts\validated\
-git add outputs\forecasts\zonal\
-git add outputs\daily_alerts\
-git commit -m "Update forecasts $(Get-Date -Format 'yyyy-MM-dd')"
-git push
+### Homepage hero widget
+```javascript
+const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/summary');
+const data = await res.json();
+// data.commodities_tracked, data.verified_accuracy, data.avg_model_error_pct
 ```
 
-Weekly cadence (full retrain, Monday):
-
-```powershell
-python pipeline\run_pipeline.py
-git add outputs\
-git commit -m "Weekly retrain $(Get-Date -Format 'yyyy-MM-dd')"
-git push
+### Live price cards
+```javascript
+const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/commodities');
+const data = await res.json();
+data.commodities.forEach(c => {
+  console.log(c.commodity, c.price_ngn_mt, c.day_change_pct);
+});
 ```
+
+### Forecast chart
+```javascript
+const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/forecasts/Rice/monthly');
+const data = await res.json();
+const labels = data.weekly_series.map(p => p.date);
+const prices = data.weekly_series.map(p => p.price);
+// Pass to Chart.js, Recharts, or D3
+```
+
+### Nigeria map widget
+```javascript
+const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/zonal/Rice');
+const data = await res.json();
+const states = data.state_prices;
+// states["Lagos"].price_ngn_mt, states["Kano"].price_ngn_mt
+```
+
+### Factor drivers panel
+```javascript
+const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/factors?commodity=Rice');
+const data = await res.json();
+// data.overall_pressure, data.factors.rainfall_season.rating, etc.
+```
+
+### Price alert creation
+```javascript
+const res = await fetch(
+  'https://agrolinking-intelligence-production.up.railway.app/alerts/saved' +
+  '?commodity=Rice&threshold_price=1500000&direction=above',
+  { method: 'POST' }
+);
+const alert = await res.json();
+// alert.alert.id — save this to check or delete later
+```
+
+---
+
+## Data Update Schedule
+
+| Update | Frequency | Method |
+|---|---|---|
+| Price forecasts | Daily 7am WAT | GitHub Actions auto-pipeline |
+| Zonal prices | Daily 7am WAT | GitHub Actions auto-pipeline |
+| Intelligence metrics | Daily 7am WAT | GitHub Actions auto-pipeline |
+| Model retrain | Weekly (Mondays) | Manual — run pipeline/04_train.py |
+| MANUAL_PRICES | When Agricome posts | Manual — update pipeline/06_validate.py |
+
+---
+
+## Deployment Notes
+
+The API is deployed on Railway (primary) with Render as backup. Both autodeploy on every push to the `main` branch of `Agrolinking-Solutions/Agrolinking-Intelligence`.
+
+A GitHub Actions workflow pings `/health` every 4 minutes to prevent any sleep on the backup Render instance. Railway never sleeps regardless.
+
+The `as_of` field on every endpoint shows the date of the last pipeline run. If it shows a date older than today, the pipeline may not have run — check GitHub Actions logs.
+
