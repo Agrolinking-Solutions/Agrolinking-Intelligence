@@ -3,10 +3,10 @@ name: Daily Agrolinking Pipeline
 on:
   schedule:
     - cron: '0 6 * * *'   # 6am UTC = 7am WAT every day
-  workflow_dispatch:        # Allow manual trigger
+  workflow_dispatch:
 
 permissions:
-  contents: write           # Required to push commits back to repo
+  contents: write
 
 jobs:
   run-pipeline:
@@ -23,17 +23,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
-      - name: Install pipeline dependencies
+      - name: Install lightweight dependencies only
         run: |
-          pip install pandas numpy scikit-learn prophet pmdarima \
-                      statsmodels xgboost lightgbm loguru
+          pip install pandas numpy loguru
 
-      - name: Run forecast pipeline (steps 5-8)
+      - name: Run steps 7 and 8 only
         run: |
-          python pipeline/05_forecast.py
-          python pipeline/06_validate.py
+          # Steps 5+6 require trained model pkl files which are not in the repo
+          # They run locally on John's machine (weekly retrain + daily forecast)
+          # Steps 7+8 only need the validated JSON files which ARE in the repo
           python pipeline/07_zonal_forecast.py
           python pipeline/08_intelligence.py
 
@@ -41,13 +40,12 @@ jobs:
         run: |
           git config user.name "Agrolinking Pipeline Bot"
           git config user.email "pipeline@agrolinking.com"
-          git add outputs/forecasts/validated/
           git add outputs/forecasts/zonal/
           git add outputs/daily_alerts/
           git add outputs/intelligence/
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Auto daily update $(date '+%Y-%m-%d')"
+            git commit -m "Auto daily update $(date '+%Y-%m-%d') - zonal + intelligence"
             git push origin main
           fi
