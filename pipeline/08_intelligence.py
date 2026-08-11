@@ -235,13 +235,31 @@ def compute_30day_outlook(validated_forecast):
                 pct = round((vals[-1] - lkp) / lkp * 100, 2)
 
         if pct is not None:
+            # Cap at realistic 30-day movement limits for Nigerian commodities
+            # Grains: max +/-15% in 30 days
+            # Export crops: max +/-25% in 30 days
+            # Livestock: max +/-10% in 30 days
+            GRAIN_CAPS    = ["Maize (white)","Maize (yellow)","Sorghum","Wheat","Rice",
+                             "Beans (white)","Beans (red)","Soybeans"]
+            LIVESTOCK     = ["Meat (beef)","Meat (goat)","Fish (dried)","Eggs"]
+            if commodity in GRAIN_CAPS:
+                max_move = 15.0
+            elif commodity in LIVESTOCK:
+                max_move = 10.0
+            else:
+                max_move = 25.0
+
+            pct_capped = max(-max_move, min(max_move, float(pct)))
+
             outlooks[commodity] = {
-                "pct_change_30d": round(float(pct), 2),
-                "direction":      "up" if float(pct) > 0 else "down",
-                "signal":         "bullish" if float(pct) > 3 else
-                                  "bearish" if float(pct) < -3 else "neutral",
+                "pct_change_30d": round(pct_capped, 2),
+                "direction":      "up" if pct_capped > 0 else "down",
+                "signal":         "bullish" if pct_capped > 3 else
+                                  "bearish" if pct_capped < -3 else "neutral",
+                "model_raw_pct":  round(float(pct), 2),
+                "capped":         abs(float(pct)) > max_move,
             }
-            total_pct += float(pct)
+            total_pct += pct_capped
             count += 1
 
     avg_outlook = round(total_pct / count, 2) if count > 0 else 0.0
