@@ -60,6 +60,7 @@ COMMODITIES = [
 
 # WFP name mapping → our standard names
 WFP_NAME_MAP = {
+    # Grains and legumes
     "Beans (white)":    "Beans (white)",
     "Beans (red)":      "Beans (red)",
     "Beans (niebe)":    "Beans (white)",   # treat niebe as white beans
@@ -69,6 +70,16 @@ WFP_NAME_MAP = {
     "Sorghum":          "Sorghum",
     "Sorghum (white)":  "Sorghum",
     "Soybeans":         "Soybeans",
+    "Wheat":            "Wheat",
+    "Rice":             "Rice",
+    # Livestock and protein
+    "Meat (beef)":      "Meat (beef)",
+    "Beef":             "Meat (beef)",
+    "Meat (goat)":      "Meat (goat)",
+    "Goat":             "Meat (goat)",
+    "Fish":             "Fish (dried)",
+    "Fish (dried)":     "Fish (dried)",
+    "Eggs":             "Eggs",
 }
 
 # ─── FORECAST HORIZONS ───────────────────────────────────────────────────────
