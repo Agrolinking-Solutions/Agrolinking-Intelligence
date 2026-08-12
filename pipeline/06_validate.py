@@ -54,28 +54,20 @@ os.makedirs(VALIDATED_DIR, exist_ok=True)
 # Leave as None if you don't have a fresh price for that commodity.
 # These take highest priority in validation.
 MANUAL_PRICES = {
-    # ── Agricome Africa Aug 03 2026 (latest confirmed) ───────────────────
-    "Hibiscus":      2_500_000,   # Agricome Aug 03 2026 (+2.0% from Jul 23)
-    "Soybeans":        790_000,   # Agricome Aug 03 2026 (+1.3% from Jul 23)
-    "Ginger":        9_400_000,   # Agricome Aug 03 2026 (-3.1% continuing decline)
-    "Cocoa":         4_500_000,   # Agricome Aug 03 2026 (-4.3% continued drop)
-    "Cashew Nuts":   1_930_000,   # Agricome Aug 03 2026 (+1.6% from Jul 23)
-    "Sorghum":         345_000,   # Agricome Aug 03 2026 (-2.8% softening)
-    "Sesame":        1_420_000,   # Agricome Aug 03 2026 (-2.7% easing)
-    # ── Market Naija TV Jul 2026 ──────────────────────────────────────────
-    "Maize (white)":   395_000,   # Market Naija TV Jul 2026
-    "Maize (yellow)":  421_000,   # Market Naija TV Jul 2026
-    "Wheat":         1_000_000,   # Market Naija TV Jul 2026
-    "Beans (white)":   750_000,   # Market Naija TV Jul 2026
-    "Beans (red)":     850_000,   # Market Naija TV Jul 2026
-    "Rice":          1_320_000,   # Market Naija TV Jul 2026
-    # ── Livestock — market research Jul 2026 ─────────────────────────────
-    "Meat (beef)":   4_536_000,   # Market research Jul 2026
-    "Meat (goat)":   4_860_000,   # Market research Jul 2026
-    "Fish (dried)":  2_968_000,   # Market research Jul 2026
-    "Eggs":              7_920,   # Market research Jul 2026 (NGN/crate)
+    "Hibiscus":      2_325_000,   # Agricome Apr 16 2026
+    "Sesame":        1_650_000,   # LCFE May 2026 (recalibrated)
+    "Ginger":       12_000_000,   # NGX Feb 2026 N13,000/kg; mid-market N12M
+    "Cocoa":         5_650_000,   # Agricome Apr 16 2026
+    "Soybeans":        745_000,   # Agricome Apr 16 2026
+    "Cashew Nuts":   1_950_000,   # Agricome Apr 16 2026
+    "Sorghum":         420_000,   # Market Naija TV mid-chain (recalibrated)
+    "Beans (white)":   813_000,   # WFP Mar 2026
+    "Beans (red)":     915_000,   # WFP Mar 2026
+    "Maize (white)":   370_000,   # Market 2026
+    "Maize (yellow)":  400_000,   # Market 2026
+    "Wheat":           706_833,   # Agrolinking primary Apr 13 2026
+    "Rice":          1_550_000,   # Market research May 2026
 }
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # WEB-SOURCED REFERENCE ANCHORS
@@ -485,41 +477,70 @@ def update_master_with_validated(validated: dict, run_date: datetime):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def generate_validated_alert(validated: dict, run_date: datetime) -> str:
-    """Generate the daily alert using validated prices."""
+    """
+    Generate the daily alert using validated prices.
+    Shows:
+      - Validated price (post-correction, anchored to MANUAL_PRICES)
+      - % change vs reference price (not vs stale last_known_price)
+      - Trend direction based on daily vs monthly horizon
+    """
     lines = [
-        f"📊 AGROLINKING COMMODITY INTELLIGENCE — VALIDATED FORECAST",
-        f"📅 {run_date.strftime('%A, %d %B %Y')}",
-        f"✅ Cross-referenced against NGX · WFP · Market sources",
-        f"{'─' * 50}",
+        f"AGROLINKING COMMODITY INTELLIGENCE",
+        f"Validated Daily Price Alert",
+        f"{run_date.strftime('%A, %d %B %Y')}",
+        f"Cross-referenced: NGX | WFP | Agricome Africa | Market sources",
+        f"{'=' * 55}",
+        f"{'Commodity':<22} {'Price (NGN/MT)':>15} {'vs Ref':>8}  {'Trend':>6}",
+        f"{'-' * 55}",
     ]
 
     for commodity in COMMODITIES:
         if commodity not in validated:
             continue
         fc    = validated[commodity]
+        vld   = fc.get("validation", {})
         daily = fc.get("horizons", {}).get("daily", {})
+        monthly = fc.get("horizons", {}).get("monthly", {})
         if not daily:
             continue
 
-        price    = daily["ensemble"]["values"][0]
-        last_p   = fc.get("last_known_price", price)
-        pct      = (price - last_p) / last_p * 100 if last_p > 0 else 0
-        symbol   = "▲" if pct > 0.5 else ("▼" if pct < -0.5 else "→")
-        vld      = fc.get("validation", {})
-        err_after = vld.get("error_pct_after", 0)
-        conf     = "✅" if err_after <= 5 else ("⚠️" if err_after <= 15 else "❌")
+        # Use validated price (post-correction)
+        price     = daily["ensemble"]["values"][0]
+
+        # % vs reference price (MANUAL_PRICE) — clean market signal
+        ref_price = vld.get("reference_price", 0) or fc.get("last_known_price", price)
+        pct_vs_ref = (price - ref_price) / ref_price * 100 if ref_price > 0 else 0
+
+        # Trend: compare daily forecast to monthly forecast direction
+        m_vals = monthly.get("ensemble", {}).get("values", []) if monthly else []
+        d_price = daily["ensemble"]["values"][0]
+        m_price = m_vals[-1] if m_vals else d_price
+        trend_pct = (m_price - d_price) / d_price * 100 if d_price > 0 else 0
+        if trend_pct > 1.5:
+            trend = "rising"
+        elif trend_pct < -1.5:
+            trend = "falling"
+        else:
+            trend = "stable"
+
+        # Format price
+        if price >= 1_000_000:
+            price_str = f"N{price/1e6:.3f}M"
+        else:
+            price_str = f"N{price/1000:.1f}K"
 
         lines.append(
-            f"{symbol} {commodity:<20} "
-            f"₦{price:>13,.0f}/MT  "
-            f"{pct:>+6.1f}%  {conf}"
+            f"{commodity:<22} {price_str:>15} "
+            f"{pct_vs_ref:>+7.1f}%  {trend:>6}"
         )
 
     lines += [
-        f"{'─' * 50}",
-        f"✅ = within 5% of market  ⚠️ = 5-15% variance  ❌ = >15% variance",
+        f"{'=' * 55}",
+        f"vs Ref = price vs latest verified market source",
+        f"Trend  = 30-day forecast direction",
         f"Source: Agrolinking Intelligence Platform",
         f"Next update: {(run_date + timedelta(days=1)).strftime('%d %b %Y')}",
+        f"API: agrolinking-intelligence-production.up.railway.app",
     ]
     return "\n".join(lines)
 
