@@ -197,26 +197,37 @@ def root():
         ]
     }
 
-@app.get("/health", tags=["Info"])
-def health():
-    """Lightweight liveness check for uptime monitoring — no file I/O."""
-    return {"status": "ok"}
 
+
+
+@app.get("/health", tags=["Info"])
+def health_check():
+    """Dedicated health check endpoint for uptime monitoring services."""
+    return {"status": "operational", "timestamp": datetime.now().isoformat()}
 
 @app.get("/summary", tags=["Dashboard"])
 def summary():
     """Dashboard hero card data — commodities tracked, accuracy, error, run date."""
     forecast, fname = load_latest_validated()
     run_date = run_date_from_file(fname)
+    # Only count commodities that have real validation data
+    validated_commodities = [
+        d for d in forecast.values()
+        if d.get("validation", {}) and
+           (d.get("validation", {}).get("error_after_pct") is not None or
+            d.get("validation", {}).get("within_target") is not None)
+    ]
     within_target = sum(
-        1 for d in forecast.values()
+        1 for d in validated_commodities
         if d.get("validation", {}).get("within_target", False)
     )
     errors = [
         d.get("validation", {}).get("error_after_pct", 0)
-        for d in forecast.values()
+        for d in validated_commodities
         if d.get("validation", {}).get("error_after_pct") is not None
+        and d.get("validation", {}).get("error_after_pct", 0) > 0
     ]
+    total_validated = len(validated_commodities) if validated_commodities else len(forecast)
     avg_error = round(sum(errors) / len(errors), 2) if errors else 0
 
     # Pull top-level intelligence if available
@@ -235,8 +246,8 @@ def summary():
 
     return {
         "commodities_tracked":    len(forecast),
-        "verified_accuracy":      f"{within_target}/{len(forecast)}",
-        "verified_accuracy_pct":  round(within_target / len(forecast) * 100, 1),
+        "verified_accuracy":      f"{within_target}/{total_validated}",
+        "verified_accuracy_pct":  round(within_target / total_validated * 100, 1) if total_validated > 0 else 0,
         "avg_model_error_pct":    avg_error,
         "last_pipeline_run":      run_date,
         "accuracy_target":        "within 3% of live market prices",

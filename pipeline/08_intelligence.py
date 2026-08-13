@@ -268,34 +268,38 @@ def compute_30day_outlook(validated_forecast):
 
 def compute_confidence_scores(run_date):
     """
-    Derive model confidence from validation report.
+    Derive model confidence directly from the validated forecast JSON.
     Confidence = 100 - error_after_pct, floored at 0, capped at 99.
+    Reads from the validated forecast file, not a separate report file.
     """
-    date_str = run_date.strftime("%Y-%m-%d")
-    report_path = os.path.join(
-        BASE, "outputs", "logs", f"validation_report_{date_str}.json")
-
-    # Try today, then yesterday
-    for delta in [0, 1, 2, 3]:
-        d = run_date - timedelta(days=delta)
-        rp = os.path.join(BASE, "outputs", "logs",
-                          f"validation_report_{d.strftime('%Y-%m-%d')}.json")
-        if os.path.exists(rp):
-            with open(rp) as f:
-                report = json.load(f)
-            break
-    else:
-        logger.warning("  No validation report found for confidence scores")
+    # Load latest validated forecast
+    val_files = sorted(glob.glob(os.path.join(VAL_DIR, "forecast_validated_*.json")))
+    if not val_files:
+        logger.warning("  No validated forecast found for confidence scores")
         return 0, {}
 
+    with open(val_files[-1]) as f:
+        validated = json.load(f)
+
     scores = {}
-    for r in report.get("results", []):
-        err   = r.get("error_after", 0) or 0
+    for commodity, fc_data in validated.items():
+        vld = fc_data.get("validation", {})
+        # Try multiple field names for error_after
+        err = (vld.get("error_after_pct") or
+               vld.get("error_pct_after") or
+               vld.get("error_after") or 0)
+        err = float(err) if err else 0
+        within = vld.get("within_target", False)
+
+        # Only include commodities with real validation data
+        if err == 0 and not within and not vld:
+            continue
+
         score = round(max(0, min(99, 100 - err)), 1)
-        scores[r["commodity"]] = {
+        scores[commodity] = {
             "confidence_pct":  score,
             "error_after_pct": round(err, 2),
-            "within_target":   r.get("within_target", False),
+            "within_target":   within,
             "grade":           "A" if score >= 95 else
                                "B" if score >= 90 else
                                "C" if score >= 80 else "D",
