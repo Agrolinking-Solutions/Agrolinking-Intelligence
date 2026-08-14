@@ -1,12 +1,12 @@
 {
   "run_date": "2026-08-14",
-  "generated_at": "2026-08-14T10:46:35.468526",
+  "generated_at": "2026-08-14T11:00:55.971384",
   "source_validated": "forecast_validated_2026-08-14.json",
   "source_zonal": "zonal_forecast_2026-08-14.json",
   "food_price_index": {
-    "value": 128.7,
+    "value": 148.1,
     "base": "2025=100",
-    "mom_change": -1.0,
+    "mom_change": 18.4,
     "interpretation": "above average",
     "breakdown": {
       "Maize (white)": {
@@ -117,9 +117,9 @@
       "Fish (dried)": {
         "weight": 0.05,
         "base_price": 2100000,
-        "current_price": 1518250.75,
-        "price_ratio": 0.723,
-        "contribution": 0.0361
+        "current_price": 9669255.52,
+        "price_ratio": 4.6044,
+        "contribution": 0.2302
       },
       "Eggs": {
         "weight": 0.03,
@@ -155,9 +155,9 @@
     }
   },
   "outlook_30d": {
-    "avg_pct_change": 2.66,
+    "avg_pct_change": 3.83,
     "direction": "up",
-    "signal": "neutral",
+    "signal": "bullish",
     "per_commodity": {
       "Hibiscus": {
         "pct_change_30d": 7.69,
@@ -265,10 +265,10 @@
         "capped": true
       },
       "Fish (dried)": {
-        "pct_change_30d": -10.0,
-        "direction": "down",
-        "signal": "bearish",
-        "model_raw_pct": -27.55,
+        "pct_change_30d": 10.0,
+        "direction": "up",
+        "signal": "bullish",
+        "model_raw_pct": 361.01,
         "capped": true
       },
       "Eggs": {
@@ -281,7 +281,7 @@
     }
   },
   "model_confidence": {
-    "avg_pct": 98.3,
+    "avg_pct": 98.1,
     "interpretation": "high",
     "per_commodity": {
       "Hibiscus": {
@@ -375,9 +375,9 @@
         "grade": "A"
       },
       "Fish (dried)": {
-        "confidence_pct": 98.8,
-        "error_after_pct": 1.24,
-        "within_target": true,
+        "confidence_pct": 96.6,
+        "error_after_pct": 3.37,
+        "within_target": false,
         "grade": "A"
       },
       "Eggs": {
@@ -404,10 +404,10 @@
   },
   "early_warning_alerts": {
     "summary": {
-      "severe": 2,
+      "severe": 3,
       "high": 0,
       "watch": 3,
-      "normal": 12
+      "normal": 11
     },
     "thresholds": {
       "Severe": 25,
@@ -536,11 +536,11 @@
         "threshold_used": "WFP ALPS"
       },
       "Fish (dried)": {
-        "alert_level": "Below Average",
-        "color": "#2196F3",
-        "current_price": 1518250.75,
+        "alert_level": "Severe",
+        "color": "#FF0000",
+        "current_price": 9669255.52,
         "avg_3m_price": 2788440.0,
-        "pct_vs_avg_3m": -45.55,
+        "pct_vs_avg_3m": 246.76,
         "threshold_used": "WFP ALPS"
       },
       "Eggs": {
@@ -661,11 +661,11 @@
         "trend_signal": 50.1
       },
       "Fish (dried)": {
-        "score": 69.0,
+        "score": 70.1,
         "label": "Surplus",
-        "price_signal": 97.6,
+        "price_signal": 100,
         "season_signal": 50.0,
-        "trend_signal": 49.9
+        "trend_signal": 50.2
       },
       "Eggs": {
         "score": 70.1,
@@ -786,9 +786,9 @@
     },
     "Fish (dried)": {
       "high_state": "Oyo",
-      "high_price": 1761170.87,
+      "high_price": 11216336.4,
       "low_state": "Kano",
-      "low_price": 1320878.15,
+      "low_price": 8412252.3,
       "spread_pct": 33.3
     },
     "Eggs": {
@@ -1012,15 +1012,15 @@
     },
     "Fish (dried)": {
       "source_state": "Kano",
-      "source_price_ngn_mt": 1320878.15,
-      "source_price_ngn_kg": 1320.88,
+      "source_price_ngn_mt": 8412252.3,
+      "source_price_ngn_kg": 8412.25,
       "destination_state": "Oyo",
-      "dest_price_ngn_mt": 1761170.87,
-      "dest_price_ngn_kg": 1761.17,
-      "gross_arbitrage_ngn_kg": 440.29,
+      "dest_price_ngn_mt": 11216336.4,
+      "dest_price_ngn_kg": 11216.34,
+      "gross_arbitrage_ngn_kg": 2804.08,
       "distance_km": 870,
       "freight_cost_ngn_kg": 104.4,
-      "net_arbitrage_ngn_kg": 335.89,
+      "net_arbitrage_ngn_kg": 2699.68,
       "spread_pct": 33.3,
       "viable": true
     },
@@ -1206,14 +1206,14 @@
       "unit_label": "NGN/kg"
     },
     "Fish (dried)": {
-      "price": 1518250.75,
-      "yesterday_price": 1518135.24,
-      "ref_price": 1500000.0,
-      "pct_vs_ref": 1.22,
-      "day_change": 0.01,
-      "source": "interp d158 (weekly series | +1.22% vs ref)",
-      "price_ngn_kg": 1518.25,
-      "price_per_unit": 1518.25,
+      "price": 9669255.52,
+      "yesterday_price": 9671348.84,
+      "ref_price": 10000000.0,
+      "pct_vs_ref": -3.31,
+      "day_change": -0.02,
+      "source": "interp d158 (weekly series | -3.31% vs ref)",
+      "price_ngn_kg": 9669.26,
+      "price_per_unit": 9669.26,
       "unit_label": "NGN/kg"
     },
     "Eggs": {
