@@ -54,19 +54,26 @@ os.makedirs(VALIDATED_DIR, exist_ok=True)
 # Leave as None if you don't have a fresh price for that commodity.
 # These take highest priority in validation.
 MANUAL_PRICES = {
-    "Hibiscus":      2_325_000,   # Agricome Apr 16 2026
-    "Sesame":        1_650_000,   # LCFE May 2026 (recalibrated)
-    "Ginger":       12_000_000,   # NGX Feb 2026 N13,000/kg; mid-market N12M
-    "Cocoa":         5_650_000,   # Agricome Apr 16 2026
-    "Soybeans":        745_000,   # Agricome Apr 16 2026
-    "Cashew Nuts":   1_950_000,   # Agricome Apr 16 2026
-    "Sorghum":         420_000,   # Market Naija TV mid-chain (recalibrated)
-    "Beans (white)":   813_000,   # WFP Mar 2026
-    "Beans (red)":     915_000,   # WFP Mar 2026
-    "Maize (white)":   370_000,   # Market 2026
-    "Maize (yellow)":  400_000,   # Market 2026
-    "Wheat":           706_833,   # Agrolinking primary Apr 13 2026
-    "Rice":          1_550_000,   # Market research May 2026
+    # ── Agricome Africa Aug 03 2026 (latest confirmed) ───────────────────
+    "Hibiscus":      2_500_000,   # Agricome Aug 03 2026
+    "Soybeans":        790_000,   # Agricome Aug 03 2026
+    "Ginger":        9_400_000,   # Agricome Aug 03 2026 (standard dried wholesale)
+    "Cocoa":         4_500_000,   # Agricome Aug 03 2026
+    "Cashew Nuts":   1_930_000,   # Agricome Aug 03 2026
+    "Sorghum":         345_000,   # Agricome Aug 03 2026
+    "Sesame":        1_420_000,   # Agricome Aug 03 2026
+    # ── Market Naija TV Jul 2026 ──────────────────────────────────────────
+    "Maize (white)":   395_000,   # Market Naija TV Jul 2026
+    "Maize (yellow)":  421_000,   # Market Naija TV Jul 2026
+    "Wheat":         1_000_000,   # Market Naija TV Jul 2026
+    "Beans (white)":   750_000,   # Market Naija TV Jul 2026
+    "Beans (red)":     850_000,   # Market Naija TV Jul 2026
+    "Rice":          1_320_000,   # Market Naija TV Jul 2026
+    # ── Livestock — market research Aug 2026 ─────────────────────────────
+    "Meat (beef)":   4_536_000,   # Market research Jul 2026
+    "Meat (goat)":   7_000_000,   # Confirmed Kaduna market Aug 2026 (N7,000/kg)
+    "Fish (dried)":  1_500_000,   # WFP NE Nigeria retail dried fish (N1,000-1,200/kg Mar 2026, bridged to Aug)
+    "Eggs":              7_920,   # Market research Jul 2026 (NGN/crate)
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
