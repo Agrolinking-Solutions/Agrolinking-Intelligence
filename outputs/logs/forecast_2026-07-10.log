@@ -1,0 +1,249 @@
+2026-07-10 07:20:39.076 | INFO     | __main__:run_forecasting:330 - =================================================================
+2026-07-10 07:20:39.078 | INFO     | __main__:run_forecasting:331 - STEP 5 — FORECASTING ENGINE
+2026-07-10 07:20:39.080 | INFO     | __main__:run_forecasting:332 -   Run date   : Friday, 10 July 2026
+2026-07-10 07:20:39.080 | INFO     | __main__:run_forecasting:333 -   Commodities: 17
+2026-07-10 07:20:39.080 | INFO     | __main__:run_forecasting:334 -   Horizons   : ['daily', 'weekly', '2_weeks', 'monthly', '3_months', '6_months']
+2026-07-10 07:20:39.080 | INFO     | __main__:run_forecasting:335 -   Ensemble   : ARIMA + Prophet + Holt-Winters + XGBoost + LightGBM
+2026-07-10 07:20:39.082 | INFO     | __main__:run_forecasting:336 - =================================================================
+2026-07-10 07:20:39.282 | INFO     | __main__:run_forecasting:353 - 
+[1/17] Forecasting Hibiscus...
+2026-07-10 07:20:47.053 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:47.053 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:47.064 | INFO     | __main__:forecast_commodity:294 -   daily        -> N   2,243,695/MT  -2.2%  (2026-07-13)
+2026-07-10 07:20:47.064 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N   2,243,695/MT  -2.2%  (2026-07-20)
+2026-07-10 07:20:47.064 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N   2,234,574/MT  -2.6%  (2026-07-27)
+2026-07-10 07:20:47.066 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N   2,204,824/MT  -3.9%  (2026-08-10)
+2026-07-10 07:20:47.068 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N   2,154,728/MT  -6.0%  (2026-10-12)
+2026-07-10 07:20:47.068 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N   2,224,549/MT  -3.0%  (2027-01-11)
+2026-07-10 07:20:47.072 | INFO     | __main__:run_forecasting:359 -   Hibiscus
+2026-07-10 07:20:47.072 | INFO     | __main__:run_forecasting:353 - 
+[2/17] Forecasting Sesame...
+2026-07-10 07:20:47.638 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:47.640 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:47.642 | INFO     | __main__:forecast_commodity:294 -   daily        -> N   1,619,643/MT  -1.3%  (2026-07-13)
+2026-07-10 07:20:47.642 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N   1,619,643/MT  -1.3%  (2026-07-20)
+2026-07-10 07:20:47.642 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N   1,574,391/MT  -4.0%  (2026-07-27)
+2026-07-10 07:20:47.644 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N   1,555,655/MT  -5.2%  (2026-08-10)
+2026-07-10 07:20:47.644 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N   1,545,375/MT  -5.8%  (2026-10-12)
+2026-07-10 07:20:47.646 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N   1,660,958/MT  +1.2%  (2027-01-11)
+2026-07-10 07:20:47.649 | INFO     | __main__:run_forecasting:359 -   Sesame
+2026-07-10 07:20:47.650 | INFO     | __main__:run_forecasting:353 - 
+[3/17] Forecasting Ginger...
+2026-07-10 07:20:48.112 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:48.113 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:48.115 | INFO     | __main__:forecast_commodity:294 -   daily        -> N  12,644,367/MT  +3.5%  (2026-07-13)
+2026-07-10 07:20:48.115 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N  12,644,367/MT  +3.5%  (2026-07-20)
+2026-07-10 07:20:48.117 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N  12,453,653/MT  +1.9%  (2026-07-27)
+2026-07-10 07:20:48.117 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N  12,810,524/MT  +4.8%  (2026-08-10)
+2026-07-10 07:20:48.117 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N  12,548,686/MT  +2.7%  (2026-10-12)
+2026-07-10 07:20:48.119 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N  13,958,181/MT  +14.2%  (2027-01-11)
+2026-07-10 07:20:48.123 | INFO     | __main__:run_forecasting:359 -   Ginger
+2026-07-10 07:20:48.123 | INFO     | __main__:run_forecasting:353 - 
+[4/17] Forecasting Cocoa...
+2026-07-10 07:20:48.529 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:48.529 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:48.529 | INFO     | __main__:forecast_commodity:294 -   daily        -> N   8,690,660/MT  +50.3%  (2026-07-13)
+2026-07-10 07:20:48.540 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N   8,690,660/MT  +50.3%  (2026-07-20)
+2026-07-10 07:20:48.540 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N   9,486,998/MT  +64.0%  (2026-07-27)
+2026-07-10 07:20:48.540 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N  10,278,691/MT  +77.7%  (2026-08-10)
+2026-07-10 07:20:48.542 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N  10,285,573/MT  +77.8%  (2026-10-12)
+2026-07-10 07:20:48.543 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N  10,335,741/MT  +78.7%  (2027-01-11)
+2026-07-10 07:20:48.546 | INFO     | __main__:run_forecasting:359 -   Cocoa
+2026-07-10 07:20:48.589 | INFO     | __main__:run_forecasting:353 - 
+[5/17] Forecasting Soybeans...
+2026-07-10 07:20:49.044 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:49.046 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:49.048 | INFO     | __main__:forecast_commodity:294 -   daily        -> N     839,735/MT  +11.2%  (2026-07-13)
+2026-07-10 07:20:49.048 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N     839,735/MT  +11.2%  (2026-07-20)
+2026-07-10 07:20:49.050 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N     874,973/MT  +15.8%  (2026-07-27)
+2026-07-10 07:20:49.050 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N     874,048/MT  +15.7%  (2026-08-10)
+2026-07-10 07:20:49.050 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N     890,896/MT  +17.9%  (2026-10-12)
+2026-07-10 07:20:49.052 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N     875,789/MT  +15.9%  (2027-01-11)
+2026-07-10 07:20:49.057 | INFO     | __main__:run_forecasting:359 -   Soybeans
+2026-07-10 07:20:49.058 | INFO     | __main__:run_forecasting:353 - 
+[6/17] Forecasting Cashew Nuts...
+2026-07-10 07:20:49.484 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:49.486 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:49.488 | INFO     | __main__:forecast_commodity:294 -   daily        -> N   2,134,149/MT  +7.2%  (2026-07-13)
+2026-07-10 07:20:49.488 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N   2,134,149/MT  +7.2%  (2026-07-20)
+2026-07-10 07:20:49.488 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N   2,131,081/MT  +7.0%  (2026-07-27)
+2026-07-10 07:20:49.490 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N   2,239,789/MT  +12.5%  (2026-08-10)
+2026-07-10 07:20:49.490 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N   2,289,173/MT  +14.9%  (2026-10-12)
+2026-07-10 07:20:49.492 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N   2,334,890/MT  +17.2%  (2027-01-11)
+2026-07-10 07:20:49.493 | INFO     | __main__:run_forecasting:359 -   Cashew Nuts
+2026-07-10 07:20:49.495 | INFO     | __main__:run_forecasting:353 - 
+[7/17] Forecasting Sorghum...
+2026-07-10 07:20:49.945 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:49.949 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:49.949 | INFO     | __main__:forecast_commodity:294 -   daily        -> N     506,346/MT  +17.8%  (2026-07-13)
+2026-07-10 07:20:49.952 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N     506,346/MT  +17.8%  (2026-07-20)
+2026-07-10 07:20:49.952 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N     521,110/MT  +21.2%  (2026-07-27)
+2026-07-10 07:20:49.952 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N     535,102/MT  +24.5%  (2026-08-10)
+2026-07-10 07:20:49.954 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N     522,919/MT  +21.6%  (2026-10-12)
+2026-07-10 07:20:49.956 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N     488,501/MT  +13.6%  (2027-01-11)
+2026-07-10 07:20:49.960 | INFO     | __main__:run_forecasting:359 -   Sorghum
+2026-07-10 07:20:49.960 | INFO     | __main__:run_forecasting:353 - 
+[8/17] Forecasting Beans (white)...
+2026-07-10 07:20:50.379 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:50.384 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:50.384 | INFO     | __main__:forecast_commodity:294 -   daily        -> N     975,940/MT  +17.1%  (2026-07-13)
+2026-07-10 07:20:50.387 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N     975,940/MT  +17.1%  (2026-07-20)
+2026-07-10 07:20:50.389 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N     996,427/MT  +19.5%  (2026-07-27)
+2026-07-10 07:20:50.395 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N     989,556/MT  +18.7%  (2026-08-10)
+2026-07-10 07:20:50.397 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N   1,006,862/MT  +20.8%  (2026-10-12)
+2026-07-10 07:20:50.404 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N   1,003,838/MT  +20.4%  (2027-01-11)
+2026-07-10 07:20:50.411 | INFO     | __main__:run_forecasting:359 -   Beans (white)
+2026-07-10 07:20:50.416 | INFO     | __main__:run_forecasting:353 - 
+[9/17] Forecasting Beans (red)...
+2026-07-10 07:20:50.873 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:50.873 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:50.873 | INFO     | __main__:forecast_commodity:294 -   daily        -> N     840,273/MT  -7.4%  (2026-07-13)
+2026-07-10 07:20:50.883 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N     840,273/MT  -7.4%  (2026-07-20)
+2026-07-10 07:20:50.883 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N     832,176/MT  -8.3%  (2026-07-27)
+2026-07-10 07:20:50.884 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N     809,683/MT  -10.8%  (2026-08-10)
+2026-07-10 07:20:50.884 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N     746,907/MT  -17.7%  (2026-10-12)
+2026-07-10 07:20:50.886 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N     680,366/MT  -25.1%  (2027-01-11)
+2026-07-10 07:20:50.888 | INFO     | __main__:run_forecasting:359 -   Beans (red)
+2026-07-10 07:20:50.888 | INFO     | __main__:run_forecasting:353 - 
+[10/17] Forecasting Maize (white)...
+2026-07-10 07:20:51.317 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:51.319 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:51.319 | INFO     | __main__:forecast_commodity:294 -   daily        -> N     380,702/MT  +2.0%  (2026-07-13)
+2026-07-10 07:20:51.321 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N     380,702/MT  +2.0%  (2026-07-20)
+2026-07-10 07:20:51.321 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N     381,601/MT  +2.3%  (2026-07-27)
+2026-07-10 07:20:51.323 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N     370,965/MT  -0.6%  (2026-08-10)
+2026-07-10 07:20:51.323 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N     360,895/MT  -3.3%  (2026-10-12)
+2026-07-10 07:20:51.325 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N     374,168/MT  +0.3%  (2027-01-11)
+2026-07-10 07:20:51.330 | INFO     | __main__:run_forecasting:359 -   Maize (white)
+2026-07-10 07:20:51.331 | INFO     | __main__:run_forecasting:353 - 
+[11/17] Forecasting Maize (yellow)...
+2026-07-10 07:20:51.764 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:51.773 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:51.775 | INFO     | __main__:forecast_commodity:294 -   daily        -> N     405,610/MT  +0.1%  (2026-07-13)
+2026-07-10 07:20:51.775 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N     405,610/MT  +0.1%  (2026-07-20)
+2026-07-10 07:20:51.777 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N     414,389/MT  +2.3%  (2026-07-27)
+2026-07-10 07:20:51.777 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N     416,668/MT  +2.9%  (2026-08-10)
+2026-07-10 07:20:51.779 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N     406,040/MT  +0.2%  (2026-10-12)
+2026-07-10 07:20:51.781 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N     426,134/MT  +5.2%  (2027-01-11)
+2026-07-10 07:20:51.784 | INFO     | __main__:run_forecasting:359 -   Maize (yellow)
+2026-07-10 07:20:51.784 | INFO     | __main__:run_forecasting:353 - 
+[12/17] Forecasting Wheat...
+2026-07-10 07:20:52.230 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:52.230 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:52.230 | INFO     | __main__:forecast_commodity:294 -   daily        -> N     740,906/MT  +3.1%  (2026-07-13)
+2026-07-10 07:20:52.240 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N     740,906/MT  +3.1%  (2026-07-20)
+2026-07-10 07:20:52.240 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N     735,397/MT  +2.4%  (2026-07-27)
+2026-07-10 07:20:52.240 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N     746,775/MT  +4.0%  (2026-08-10)
+2026-07-10 07:20:52.242 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N     759,520/MT  +5.7%  (2026-10-12)
+2026-07-10 07:20:52.242 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N     787,752/MT  +9.7%  (2027-01-11)
+2026-07-10 07:20:52.244 | INFO     | __main__:run_forecasting:359 -   Wheat
+2026-07-10 07:20:52.244 | INFO     | __main__:run_forecasting:353 - 
+[13/17] Forecasting Rice...
+2026-07-10 07:20:52.691 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:52.695 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:52.695 | INFO     | __main__:forecast_commodity:294 -   daily        -> N   1,681,217/MT  +6.4%  (2026-07-13)
+2026-07-10 07:20:52.702 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N   1,681,217/MT  +6.4%  (2026-07-20)
+2026-07-10 07:20:52.707 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N   1,698,359/MT  +7.4%  (2026-07-27)
+2026-07-10 07:20:52.711 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N   1,692,723/MT  +7.1%  (2026-08-10)
+2026-07-10 07:20:52.719 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N   1,709,098/MT  +8.1%  (2026-10-12)
+2026-07-10 07:20:52.732 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N   1,749,653/MT  +10.7%  (2027-01-11)
+2026-07-10 07:20:52.744 | INFO     | __main__:run_forecasting:359 -   Rice
+2026-07-10 07:20:52.748 | INFO     | __main__:run_forecasting:353 - 
+[14/17] Forecasting Eggs...
+2026-07-10 07:20:53.199 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:53.201 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:53.201 | INFO     | __main__:forecast_commodity:294 -   daily        -> N       7,226/MT  +0.8%  (2026-07-13)
+2026-07-10 07:20:53.203 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N       7,226/MT  +0.8%  (2026-07-20)
+2026-07-10 07:20:53.203 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N       7,003/MT  -2.3%  (2026-07-27)
+2026-07-10 07:20:53.204 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N       7,078/MT  -1.3%  (2026-08-10)
+2026-07-10 07:20:53.204 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N       7,158/MT  -0.2%  (2026-10-12)
+2026-07-10 07:20:53.206 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N       7,426/MT  +3.6%  (2027-01-11)
+2026-07-10 07:20:53.209 | INFO     | __main__:run_forecasting:359 -   Eggs
+2026-07-10 07:20:53.209 | INFO     | __main__:run_forecasting:353 - 
+[15/17] Forecasting Fish (dried)...
+2026-07-10 07:20:53.639 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:53.642 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:53.644 | INFO     | __main__:forecast_commodity:294 -   daily        -> N   2,689,719/MT  -2.3%  (2026-07-13)
+2026-07-10 07:20:53.644 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N   2,689,719/MT  -2.3%  (2026-07-20)
+2026-07-10 07:20:53.644 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N   2,597,767/MT  -5.6%  (2026-07-27)
+2026-07-10 07:20:53.644 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N   2,442,097/MT  -11.3%  (2026-08-10)
+2026-07-10 07:20:53.646 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N   2,482,506/MT  -9.8%  (2026-10-12)
+2026-07-10 07:20:53.648 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N   2,562,571/MT  -6.9%  (2027-01-11)
+2026-07-10 07:20:53.648 | INFO     | __main__:run_forecasting:359 -   Fish (dried)
+2026-07-10 07:20:53.650 | INFO     | __main__:run_forecasting:353 - 
+[16/17] Forecasting Meat (goat)...
+2026-07-10 07:20:53.992 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:53.994 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:53.994 | INFO     | __main__:forecast_commodity:294 -   daily        -> N   4,983,493/MT  +7.2%  (2026-07-13)
+2026-07-10 07:20:53.995 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N   4,983,493/MT  +7.2%  (2026-07-20)
+2026-07-10 07:20:53.995 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N   5,149,029/MT  +10.8%  (2026-07-27)
+2026-07-10 07:20:53.995 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N   5,174,639/MT  +11.3%  (2026-08-10)
+2026-07-10 07:20:53.997 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N   5,146,979/MT  +10.8%  (2026-10-12)
+2026-07-10 07:20:53.997 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N   5,462,005/MT  +17.5%  (2027-01-11)
+2026-07-10 07:20:53.999 | INFO     | __main__:run_forecasting:359 -   Meat (goat)
+2026-07-10 07:20:53.999 | INFO     | __main__:run_forecasting:353 - 
+[17/17] Forecasting Meat (beef)...
+2026-07-10 07:20:54.337 | DEBUG    | __main__:forecast_holt_winters:131 -     Holt-Winters forecast failed: positive() got an unexpected keyword argument 'lower'
+2026-07-10 07:20:54.342 | DEBUG    | __main__:forecast_tree:163 -     Tree forecast failed: Feature shape mismatch, expected: 18, got 16
+2026-07-10 07:20:54.342 | INFO     | __main__:forecast_commodity:294 -   daily        -> N   4,706,097/MT  +11.4%  (2026-07-13)
+2026-07-10 07:20:54.342 | INFO     | __main__:forecast_commodity:294 -   weekly       -> N   4,706,097/MT  +11.4%  (2026-07-20)
+2026-07-10 07:20:54.344 | INFO     | __main__:forecast_commodity:294 -   2_weeks      -> N   4,855,380/MT  +14.9%  (2026-07-27)
+2026-07-10 07:20:54.344 | INFO     | __main__:forecast_commodity:294 -   monthly      -> N   4,910,530/MT  +16.2%  (2026-08-10)
+2026-07-10 07:20:54.344 | INFO     | __main__:forecast_commodity:294 -   3_months     -> N   4,792,245/MT  +13.4%  (2026-10-12)
+2026-07-10 07:20:54.346 | INFO     | __main__:forecast_commodity:294 -   6_months     -> N   5,105,839/MT  +20.8%  (2027-01-11)
+2026-07-10 07:20:54.348 | INFO     | __main__:run_forecasting:359 -   Meat (beef)
+2026-07-10 07:20:54.408 | INFO     | __main__:run_forecasting:375 - 
+  Forecast JSON saved -> C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\forecasts\forecast_2026-07-10.json
+2026-07-10 07:20:54.410 | INFO     | __main__:run_forecasting:401 -   Daily alert saved -> C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\daily_alerts\alert_2026-07-10.txt
+2026-07-10 07:20:54.410 | INFO     | __main__:run_forecasting:402 - 
+=================================================================
+2026-07-10 07:20:54.412 | INFO     | __main__:run_forecasting:403 -   DAILY PRICE ALERT
+2026-07-10 07:20:54.412 | INFO     | __main__:run_forecasting:404 - =================================================================
+2026-07-10 07:20:54.412 | INFO     | __main__:run_forecasting:406 -   AGROLINKING COMMODITY INTELLIGENCE ALERT
+2026-07-10 07:20:54.412 | INFO     | __main__:run_forecasting:406 -   Friday, 10 July 2026
+2026-07-10 07:20:54.414 | INFO     | __main__:run_forecasting:406 -   ─────────────────────────────────────────────
+2026-07-10 07:20:54.414 | INFO     | __main__:run_forecasting:406 -   Hibiscus               N   2,243,695/MT  -2.2%
+2026-07-10 07:20:54.416 | INFO     | __main__:run_forecasting:406 -   Sesame                 N   1,619,643/MT  -1.3%
+2026-07-10 07:20:54.417 | INFO     | __main__:run_forecasting:406 -   Ginger                 N  12,644,367/MT  +3.5%
+2026-07-10 07:20:54.417 | INFO     | __main__:run_forecasting:406 -   Cocoa                  N   8,690,660/MT  +50.3%
+2026-07-10 07:20:54.417 | INFO     | __main__:run_forecasting:406 -   Soybeans               N     839,735/MT  +11.2%
+2026-07-10 07:20:54.417 | INFO     | __main__:run_forecasting:406 -   Cashew Nuts            N   2,134,149/MT  +7.2%
+2026-07-10 07:20:54.417 | INFO     | __main__:run_forecasting:406 -   Sorghum                N     506,346/MT  +17.8%
+2026-07-10 07:20:54.419 | INFO     | __main__:run_forecasting:406 -   Beans (white)          N     975,940/MT  +17.1%
+2026-07-10 07:20:54.419 | INFO     | __main__:run_forecasting:406 -   Beans (red)            N     840,273/MT  -7.4%
+2026-07-10 07:20:54.419 | INFO     | __main__:run_forecasting:406 -   Maize (white)          N     380,702/MT  +2.0%
+2026-07-10 07:20:54.419 | INFO     | __main__:run_forecasting:406 -   Maize (yellow)         N     405,610/MT  +0.1%
+2026-07-10 07:20:54.421 | INFO     | __main__:run_forecasting:406 -   Wheat                  N     740,906/MT  +3.1%
+2026-07-10 07:20:54.421 | INFO     | __main__:run_forecasting:406 -   Rice                   N   1,681,217/MT  +6.4%
+2026-07-10 07:20:54.422 | INFO     | __main__:run_forecasting:406 -   Eggs                   N       7,226/MT  +0.8%
+2026-07-10 07:20:54.422 | INFO     | __main__:run_forecasting:406 -   Fish (dried)           N   2,689,719/MT  -2.3%
+2026-07-10 07:20:54.422 | INFO     | __main__:run_forecasting:406 -   Meat (goat)            N   4,983,493/MT  +7.2%
+2026-07-10 07:20:54.422 | INFO     | __main__:run_forecasting:406 -   Meat (beef)            N   4,706,097/MT  +11.4%
+2026-07-10 07:20:54.424 | INFO     | __main__:run_forecasting:406 -   ─────────────────────────────────────────────
+2026-07-10 07:20:54.425 | INFO     | __main__:run_forecasting:406 -   Source: Agrolinking Intelligence Platform
+2026-07-10 07:20:54.426 | INFO     | __main__:run_forecasting:406 -   Next update: 11 Jul 2026
+2026-07-10 07:20:54.428 | INFO     | __main__:run_forecasting:409 - 
+======================================================================
+2026-07-10 07:20:54.430 | INFO     | __main__:run_forecasting:410 -   FORECAST SUMMARY
+2026-07-10 07:20:54.430 | INFO     | __main__:run_forecasting:411 - ======================================================================
+2026-07-10 07:20:54.430 | INFO     | __main__:run_forecasting:413 -   Commodity                      daily        weekly       monthly      3_months      6_months
+2026-07-10 07:20:54.430 | INFO     | __main__:run_forecasting:414 -   ---------------------------------------------------------------------------
+2026-07-10 07:20:54.431 | INFO     | __main__:run_forecasting:420 -   Hibiscus                N 2,243,695  N 2,243,695  N 2,204,824  N 2,154,728  N 2,224,549
+2026-07-10 07:20:54.432 | INFO     | __main__:run_forecasting:420 -   Sesame                  N 1,619,643  N 1,619,643  N 1,555,655  N 1,545,375  N 1,660,958
+2026-07-10 07:20:54.432 | INFO     | __main__:run_forecasting:420 -   Ginger                  N12,644,367  N12,644,367  N12,810,524  N12,548,686  N13,958,181
+2026-07-10 07:20:54.432 | INFO     | __main__:run_forecasting:420 -   Cocoa                   N 8,690,660  N 8,690,660  N10,278,691  N10,285,573  N10,335,741
+2026-07-10 07:20:54.432 | INFO     | __main__:run_forecasting:420 -   Soybeans                N   839,735  N   839,735  N   874,048  N   890,896  N   875,789
+2026-07-10 07:20:54.434 | INFO     | __main__:run_forecasting:420 -   Cashew Nuts             N 2,134,149  N 2,134,149  N 2,239,789  N 2,289,173  N 2,334,890
+2026-07-10 07:20:54.434 | INFO     | __main__:run_forecasting:420 -   Sorghum                 N   506,346  N   506,346  N   535,102  N   522,919  N   488,501
+2026-07-10 07:20:54.434 | INFO     | __main__:run_forecasting:420 -   Beans (white)           N   975,940  N   975,940  N   989,556  N 1,006,862  N 1,003,838
+2026-07-10 07:20:54.437 | INFO     | __main__:run_forecasting:420 -   Beans (red)             N   840,273  N   840,273  N   809,683  N   746,907  N   680,366
+2026-07-10 07:20:54.437 | INFO     | __main__:run_forecasting:420 -   Maize (white)           N   380,702  N   380,702  N   370,965  N   360,895  N   374,168
+2026-07-10 07:20:54.438 | INFO     | __main__:run_forecasting:420 -   Maize (yellow)          N   405,610  N   405,610  N   416,668  N   406,040  N   426,134
+2026-07-10 07:20:54.438 | INFO     | __main__:run_forecasting:420 -   Wheat                   N   740,906  N   740,906  N   746,775  N   759,520  N   787,752
+2026-07-10 07:20:54.438 | INFO     | __main__:run_forecasting:420 -   Rice                    N 1,681,217  N 1,681,217  N 1,692,723  N 1,709,098  N 1,749,653
+2026-07-10 07:20:54.440 | INFO     | __main__:run_forecasting:420 -   Eggs                    N     7,226  N     7,226  N     7,078  N     7,158  N     7,426
+2026-07-10 07:20:54.440 | INFO     | __main__:run_forecasting:420 -   Fish (dried)            N 2,689,719  N 2,689,719  N 2,442,097  N 2,482,506  N 2,562,571
+2026-07-10 07:20:54.440 | INFO     | __main__:run_forecasting:420 -   Meat (goat)             N 4,983,493  N 4,983,493  N 5,174,639  N 5,146,979  N 5,462,005
+2026-07-10 07:20:54.440 | INFO     | __main__:run_forecasting:420 -   Meat (beef)             N 4,706,097  N 4,706,097  N 4,910,530  N 4,792,245  N 5,105,839
+2026-07-10 07:20:54.442 | INFO     | __main__:run_forecasting:421 - ======================================================================
+2026-07-10 07:20:54.442 | SUCCESS  | __main__:run_forecasting:425 - FORECASTING COMPLETE — 17/17 commodities

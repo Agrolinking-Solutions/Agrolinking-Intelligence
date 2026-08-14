@@ -1,0 +1,83 @@
+2026-05-24 22:19:21.646 | INFO     | __main__:run_validation:483 - =================================================================
+2026-05-24 22:19:21.646 | INFO     | __main__:run_validation:484 - STEP 6 — CROSS-REFERENCE VALIDATION
+2026-05-24 22:19:21.646 | INFO     | __main__:run_validation:485 -   Run date  : Sunday, 24 May 2026
+2026-05-24 22:19:21.646 | INFO     | __main__:run_validation:486 -   Target    : <5.0% error vs live market prices
+2026-05-24 22:19:21.646 | INFO     | __main__:run_validation:487 - =================================================================
+2026-05-24 22:19:21.677 | INFO     | __main__:load_latest_forecast:360 -   Loaded forecast: forecast_2026-05-24.json
+2026-05-24 22:19:21.678 | INFO     | __main__:run_validation:492 - 
+  Validating 12 commodities against reference prices...
+
+2026-05-24 22:19:21.678 | INFO     | __main__:run_validation:496 -   Commodity                  Forecast      Reference  Error Before  Error After       Action
+2026-05-24 22:19:21.678 | INFO     | __main__:run_validation:500 -   -------------------------------------------------------------------------------------
+2026-05-24 22:19:28.723 | DEBUG    | __main__:validate_commodity:277 -   [Hibiscus] Forecast: ₦   2,119,363 | Reference: ₦   2,325,000 | Error: 8.8% (Agricom manual entry)
+2026-05-24 23:43:39.826 | INFO     | __main__:run_validation:511 - =================================================================
+2026-05-24 23:43:39.830 | INFO     | __main__:run_validation:512 - STEP 6 — CROSS-REFERENCE VALIDATION
+2026-05-24 23:43:39.835 | INFO     | __main__:run_validation:513 -   Run date  : Sunday, 24 May 2026
+2026-05-24 23:43:39.837 | INFO     | __main__:run_validation:514 -   Target    : <5.0% error vs live market prices
+2026-05-24 23:43:39.837 | INFO     | __main__:run_validation:515 - =================================================================
+2026-05-24 23:43:39.880 | INFO     | __main__:load_latest_forecast:388 -   Loaded forecast: forecast_2026-05-24.json
+2026-05-24 23:43:39.882 | INFO     | __main__:run_validation:520 - 
+  Validating 12 commodities against reference prices...
+
+2026-05-24 23:43:39.884 | INFO     | __main__:run_validation:524 -   Commodity                  Forecast      Reference  Error Before  Error After       Action
+2026-05-24 23:43:39.888 | INFO     | __main__:run_validation:528 -   -------------------------------------------------------------------------------------
+2026-05-24 23:43:43.431 | DEBUG    | __main__:validate_commodity:305 -   [Hibiscus] Forecast: ₦   2,119,363 | Reference: ₦   2,325,000 | Error: 8.8% (Agricom manual entry)
+2026-05-24 23:43:43.433 | INFO     | __main__:run_validation:551 -   Hibiscus             ₦   2,119,363  ₦   2,325,000         8.8%         4.4%    soft_blend  ✅
+2026-05-24 23:43:46.948 | DEBUG    | __main__:validate_commodity:305 -   [Sesame] Forecast: ₦   1,363,990 | Reference: ₦   1,245,000 | Error: 9.6% (Agricom manual entry)
+2026-05-24 23:43:46.951 | INFO     | __main__:run_validation:551 -   Sesame               ₦   1,363,990  ₦   1,245,000         9.6%         4.8%    soft_blend  ✅
+2026-05-24 23:43:49.987 | DEBUG    | __main__:validate_commodity:305 -   [Ginger] Forecast: ₦  11,108,470 | Reference: ₦   9,700,000 | Error: 14.5% (Agricom manual entry)
+2026-05-24 23:43:49.992 | INFO     | __main__:run_validation:551 -   Ginger               ₦  11,108,470  ₦   9,700,000        14.5%         7.3%    soft_blend  ⚠️
+2026-05-24 23:44:01.714 | DEBUG    | __main__:validate_commodity:305 -   [Cocoa] Forecast: ₦   8,729,732 | Reference: ₦   5,650,000 | Error: 54.5% (Agricom manual entry)
+2026-05-24 23:44:01.714 | INFO     | __main__:run_validation:551 -   Cocoa                ₦   8,729,732  ₦   5,650,000        54.5%         4.4%  extreme_blend  ✅
+2026-05-24 23:44:04.714 | DEBUG    | __main__:validate_commodity:305 -   [Soybeans] Forecast: ₦     854,626 | Reference: ₦     745,000 | Error: 14.7% (Agricom manual entry)
+2026-05-24 23:44:04.714 | INFO     | __main__:run_validation:551 -   Soybeans             ₦     854,626  ₦     745,000        14.7%         7.4%    soft_blend  ⚠️
+2026-05-24 23:44:07.612 | DEBUG    | __main__:validate_commodity:305 -   [Cashew Nuts] Forecast: ₦   2,026,564 | Reference: ₦   1,950,000 | Error: 3.9% (Agricom manual entry)
+2026-05-24 23:44:07.613 | INFO     | __main__:run_validation:551 -   Cashew Nuts          ₦   2,026,564  ₦   1,950,000         3.9%         3.9%          none  ✅
+2026-05-24 23:44:10.267 | DEBUG    | __main__:validate_commodity:305 -   [Sorghum] Forecast: ₦     419,404 | Reference: ₦     335,000 | Error: 25.2% (Agricom manual entry)
+2026-05-24 23:44:10.267 | INFO     | __main__:run_validation:551 -   Sorghum              ₦     419,404  ₦     335,000        25.2%         6.3%    hard_blend  ⚠️
+2026-05-24 23:44:12.995 | DEBUG    | __main__:validate_commodity:305 -   [Beans (white)] Forecast: ₦     953,299 | Reference: ₦     813,000 | Error: 17.3% (Agricom manual entry)
+2026-05-24 23:44:13.000 | INFO     | __main__:run_validation:551 -   Beans (white)        ₦     953,299  ₦     813,000        17.3%         4.3%    hard_blend  ✅
+2026-05-24 23:44:16.449 | DEBUG    | __main__:validate_commodity:305 -   [Beans (red)] Forecast: ₦     881,921 | Reference: ₦     915,000 | Error: 3.6% (Agricom manual entry)
+2026-05-24 23:44:16.449 | INFO     | __main__:run_validation:551 -   Beans (red)          ₦     881,921  ₦     915,000         3.6%         3.6%          none  ✅
+2026-05-24 23:44:19.129 | DEBUG    | __main__:validate_commodity:305 -   [Maize (white)] Forecast: ₦     360,692 | Reference: ₦     370,000 | Error: 2.5% (Agricom manual entry)
+2026-05-24 23:44:19.129 | INFO     | __main__:run_validation:551 -   Maize (white)        ₦     360,692  ₦     370,000         2.5%         2.5%          none  ✅
+2026-05-24 23:44:22.083 | DEBUG    | __main__:validate_commodity:305 -   [Maize (yellow)] Forecast: ₦     399,173 | Reference: ₦     400,000 | Error: 0.2% (Agricom manual entry)
+2026-05-24 23:44:22.091 | INFO     | __main__:run_validation:551 -   Maize (yellow)       ₦     399,173  ₦     400,000         0.2%         0.2%          none  ✅
+2026-05-24 23:44:24.727 | DEBUG    | __main__:validate_commodity:305 -   [Wheat] Forecast: ₦     741,992 | Reference: ₦     706,833 | Error: 5.0% (Agricom manual entry)
+2026-05-24 23:44:24.732 | INFO     | __main__:run_validation:551 -   Wheat                ₦     741,992  ₦     706,833         5.0%         5.0%          none  ✅
+2026-05-24 23:44:24.734 | INFO     | __main__:run_validation:575 - 
+  -------------------------------------------------------------------------------------
+2026-05-24 23:44:24.734 | INFO     | __main__:run_validation:576 -   Within <5% target : 9/12 commodities
+2026-05-24 23:44:24.734 | INFO     | __main__:run_validation:577 -   Avg error before  : 13.3%
+2026-05-24 23:44:24.734 | INFO     | __main__:run_validation:578 -   Avg error after   : 4.5%
+2026-05-24 23:44:24.837 | INFO     | __main__:run_validation:586 - 
+  Validated forecast → c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\forecasts\validated\forecast_validated_2026-05-24.json
+2026-05-24 23:44:24.841 | INFO     | __main__:run_validation:595 -   Validated alert   → c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\daily_alerts\alert_validated_2026-05-24.txt
+2026-05-24 23:44:24.841 | INFO     | __main__:run_validation:598 - 
+=================================================================
+2026-05-24 23:44:24.845 | INFO     | __main__:run_validation:599 -   VALIDATED DAILY PRICE ALERT
+2026-05-24 23:44:24.845 | INFO     | __main__:run_validation:600 - =================================================================
+2026-05-24 23:44:24.846 | INFO     | __main__:run_validation:602 -   📊 AGROLINKING COMMODITY INTELLIGENCE — VALIDATED FORECAST
+2026-05-24 23:44:24.846 | INFO     | __main__:run_validation:602 -   📅 Sunday, 24 May 2026
+2026-05-24 23:44:24.847 | INFO     | __main__:run_validation:602 -   ✅ Cross-referenced against NGX · WFP · Market sources
+2026-05-24 23:44:24.849 | INFO     | __main__:run_validation:602 -   ──────────────────────────────────────────────────
+2026-05-24 23:44:24.850 | INFO     | __main__:run_validation:602 -   ▲ Hibiscus             ₦    2,222,181/MT    +0.5%  ✅
+2026-05-24 23:44:24.850 | INFO     | __main__:run_validation:602 -   ▲ Sesame               ₦    1,304,495/MT    +2.9%  ✅
+2026-05-24 23:44:24.850 | INFO     | __main__:run_validation:602 -   ▲ Ginger               ₦   10,404,235/MT    +9.9%  ⚠️
+2026-05-24 23:44:24.852 | INFO     | __main__:run_validation:602 -   ▼ Cocoa                ₦    5,896,379/MT    -1.8%  ✅
+2026-05-24 23:44:24.853 | INFO     | __main__:run_validation:602 -   ▲ Soybeans             ₦      799,813/MT    +3.8%  ⚠️
+2026-05-24 23:44:24.853 | INFO     | __main__:run_validation:602 -   ▲ Cashew Nuts          ₦    2,026,564/MT   +11.9%  ✅
+2026-05-24 23:44:24.853 | INFO     | __main__:run_validation:602 -   → Sorghum              ₦      356,101/MT    +0.3%  ⚠️
+2026-05-24 23:44:24.853 | INFO     | __main__:run_validation:602 -   ▲ Beans (white)        ₦      848,075/MT    +9.3%  ✅
+2026-05-24 23:44:24.855 | INFO     | __main__:run_validation:602 -   ▲ Beans (red)          ₦      881,921/MT    +5.2%  ✅
+2026-05-24 23:44:24.855 | INFO     | __main__:run_validation:602 -   ▲ Maize (white)        ₦      360,692/MT    +1.2%  ✅
+2026-05-24 23:44:24.855 | INFO     | __main__:run_validation:602 -   ▲ Maize (yellow)       ₦      399,173/MT    +3.2%  ✅
+2026-05-24 23:44:24.857 | INFO     | __main__:run_validation:602 -   ▲ Wheat                ₦      741,992/MT    +8.0%  ✅
+2026-05-24 23:44:24.857 | INFO     | __main__:run_validation:602 -   ──────────────────────────────────────────────────
+2026-05-24 23:44:24.857 | INFO     | __main__:run_validation:602 -   ✅ = within 5% of market  ⚠️ = 5-15% variance  ❌ = >15% variance
+2026-05-24 23:44:24.860 | INFO     | __main__:run_validation:602 -   Source: Agrolinking Intelligence Platform
+2026-05-24 23:44:24.861 | INFO     | __main__:run_validation:602 -   Next update: 25 May 2026
+2026-05-24 23:44:25.473 | INFO     | __main__:update_master_with_validated:452 -   Master updated: +12 validated forecast rows appended
+2026-05-24 23:44:25.482 | INFO     | __main__:run_validation:623 - =================================================================
+2026-05-24 23:44:25.482 | SUCCESS  | __main__:run_validation:624 - VALIDATION COMPLETE — 9/12 within <5% target | avg error 4.5%
+2026-05-24 23:44:25.482 | INFO     | __main__:run_validation:629 - =================================================================

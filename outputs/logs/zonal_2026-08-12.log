@@ -1,0 +1,682 @@
+2026-08-12 07:07:01.723 | INFO     | __main__:run_zonal_forecast:464 - =================================================================
+2026-08-12 07:07:01.725 | INFO     | __main__:run_zonal_forecast:465 - STEP 7 — ZONAL & STATE-LEVEL FORECASTING
+2026-08-12 07:07:01.725 | INFO     | __main__:run_zonal_forecast:466 -   Date  : Wednesday, 12 August 2026  07:07
+2026-08-12 07:07:01.727 | INFO     | __main__:run_zonal_forecast:467 -   Anchor: DAILY INTERPOLATED (from last_known_date, drifts daily)
+2026-08-12 07:07:01.727 | INFO     | __main__:run_zonal_forecast:468 - =================================================================
+2026-08-12 07:07:01.889 | INFO     | __main__:run_zonal_forecast:471 -   Source: forecast_validated_2026-08-12.json
+2026-08-12 07:07:01.891 | INFO     | __main__:run_zonal_forecast:478 -   Maize (white): last_known=2023-01-16, days_elapsed=1304
+2026-08-12 07:07:01.891 | INFO     | __main__:run_zonal_forecast:478 -   Hibiscus: last_known=2026-04-13, days_elapsed=121
+2026-08-12 07:07:01.893 | INFO     | __main__:run_zonal_forecast:478 -   Sesame: last_known=2026-04-13, days_elapsed=121
+2026-08-12 07:07:01.893 | INFO     | __main__:build_zonal_output:285 - 
+2026-08-12 07:07:01.893 | INFO     | __main__:build_zonal_output:286 -   NATIONAL ANCHORS (interpolated from last_known_date to today):
+2026-08-12 07:07:01.893 | INFO     | __main__:build_zonal_output:287 -   Commodity                 Today Price   Day Chg    vs Ref  Source
+2026-08-12 07:07:01.893 | INFO     | __main__:build_zonal_output:288 -   --------------------------------------------------------------------------------
+2026-08-12 07:07:01.895 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 07:07:01.898 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 07:07:01.898 | INFO     | __main__:build_zonal_output:318 -   Hibiscus               N   2,466,580    -0.01%   -1.34%  interp d121 (weekly series | -1.34%
+2026-08-12 07:07:01.899 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 07:07:01.899 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 07:07:01.901 | INFO     | __main__:build_zonal_output:318 -   Sesame                 N   1,387,129    -0.02%   -2.31%  interp d121 (weekly series | -2.31%
+2026-08-12 07:07:01.901 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 07:07:01.903 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 07:07:01.903 | INFO     | __main__:build_zonal_output:318 -   Ginger                 N   9,335,627    -0.01%   -0.68%  interp d121 (weekly series | -0.68%
+2026-08-12 07:07:01.905 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 07:07:01.907 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 07:07:01.909 | INFO     | __main__:build_zonal_output:318 -   Cocoa                  N   4,573,299    +0.01%  + +1.63%  interp d121 (weekly series | +1.63%
+2026-08-12 07:07:01.910 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 07:07:01.913 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 07:07:01.915 | INFO     | __main__:build_zonal_output:318 -   Soybeans               N     781,258    -0.01%   -1.11%  interp d121 (weekly series | -1.11%
+2026-08-12 07:07:01.917 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 07:07:01.917 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 07:07:01.920 | INFO     | __main__:build_zonal_output:318 -   Cashew Nuts            N   1,886,237    -0.02%   -2.27%  interp d121 (weekly series | -2.27%
+2026-08-12 07:07:01.920 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 07:07:01.920 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 07:07:01.922 | INFO     | __main__:build_zonal_output:318 -   Sorghum                N     340,166    -0.01%   -1.40%  interp d121 (weekly series | -1.40%
+2026-08-12 07:07:01.922 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-16, run=2026-08-12, elapsed=149d
+2026-08-12 07:07:01.924 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-16, run=2026-08-11, elapsed=148d
+2026-08-12 07:07:01.924 | INFO     | __main__:build_zonal_output:318 -   Beans (white)          N     739,374    -0.01%   -1.42%  interp d149 (weekly series | -1.42%
+2026-08-12 07:07:01.924 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-16, run=2026-08-12, elapsed=149d
+2026-08-12 07:07:01.924 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-16, run=2026-08-11, elapsed=148d
+2026-08-12 07:07:01.924 | INFO     | __main__:build_zonal_output:318 -   Beans (red)            N     839,107    -0.01%   -1.28%  interp d149 (weekly series | -1.28%
+2026-08-12 07:07:01.928 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-16 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 07:07:01.928 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-16, run=2026-08-12, elapsed=7d
+2026-08-12 07:07:01.929 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-16 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 07:07:01.929 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-16, run=2026-08-11, elapsed=7d
+2026-08-12 07:07:01.931 | INFO     | __main__:build_zonal_output:318 -   Maize (white)          N     391,721    -0.07%   -0.83%  interp d7 (weekly series | -0.83% v
+2026-08-12 07:07:01.931 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-16 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 07:07:01.931 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-16, run=2026-08-12, elapsed=7d
+2026-08-12 07:07:01.936 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-16 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 07:07:01.936 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-16, run=2026-08-11, elapsed=7d
+2026-08-12 07:07:01.936 | INFO     | __main__:build_zonal_output:318 -   Maize (yellow)         N     418,173    -0.06%   -0.67%  interp d7 (weekly series | -0.67% v
+2026-08-12 07:07:01.936 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 07:07:01.941 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 07:07:01.941 | INFO     | __main__:build_zonal_output:318 -   Wheat                  N     987,133    -0.01%   -1.29%  interp d121 (weekly series | -1.29%
+2026-08-12 07:07:01.941 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-09 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 07:07:01.941 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-09, run=2026-08-12, elapsed=7d
+2026-08-12 07:07:01.944 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-09 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 07:07:01.944 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-09, run=2026-08-11, elapsed=7d
+2026-08-12 07:07:01.944 | INFO     | __main__:build_zonal_output:318 -   Rice                   N   1,342,568    +0.14%  + +1.71%  interp d7 (weekly series | +1.71% v
+2026-08-12 07:07:01.944 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-12, elapsed=156d
+2026-08-12 07:07:01.948 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-11, elapsed=155d
+2026-08-12 07:07:01.953 | INFO     | __main__:build_zonal_output:318 -   Meat (beef)            N   4,641,358    +0.01%  + +2.32%  interp d156 (weekly series | +2.32%
+2026-08-12 07:07:01.953 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-12, elapsed=156d
+2026-08-12 07:07:01.955 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-11, elapsed=155d
+2026-08-12 07:07:01.961 | INFO     | __main__:build_zonal_output:318 -   Meat (goat)            N   4,926,068    +0.01%  + +1.36%  interp d156 (weekly series | +1.36%
+2026-08-12 07:07:01.962 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-12, elapsed=156d
+2026-08-12 07:07:01.962 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-11, elapsed=155d
+2026-08-12 07:07:01.962 | INFO     | __main__:build_zonal_output:318 -   Fish (dried)           N   2,913,987    -0.01%   -1.82%  interp d156 (weekly series | -1.82%
+2026-08-12 07:07:01.962 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-12, elapsed=156d
+2026-08-12 07:07:01.971 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-11, elapsed=155d
+2026-08-12 07:07:01.982 | INFO     | __main__:build_zonal_output:318 -   Eggs                   N       7,707    -0.02%   -2.69%  interp d156 (weekly series | -2.69%
+2026-08-12 07:07:01.983 | INFO     | __main__:build_zonal_output:321 - 
+2026-08-12 07:07:02.101 | INFO     | __main__:run_zonal_forecast:484 - 
+2026-08-12 07:07:02.103 | INFO     | __main__:run_zonal_forecast:485 -   Zone             State        Commodity                 State Price  Day Chg
+2026-08-12 07:07:02.105 | INFO     | __main__:run_zonal_forecast:486 -   ------------------------------------------------------------------------
+2026-08-12 07:07:02.110 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Sesame                N   1,151,317/MT  -0.02%
+2026-08-12 07:07:02.114 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Sorghum               N     265,329/MT  -0.01%
+2026-08-12 07:07:02.122 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Beans (white)         N     643,255/MT  -0.01%
+2026-08-12 07:07:02.125 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Maize (white)         N     313,377/MT  -0.07%
+2026-08-12 07:07:02.128 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Maize (yellow)        N     334,538/MT  -0.06%
+2026-08-12 07:07:02.131 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Wheat                 N     878,548/MT  -0.01%
+2026-08-12 07:07:02.132 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Ginger                N   6,721,651/MT  -0.01%
+2026-08-12 07:07:02.133 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Soybeans              N     656,256/MT  -0.01%
+2026-08-12 07:07:02.135 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Sorghum               N     272,133/MT  -0.01%
+2026-08-12 07:07:02.141 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Maize (white)         N     317,294/MT  -0.07%
+2026-08-12 07:07:02.143 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Maize (yellow)        N     338,720/MT  -0.06%
+2026-08-12 07:07:02.145 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Wheat                 N     858,806/MT  -0.01%
+2026-08-12 07:07:02.146 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Ginger                N   7,001,720/MT  -0.01%
+2026-08-12 07:07:02.150 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Soybeans              N     648,444/MT  -0.01%
+2026-08-12 07:07:02.153 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Beans (white)         N     665,437/MT  -0.01%
+2026-08-12 07:07:02.155 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Maize (white)         N     340,797/MT  -0.07%
+2026-08-12 07:07:02.160 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Wheat                 N     898,291/MT  -0.01%
+2026-08-12 07:07:02.164 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Cocoa                 N   4,024,503/MT  +0.01%
+2026-08-12 07:07:02.166 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Soybeans              N     679,694/MT  -0.01%
+2026-08-12 07:07:02.167 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Cashew Nuts           N   1,508,990/MT  -0.02%
+2026-08-12 07:07:02.169 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Sorghum               N     309,551/MT  -0.01%
+2026-08-12 07:07:02.171 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Beans (white)         N     680,224/MT  -0.01%
+2026-08-12 07:07:02.175 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Maize (white)         N     352,549/MT  -0.07%
+2026-08-12 07:07:02.183 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Sesame                N   1,192,931/MT  -0.02%
+2026-08-12 07:07:02.188 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Ginger                N   7,748,570/MT  -0.01%
+2026-08-12 07:07:02.192 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Soybeans              N     695,319/MT  -0.01%
+2026-08-12 07:07:02.196 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Sorghum               N     295,944/MT  -0.01%
+2026-08-12 07:07:02.206 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Beans (white)         N     680,224/MT  -0.01%
+2026-08-12 07:07:02.215 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Maize (white)         N     344,714/MT  -0.07%
+2026-08-12 07:07:02.219 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Sesame                N   1,234,545/MT  -0.02%
+2026-08-12 07:07:02.227 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Sorghum               N     312,953/MT  -0.01%
+2026-08-12 07:07:02.234 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Beans (white)         N     783,737/MT  -0.01%
+2026-08-12 07:07:02.239 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Maize (white)         N     423,058/MT  -0.07%
+2026-08-12 07:07:02.247 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Wheat                 N   1,105,589/MT  -0.01%
+2026-08-12 07:07:02.256 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Hibiscus              N   2,540,577/MT  -0.01%
+2026-08-12 07:07:02.269 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Cocoa                 N   4,070,236/MT  +0.01%
+2026-08-12 07:07:02.274 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Soybeans              N     812,508/MT  -0.01%
+2026-08-12 07:07:02.277 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Cashew Nuts           N   1,622,164/MT  -0.02%
+2026-08-12 07:07:02.295 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Beans (white)         N     813,311/MT  -0.01%
+2026-08-12 07:07:02.301 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Maize (white)         N     423,058/MT  -0.07%
+2026-08-12 07:07:02.308 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Hibiscus              N   2,836,567/MT  -0.01%
+2026-08-12 07:07:02.311 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Sesame                N   1,636,813/MT  -0.02%
+2026-08-12 07:07:02.313 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Cocoa                 N   4,939,163/MT  +0.01%
+2026-08-12 07:07:02.314 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Soybeans              N     953,134/MT  -0.01%
+2026-08-12 07:07:02.316 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Beans (white)         N     946,399/MT  -0.01%
+2026-08-12 07:07:02.316 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Beans (red)           N   1,048,883/MT  -0.01%
+2026-08-12 07:07:02.317 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Maize (white)         N     509,237/MT  -0.07%
+2026-08-12 07:07:02.319 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Maize (yellow)        N     543,625/MT  -0.06%
+2026-08-12 07:07:02.320 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Cocoa                 N   4,801,964/MT  +0.01%
+2026-08-12 07:07:02.321 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Cashew Nuts           N   2,074,861/MT  -0.02%
+2026-08-12 07:07:02.322 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Beans (white)         N     872,461/MT  -0.01%
+2026-08-12 07:07:02.331 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Beans (red)           N     964,973/MT  -0.01%
+2026-08-12 07:07:02.333 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Maize (white)         N     470,065/MT  -0.07%
+2026-08-12 07:07:02.333 | INFO     | __main__:run_zonal_forecast:493 -   South East       Imo          * Cocoa                 N   4,161,702/MT  +0.01%
+2026-08-12 07:07:02.334 | INFO     | __main__:run_zonal_forecast:493 -   South East       Imo          * Cashew Nuts           N   1,999,412/MT  -0.02%
+2026-08-12 07:07:02.335 | INFO     | __main__:run_zonal_forecast:493 -   South East       Imo          * Beans (white)         N     850,280/MT  -0.01%
+2026-08-12 07:07:02.335 | INFO     | __main__:run_zonal_forecast:493 -   South East       Imo          * Maize (white)         N     458,313/MT  -0.07%
+2026-08-12 07:07:02.336 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Hibiscus              N   2,762,570/MT  -0.01%
+2026-08-12 07:07:02.337 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Sesame                N   1,636,813/MT  -0.02%
+2026-08-12 07:07:02.337 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Cocoa                 N   4,801,964/MT  +0.01%
+2026-08-12 07:07:02.339 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Beans (white)         N     902,036/MT  -0.01%
+2026-08-12 07:07:02.340 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Beans (red)           N   1,006,928/MT  -0.01%
+2026-08-12 07:07:02.341 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Maize (white)         N     489,651/MT  -0.07%
+2026-08-12 07:07:02.341 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Hibiscus              N   2,663,906/MT  -0.01%
+2026-08-12 07:07:02.342 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Sesame                N   1,609,070/MT  -0.02%
+2026-08-12 07:07:02.343 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Cocoa                 N   4,253,168/MT  +0.01%
+2026-08-12 07:07:02.343 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Soybeans              N     890,634/MT  -0.01%
+2026-08-12 07:07:02.344 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Beans (white)         N     865,068/MT  -0.01%
+2026-08-12 07:07:02.350 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Maize (white)         N     470,065/MT  -0.07%
+2026-08-12 07:07:02.737 | SUCCESS  | __main__:run_zonal_forecast:507 -   Zonal JSON  -> C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\forecasts\zonal\zonal_forecast_2026-08-12.json
+2026-08-12 07:07:02.742 | SUCCESS  | __main__:run_zonal_forecast:513 -   Zonal alert -> C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\daily_alerts\alert_zonal_2026-08-12.txt
+2026-08-12 07:07:02.742 | INFO     | __main__:run_zonal_forecast:515 - 
+2026-08-12 07:07:02.742 | INFO     | __main__:run_zonal_forecast:516 - =================================================================
+2026-08-12 07:07:02.744 | INFO     | __main__:run_zonal_forecast:518 -   ================================================
+2026-08-12 07:07:02.744 | INFO     | __main__:run_zonal_forecast:518 -   AGROLINKING ZONAL COMMODITY INTELLIGENCE
+2026-08-12 07:07:02.748 | INFO     | __main__:run_zonal_forecast:518 -   Date: Wednesday, 12 August 2026
+2026-08-12 07:07:02.748 | INFO     | __main__:run_zonal_forecast:518 -   6 Zones | 12 States | 12 Commodities
+2026-08-12 07:07:02.750 | INFO     | __main__:run_zonal_forecast:518 -   ================================================
+2026-08-12 07:07:02.750 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.750 | INFO     | __main__:run_zonal_forecast:518 -   NORTH WEST (Kano & Kaduna)
+2026-08-12 07:07:02.752 | INFO     | __main__:run_zonal_forecast:518 -   Nigeria's main grain belt. Highest Maize, Sorghum, Sesame, Wheat production.
+2026-08-12 07:07:02.752 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.754 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Kano                Kaduna            
+2026-08-12 07:07:02.754 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 07:07:02.755 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                N2.343M    (-0.0%)    N2.294M    (-0.0%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                * N1.151M    (-0.0%)    N1.179M    (-0.0%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                  N9.149M    (-0.0%)  * N6.722M    (-0.0%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                   N4.665M    (+0.0%)    N4.802M    (+0.0%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans                N703K      (-0.0%)  * N656K      (-0.0%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts             N1.886M    (-0.0%)    N1.924M    (-0.0%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum               * N265K      (-0.0%)  * N272K      (-0.0%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N643K      (-0.0%)    N651K      (-0.0%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)             N755K      (-0.0%)    N764K      (-0.0%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N313K      (-0.1%)  * N317K      (-0.1%)
+2026-08-12 07:07:02.756 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)        * N335K      (-0.1%)  * N339K      (-0.1%)
+2026-08-12 07:07:02.762 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                 * N879K      (-0.0%)  * N859K      (-0.0%)
+2026-08-12 07:07:02.763 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.275M    (+0.1%)    N1.249M    (+0.1%)
+2026-08-12 07:07:02.763 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N4.038M    (+0.0%)    N4.038M    (+0.0%)
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N4.286M    (+0.0%)    N4.286M    (+0.0%)
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N2.535M    (-0.0%)    N2.535M    (-0.0%)
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N7K        (-0.0%)    N7K        (-0.0%)
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -   NORTH CENTRAL (Plateau & Kogi)
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -   Middle Belt. Ginger heartland (Plateau), Cashew/Cocoa belt (Kogi).
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Plateau             Kogi              
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 07:07:02.764 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                N2.393M    (-0.0%)    N2.368M    (-0.0%)
+2026-08-12 07:07:02.770 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                  N1.332M    (-0.0%)    N1.346M    (-0.0%)
+2026-08-12 07:07:02.770 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                * N7.002M    (-0.0%)    N8.775M    (-0.0%)
+2026-08-12 07:07:02.770 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                   N4.939M    (+0.0%)  * N4.025M    (+0.0%)
+2026-08-12 07:07:02.772 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans              * N648K      (-0.0%)  * N680K      (-0.0%)
+2026-08-12 07:07:02.772 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts             N1.981M    (-0.0%)  * N1.509M    (-0.0%)
+2026-08-12 07:07:02.773 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                 N313K      (-0.0%)  * N310K      (-0.0%)
+2026-08-12 07:07:02.773 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N665K      (-0.0%)  * N680K      (-0.0%)
+2026-08-12 07:07:02.773 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)             N797K      (-0.0%)    N789K      (-0.0%)
+2026-08-12 07:07:02.773 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N341K      (-0.1%)  * N353K      (-0.1%)
+2026-08-12 07:07:02.773 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N368K      (-0.1%)    N381K      (-0.1%)
+2026-08-12 07:07:02.773 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                 * N898K      (-0.0%)    N958K      (-0.0%)
+2026-08-12 07:07:02.777 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.208M    (+0.1%)    N1.302M    (+0.1%)
+2026-08-12 07:07:02.777 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N4.409M    (+0.0%)    N4.409M    (+0.0%)
+2026-08-12 07:07:02.777 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N4.680M    (+0.0%)    N4.680M    (+0.0%)
+2026-08-12 07:07:02.779 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N2.768M    (-0.0%)    N2.768M    (-0.0%)
+2026-08-12 07:07:02.779 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N7K        (-0.0%)    N7K        (-0.0%)
+2026-08-12 07:07:02.779 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.779 | INFO     | __main__:run_zonal_forecast:518 -   NORTH EAST (Adamawa & Borno)
+2026-08-12 07:07:02.779 | INFO     | __main__:run_zonal_forecast:518 -   Semi-arid. Sorghum, Maize. Conflict premium on imports in Borno.
+2026-08-12 07:07:02.779 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.779 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Adamawa             Borno             
+2026-08-12 07:07:02.783 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 07:07:02.783 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                N2.417M    (-0.0%)    N2.590M    (-0.0%)
+2026-08-12 07:07:02.783 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                * N1.193M    (-0.0%)  * N1.235M    (-0.0%)
+2026-08-12 07:07:02.783 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                * N7.749M    (-0.0%)    N10.736M   (-0.0%)
+2026-08-12 07:07:02.783 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                   N4.802M    (+0.0%)    N5.396M    (+0.0%)
+2026-08-12 07:07:02.786 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans              * N695K      (-0.0%)    N844K      (-0.0%)
+2026-08-12 07:07:02.786 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts             N1.962M    (-0.0%)    N2.169M    (-0.0%)
+2026-08-12 07:07:02.787 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum               * N296K      (-0.0%)  * N313K      (-0.0%)
+2026-08-12 07:07:02.787 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N680K      (-0.0%)  * N784K      (-0.0%)
+2026-08-12 07:07:02.787 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)             N797K      (-0.0%)    N923K      (-0.0%)
+2026-08-12 07:07:02.787 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N345K      (-0.1%)  * N423K      (-0.1%)
+2026-08-12 07:07:02.790 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N372K      (-0.1%)    N452K      (-0.1%)
+2026-08-12 07:07:02.790 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                   N967K      (-0.0%)  * N1.106M    (-0.0%)
+2026-08-12 07:07:02.792 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.369M    (+0.1%)    N1.477M    (+0.1%)
+2026-08-12 07:07:02.792 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N4.734M    (+0.0%)    N4.734M    (+0.0%)
+2026-08-12 07:07:02.793 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N5.025M    (+0.0%)    N5.025M    (+0.0%)
+2026-08-12 07:07:02.793 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N2.972M    (-0.0%)    N2.972M    (-0.0%)
+2026-08-12 07:07:02.794 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N8K        (-0.0%)    N8K        (-0.0%)
+2026-08-12 07:07:02.794 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.794 | INFO     | __main__:run_zonal_forecast:518 -   SOUTH WEST (Oyo & Lagos)
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -   Commercial capital. Lagos is the price-setter for consumer markets.
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Oyo                 Lagos             
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus              * N2.541M    (-0.0%)  * N2.837M    (-0.0%)
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                  N1.470M    (-0.0%)  * N1.637M    (-0.0%)
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                  N10.082M   (-0.0%)    N11.203M   (-0.0%)
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                 * N4.070M    (+0.0%)  * N4.939M    (+0.0%)
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans              * N813K      (-0.0%)  * N953K      (-0.0%)
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts           * N1.622M    (-0.0%)    N2.075M    (-0.0%)
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                 N357K      (-0.0%)    N401K      (-0.0%)
+2026-08-12 07:07:02.796 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N813K      (-0.0%)  * N946K      (-0.0%)
+2026-08-12 07:07:02.803 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)             N940K      (-0.0%)  * N1.049M    (-0.0%)
+2026-08-12 07:07:02.803 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N423K      (-0.1%)  * N509K      (-0.1%)
+2026-08-12 07:07:02.804 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N452K      (-0.1%)  * N544K      (-0.1%)
+2026-08-12 07:07:02.806 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                   N1.086M    (-0.0%)    N1.135M    (-0.0%)
+2026-08-12 07:07:02.807 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.450M    (+0.1%)    N1.584M    (+0.1%)
+2026-08-12 07:07:02.807 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N5.384M    (+0.0%)    N5.384M    (+0.0%)
+2026-08-12 07:07:02.807 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N5.714M    (+0.0%)    N5.714M    (+0.0%)
+2026-08-12 07:07:02.807 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N3.380M    (-0.0%)    N3.380M    (-0.0%)
+2026-08-12 07:07:02.807 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N9K        (-0.0%)    N9K        (-0.0%)
+2026-08-12 07:07:02.807 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.811 | INFO     | __main__:run_zonal_forecast:518 -   SOUTH EAST (Anambra & Imo)
+2026-08-12 07:07:02.811 | INFO     | __main__:run_zonal_forecast:518 -   High consumption, low production of traded commodities. Import-dependent.
+2026-08-12 07:07:02.813 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.813 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Anambra             Imo               
+2026-08-12 07:07:02.813 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 07:07:02.813 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                N2.763M    (-0.0%)    N2.713M    (-0.0%)
+2026-08-12 07:07:02.813 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                  N1.609M    (-0.0%)    N1.581M    (-0.0%)
+2026-08-12 07:07:02.813 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                  N10.736M   (-0.0%)    N10.456M   (-0.0%)
+2026-08-12 07:07:02.813 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                 * N4.802M    (+0.0%)  * N4.162M    (+0.0%)
+2026-08-12 07:07:02.817 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans                N891K      (-0.0%)    N875K      (-0.0%)
+2026-08-12 07:07:02.817 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts           * N2.075M    (-0.0%)  * N1.999M    (-0.0%)
+2026-08-12 07:07:02.817 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                 N388K      (-0.0%)    N381K      (-0.0%)
+2026-08-12 07:07:02.819 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N872K      (-0.0%)  * N850K      (-0.0%)
+2026-08-12 07:07:02.819 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)           * N965K      (-0.0%)    N948K      (-0.0%)
+2026-08-12 07:07:02.819 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N470K      (-0.1%)  * N458K      (-0.1%)
+2026-08-12 07:07:02.819 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N502K      (-0.1%)    N489K      (-0.1%)
+2026-08-12 07:07:02.819 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                   N1.165M    (-0.0%)    N1.145M    (-0.0%)
+2026-08-12 07:07:02.822 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.504M    (+0.1%)    N1.477M    (+0.1%)
+2026-08-12 07:07:02.822 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N5.245M    (+0.0%)    N5.245M    (+0.0%)
+2026-08-12 07:07:02.822 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N5.566M    (+0.0%)    N5.566M    (+0.0%)
+2026-08-12 07:07:02.824 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N3.293M    (-0.0%)    N3.293M    (-0.0%)
+2026-08-12 07:07:02.825 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N9K        (-0.0%)    N9K        (-0.0%)
+2026-08-12 07:07:02.825 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.825 | INFO     | __main__:run_zonal_forecast:518 -   SOUTH SOUTH (Rivers & Delta)
+2026-08-12 07:07:02.827 | INFO     | __main__:run_zonal_forecast:518 -   Oil belt. High purchasing power. Cocoa producer (Delta).
+2026-08-12 07:07:02.827 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.829 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Rivers              Delta             
+2026-08-12 07:07:02.830 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 07:07:02.830 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus              * N2.763M    (-0.0%)  * N2.664M    (-0.0%)
+2026-08-12 07:07:02.832 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                * N1.637M    (-0.0%)  * N1.609M    (-0.0%)
+2026-08-12 07:07:02.832 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                  N11.203M   (-0.0%)    N10.736M   (-0.0%)
+2026-08-12 07:07:02.832 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                 * N4.802M    (+0.0%)  * N4.253M    (+0.0%)
+2026-08-12 07:07:02.834 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans                N922K      (-0.0%)  * N891K      (-0.0%)
+2026-08-12 07:07:02.835 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts             N2.169M    (-0.0%)    N2.075M    (-0.0%)
+2026-08-12 07:07:02.835 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                 N408K      (-0.0%)    N401K      (-0.0%)
+2026-08-12 07:07:02.837 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N902K      (-0.0%)  * N865K      (-0.0%)
+2026-08-12 07:07:02.837 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)           * N1.007M    (-0.0%)    N965K      (-0.0%)
+2026-08-12 07:07:02.837 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N490K      (-0.1%)  * N470K      (-0.1%)
+2026-08-12 07:07:02.837 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N523K      (-0.1%)    N502K      (-0.1%)
+2026-08-12 07:07:02.837 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                   N1.204M    (-0.0%)    N1.185M    (-0.0%)
+2026-08-12 07:07:02.837 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.544M    (+0.1%)    N1.504M    (+0.1%)
+2026-08-12 07:07:02.841 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N5.291M    (+0.0%)    N5.291M    (+0.0%)
+2026-08-12 07:07:02.841 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N5.616M    (+0.0%)    N5.616M    (+0.0%)
+2026-08-12 07:07:02.841 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N3.322M    (-0.0%)    N3.322M    (-0.0%)
+2026-08-12 07:07:02.841 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N9K        (-0.0%)    N9K        (-0.0%)
+2026-08-12 07:07:02.841 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.844 | INFO     | __main__:run_zonal_forecast:518 -   ==========================================================
+2026-08-12 07:07:02.844 | INFO     | __main__:run_zonal_forecast:518 -   * = primary commodity  (+/-%) = day-on-day change
+2026-08-12 07:07:02.844 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.844 | INFO     | __main__:run_zonal_forecast:518 -   NATIONAL PRICE CHANGES TODAY:
+2026-08-12 07:07:02.844 | INFO     | __main__:run_zonal_forecast:518 -     Commodity                   Price   Day Chg    vs Ref
+2026-08-12 07:07:02.844 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------
+2026-08-12 07:07:02.848 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                  N2.467M    -0.01%    -1.34%
+2026-08-12 07:07:02.849 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                    N1.387M    -0.02%    -2.31%
+2026-08-12 07:07:02.849 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                    N9.336M    -0.01%    -0.68%
+2026-08-12 07:07:02.849 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                     N4.573M    +0.01%    +1.63%
+2026-08-12 07:07:02.849 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans                    N781K    -0.01%    -1.11%
+2026-08-12 07:07:02.849 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts               N1.886M    -0.02%    -2.27%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                     N340K    -0.01%    -1.40%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)               N739K    -0.01%    -1.42%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)                 N839K    -0.01%    -1.28%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)               N392K    -0.07%    -0.83%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)              N418K    -0.06%    -0.67%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                       N987K    -0.01%    -1.29%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Rice                      N1.343M    +0.14%    +1.71%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)               N4.641M    +0.01%    +2.32%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)               N4.926M    +0.01%    +1.36%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)              N2.914M    -0.01%    -1.82%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                          N8K    -0.02%    -2.69%
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -   BEST SOURCING NATIONALLY:
+2026-08-12 07:07:02.852 | INFO     | __main__:run_zonal_forecast:518 -     Commodity              Best State           Price  Spread
+2026-08-12 07:07:02.859 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 07:07:02.859 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus               Kaduna             N2.294M  24% vs Lagos
+2026-08-12 07:07:02.859 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                 Kano               N1.151M  42% vs Lagos
+2026-08-12 07:07:02.859 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                 Kaduna             N6.722M  67% vs Lagos
+2026-08-12 07:07:02.859 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                  Kogi               N4.025M  34% vs Borno
+2026-08-12 07:07:02.862 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans               Plateau              N648K  47% vs Lagos
+2026-08-12 07:07:02.862 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts            Kogi               N1.509M  44% vs Borno
+2026-08-12 07:07:02.862 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                Kano                 N265K  54% vs Rivers
+2026-08-12 07:07:02.862 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)          Kano                 N643K  47% vs Lagos
+2026-08-12 07:07:02.865 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)            Kano                 N755K  39% vs Lagos
+2026-08-12 07:07:02.865 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)          Kano                 N313K  62% vs Lagos
+2026-08-12 07:07:02.865 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)         Kano                 N335K  62% vs Lagos
+2026-08-12 07:07:02.865 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                  Kaduna               N859K  40% vs Rivers
+2026-08-12 07:07:02.868 | INFO     | __main__:run_zonal_forecast:518 -     Rice                   Plateau            N1.208M  31% vs Lagos
+2026-08-12 07:07:02.868 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)            Kano               N4.038M  33% vs Oyo
+2026-08-12 07:07:02.868 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)            Kano               N4.286M  33% vs Oyo
+2026-08-12 07:07:02.868 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)           Kano               N2.535M  33% vs Oyo
+2026-08-12 07:07:02.868 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                   Kano                   N7K  33% vs Oyo
+2026-08-12 07:07:02.868 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 07:07:02.871 | INFO     | __main__:run_zonal_forecast:518 -   ==========================================================
+2026-08-12 07:07:02.873 | INFO     | __main__:run_zonal_forecast:518 -   Source: Agrolinking Intelligence Platform
+2026-08-12 07:07:02.873 | INFO     | __main__:run_zonal_forecast:518 -   Next update: 13 Aug 2026
+2026-08-12 07:07:02.873 | INFO     | __main__:run_zonal_forecast:519 - =================================================================
+2026-08-12 07:07:02.876 | SUCCESS  | __main__:run_zonal_forecast:520 - ZONAL FORECASTING COMPLETE — 6 zones | 12 states | 17 commodities
+2026-08-12 20:50:16.169 | INFO     | __main__:run_zonal_forecast:464 - =================================================================
+2026-08-12 20:50:16.172 | INFO     | __main__:run_zonal_forecast:465 - STEP 7 — ZONAL & STATE-LEVEL FORECASTING
+2026-08-12 20:50:16.173 | INFO     | __main__:run_zonal_forecast:466 -   Date  : Wednesday, 12 August 2026  20:50
+2026-08-12 20:50:16.173 | INFO     | __main__:run_zonal_forecast:467 -   Anchor: DAILY INTERPOLATED (from last_known_date, drifts daily)
+2026-08-12 20:50:16.174 | INFO     | __main__:run_zonal_forecast:468 - =================================================================
+2026-08-12 20:50:16.410 | INFO     | __main__:run_zonal_forecast:471 -   Source: forecast_validated_2026-08-12.json
+2026-08-12 20:50:16.412 | INFO     | __main__:run_zonal_forecast:478 -   Maize (white): last_known=2023-01-16, days_elapsed=1304
+2026-08-12 20:50:16.412 | INFO     | __main__:run_zonal_forecast:478 -   Hibiscus: last_known=2026-04-13, days_elapsed=121
+2026-08-12 20:50:16.414 | INFO     | __main__:run_zonal_forecast:478 -   Sesame: last_known=2026-04-13, days_elapsed=121
+2026-08-12 20:50:16.414 | INFO     | __main__:build_zonal_output:285 - 
+2026-08-12 20:50:16.420 | INFO     | __main__:build_zonal_output:286 -   NATIONAL ANCHORS (interpolated from last_known_date to today):
+2026-08-12 20:50:16.420 | INFO     | __main__:build_zonal_output:287 -   Commodity                 Today Price   Day Chg    vs Ref  Source
+2026-08-12 20:50:16.420 | INFO     | __main__:build_zonal_output:288 -   --------------------------------------------------------------------------------
+2026-08-12 20:50:16.421 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 20:50:16.426 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 20:50:16.428 | INFO     | __main__:build_zonal_output:318 -   Hibiscus               N   2,283,464    -0.02%   -1.79%  interp d121 (weekly series | -1.79%
+2026-08-12 20:50:16.429 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 20:50:16.433 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 20:50:16.436 | INFO     | __main__:build_zonal_output:318 -   Sesame                 N   1,614,764    -0.02%   -2.14%  interp d121 (weekly series | -2.14%
+2026-08-12 20:50:16.437 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 20:50:16.441 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 20:50:16.444 | INFO     | __main__:build_zonal_output:318 -   Ginger                 N  11,724,568    -0.02%   -2.30%  interp d121 (weekly series | -2.30%
+2026-08-12 20:50:16.444 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 20:50:16.449 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 20:50:16.452 | INFO     | __main__:build_zonal_output:318 -   Cocoa                  N   5,722,811    +0.01%  + +1.29%  interp d121 (weekly series | +1.29%
+2026-08-12 20:50:16.453 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 20:50:16.457 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 20:50:16.459 | INFO     | __main__:build_zonal_output:318 -   Soybeans               N     753,245    +0.01%  + +1.11%  interp d121 (weekly series | +1.11%
+2026-08-12 20:50:16.460 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 20:50:16.463 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 20:50:16.467 | INFO     | __main__:build_zonal_output:318 -   Cashew Nuts            N   1,904,317    -0.02%   -2.34%  interp d121 (weekly series | -2.34%
+2026-08-12 20:50:16.468 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 20:50:16.470 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 20:50:16.472 | INFO     | __main__:build_zonal_output:318 -   Sorghum                N     412,285    -0.02%   -1.84%  interp d121 (weekly series | -1.84%
+2026-08-12 20:50:16.473 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-16, run=2026-08-12, elapsed=149d
+2026-08-12 20:50:16.475 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-16, run=2026-08-11, elapsed=148d
+2026-08-12 20:50:16.478 | INFO     | __main__:build_zonal_output:318 -   Beans (white)          N     796,279    -0.01%   -2.06%  interp d149 (weekly series | -2.06%
+2026-08-12 20:50:16.478 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-16, run=2026-08-12, elapsed=149d
+2026-08-12 20:50:16.480 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-16, run=2026-08-11, elapsed=148d
+2026-08-12 20:50:16.483 | INFO     | __main__:build_zonal_output:318 -   Beans (red)            N     897,818    -0.01%   -1.88%  interp d149 (weekly series | -1.88%
+2026-08-12 20:50:16.484 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-16 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 20:50:16.484 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-16, run=2026-08-12, elapsed=7d
+2026-08-12 20:50:16.487 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-16 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 20:50:16.487 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-16, run=2026-08-11, elapsed=7d
+2026-08-12 20:50:16.490 | INFO     | __main__:build_zonal_output:318 -   Maize (white)          N     365,779    -0.10%   -1.14%  interp d7 (weekly series | -1.14% v
+2026-08-12 20:50:16.491 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-16 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 20:50:16.491 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-16, run=2026-08-12, elapsed=7d
+2026-08-12 20:50:16.494 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-16 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 20:50:16.494 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-16, run=2026-08-11, elapsed=7d
+2026-08-12 20:50:16.497 | INFO     | __main__:build_zonal_output:318 -   Maize (yellow)         N     396,274    -0.08%   -0.93%  interp d7 (weekly series | -0.93% v
+2026-08-12 20:50:16.499 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-12, elapsed=121d
+2026-08-12 20:50:16.501 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-04-13, run=2026-08-11, elapsed=120d
+2026-08-12 20:50:16.502 | INFO     | __main__:build_zonal_output:318 -   Wheat                  N     696,799    -0.01%   -1.42%  interp d121 (weekly series | -1.42%
+2026-08-12 20:50:16.502 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-09 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 20:50:16.502 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-09, run=2026-08-12, elapsed=7d
+2026-08-12 20:50:16.504 | DEBUG    | __main__:get_daily_price:88 -   last_known_date 2023-01-09 is stale (>2yr). Using forecast_start as anchor.
+2026-08-12 20:50:16.505 | DEBUG    | __main__:get_daily_price:116 -   last_known=2023-01-09, run=2026-08-11, elapsed=7d
+2026-08-12 20:50:16.508 | INFO     | __main__:build_zonal_output:318 -   Rice                   N   1,569,830    +0.11%  + +1.28%  interp d7 (weekly series | +1.28% v
+2026-08-12 20:50:16.508 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-12, elapsed=156d
+2026-08-12 20:50:16.510 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-11, elapsed=155d
+2026-08-12 20:50:16.512 | INFO     | __main__:build_zonal_output:318 -   Meat (beef)            N   5,623,797    -0.00%   -0.25%  interp d156 (weekly series | -0.25%
+2026-08-12 20:50:16.513 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-12, elapsed=156d
+2026-08-12 20:50:16.515 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-11, elapsed=155d
+2026-08-12 20:50:16.518 | INFO     | __main__:build_zonal_output:318 -   Meat (goat)            N   5,549,823    -0.03%   -4.29%  interp d156 (weekly series | -4.29%
+2026-08-12 20:50:16.519 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-12, elapsed=156d
+2026-08-12 20:50:16.522 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-11, elapsed=155d
+2026-08-12 20:50:16.523 | INFO     | __main__:build_zonal_output:318 -   Fish (dried)           N   1,572,344    +0.03%  + +4.23%  interp d156 (weekly series | +4.23%
+2026-08-12 20:50:16.523 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-12, elapsed=156d
+2026-08-12 20:50:16.525 | DEBUG    | __main__:get_daily_price:116 -   last_known=2026-03-09, run=2026-08-11, elapsed=155d
+2026-08-12 20:50:16.526 | INFO     | __main__:build_zonal_output:318 -   Eggs                   N       5,743    -0.09%  -11.91%  interp d156 (weekly series | -11.91
+2026-08-12 20:50:16.527 | INFO     | __main__:build_zonal_output:321 - 
+2026-08-12 20:50:16.584 | INFO     | __main__:run_zonal_forecast:484 - 
+2026-08-12 20:50:16.585 | INFO     | __main__:run_zonal_forecast:485 -   Zone             State        Commodity                 State Price  Day Chg
+2026-08-12 20:50:16.585 | INFO     | __main__:run_zonal_forecast:486 -   ------------------------------------------------------------------------
+2026-08-12 20:50:16.585 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Sesame                N   1,340,255/MT  -0.02%
+2026-08-12 20:50:16.585 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Sorghum               N     321,582/MT  -0.02%
+2026-08-12 20:50:16.586 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Beans (white)         N     692,762/MT  -0.01%
+2026-08-12 20:50:16.587 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Maize (white)         N     292,623/MT  -0.10%
+2026-08-12 20:50:16.588 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Maize (yellow)        N     317,019/MT  -0.08%
+2026-08-12 20:50:16.588 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kano         * Wheat                 N     620,151/MT  -0.01%
+2026-08-12 20:50:16.589 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Ginger                N   8,441,689/MT  -0.02%
+2026-08-12 20:50:16.589 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Soybeans              N     632,726/MT  +0.01%
+2026-08-12 20:50:16.589 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Sorghum               N     329,828/MT  -0.02%
+2026-08-12 20:50:16.590 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Maize (white)         N     296,281/MT  -0.10%
+2026-08-12 20:50:16.591 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Maize (yellow)        N     320,982/MT  -0.08%
+2026-08-12 20:50:16.591 | INFO     | __main__:run_zonal_forecast:493 -   North West       Kaduna       * Wheat                 N     606,215/MT  -0.01%
+2026-08-12 20:50:16.592 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Ginger                N   8,793,426/MT  -0.02%
+2026-08-12 20:50:16.592 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Soybeans              N     625,193/MT  +0.01%
+2026-08-12 20:50:16.593 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Beans (white)         N     716,651/MT  -0.01%
+2026-08-12 20:50:16.593 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Maize (white)         N     318,228/MT  -0.10%
+2026-08-12 20:50:16.593 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Plateau      * Wheat                 N     634,087/MT  -0.01%
+2026-08-12 20:50:16.594 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Cocoa                 N   5,036,074/MT  +0.01%
+2026-08-12 20:50:16.594 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Soybeans              N     655,323/MT  +0.01%
+2026-08-12 20:50:16.595 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Cashew Nuts           N   1,523,453/MT  -0.02%
+2026-08-12 20:50:16.595 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Sorghum               N     375,179/MT  -0.02%
+2026-08-12 20:50:16.596 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Beans (white)         N     732,576/MT  -0.01%
+2026-08-12 20:50:16.596 | INFO     | __main__:run_zonal_forecast:493 -   North Central    Kogi         * Maize (white)         N     329,201/MT  -0.10%
+2026-08-12 20:50:16.597 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Sesame                N   1,388,697/MT  -0.02%
+2026-08-12 20:50:16.597 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Ginger                N   9,731,392/MT  -0.02%
+2026-08-12 20:50:16.598 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Soybeans              N     670,388/MT  +0.01%
+2026-08-12 20:50:16.598 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Sorghum               N     358,688/MT  -0.02%
+2026-08-12 20:50:16.599 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Beans (white)         N     732,576/MT  -0.01%
+2026-08-12 20:50:16.599 | INFO     | __main__:run_zonal_forecast:493 -   North East       Adamawa      * Maize (white)         N     321,885/MT  -0.10%
+2026-08-12 20:50:16.600 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Sesame                N   1,437,140/MT  -0.02%
+2026-08-12 20:50:16.601 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Sorghum               N     379,302/MT  -0.02%
+2026-08-12 20:50:16.601 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Beans (white)         N     844,055/MT  -0.01%
+2026-08-12 20:50:16.603 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Maize (white)         N     395,041/MT  -0.10%
+2026-08-12 20:50:16.603 | INFO     | __main__:run_zonal_forecast:493 -   North East       Borno        * Wheat                 N     780,414/MT  -0.01%
+2026-08-12 20:50:16.604 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Hibiscus              N   2,351,968/MT  -0.02%
+2026-08-12 20:50:16.604 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Cocoa                 N   5,093,302/MT  +0.01%
+2026-08-12 20:50:16.605 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Soybeans              N     783,375/MT  +0.01%
+2026-08-12 20:50:16.605 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Cashew Nuts           N   1,637,712/MT  -0.02%
+2026-08-12 20:50:16.605 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Beans (white)         N     875,906/MT  -0.01%
+2026-08-12 20:50:16.606 | INFO     | __main__:run_zonal_forecast:493 -   South West       Oyo          * Maize (white)         N     395,041/MT  -0.10%
+2026-08-12 20:50:16.606 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Hibiscus              N   2,625,984/MT  -0.02%
+2026-08-12 20:50:16.607 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Sesame                N   1,905,422/MT  -0.02%
+2026-08-12 20:50:16.607 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Cocoa                 N   6,180,636/MT  +0.01%
+2026-08-12 20:50:16.607 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Soybeans              N     918,959/MT  +0.01%
+2026-08-12 20:50:16.608 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Beans (white)         N   1,019,237/MT  -0.01%
+2026-08-12 20:50:16.608 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Beans (red)           N   1,122,272/MT  -0.01%
+2026-08-12 20:50:16.608 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Maize (white)         N     475,513/MT  -0.10%
+2026-08-12 20:50:16.610 | INFO     | __main__:run_zonal_forecast:493 -   South West       Lagos        * Maize (yellow)        N     515,156/MT  -0.08%
+2026-08-12 20:50:16.610 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Cocoa                 N   6,008,952/MT  +0.01%
+2026-08-12 20:50:16.611 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Cashew Nuts           N   2,094,748/MT  -0.02%
+2026-08-12 20:50:16.611 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Beans (white)         N     939,609/MT  -0.01%
+2026-08-12 20:50:16.612 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Beans (red)           N   1,032,490/MT  -0.01%
+2026-08-12 20:50:16.612 | INFO     | __main__:run_zonal_forecast:493 -   South East       Anambra      * Maize (white)         N     438,935/MT  -0.10%
+2026-08-12 20:50:16.612 | INFO     | __main__:run_zonal_forecast:493 -   South East       Imo          * Cocoa                 N   5,207,758/MT  +0.01%
+2026-08-12 20:50:16.613 | INFO     | __main__:run_zonal_forecast:493 -   South East       Imo          * Cashew Nuts           N   2,018,576/MT  -0.02%
+2026-08-12 20:50:16.613 | INFO     | __main__:run_zonal_forecast:493 -   South East       Imo          * Beans (white)         N     915,720/MT  -0.01%
+2026-08-12 20:50:16.614 | INFO     | __main__:run_zonal_forecast:493 -   South East       Imo          * Maize (white)         N     427,961/MT  -0.10%
+2026-08-12 20:50:16.614 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Hibiscus              N   2,557,480/MT  -0.02%
+2026-08-12 20:50:16.614 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Sesame                N   1,905,422/MT  -0.02%
+2026-08-12 20:50:16.615 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Cocoa                 N   6,008,952/MT  +0.01%
+2026-08-12 20:50:16.615 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Beans (white)         N     971,460/MT  -0.01%
+2026-08-12 20:50:16.616 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Beans (red)           N   1,077,381/MT  -0.01%
+2026-08-12 20:50:16.616 | INFO     | __main__:run_zonal_forecast:493 -   South South      Rivers       * Maize (white)         N     457,224/MT  -0.10%
+2026-08-12 20:50:16.617 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Hibiscus              N   2,466,141/MT  -0.02%
+2026-08-12 20:50:16.617 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Sesame                N   1,873,127/MT  -0.02%
+2026-08-12 20:50:16.618 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Cocoa                 N   5,322,215/MT  +0.01%
+2026-08-12 20:50:16.619 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Soybeans              N     858,699/MT  +0.01%
+2026-08-12 20:50:16.620 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Beans (white)         N     931,646/MT  -0.01%
+2026-08-12 20:50:16.621 | INFO     | __main__:run_zonal_forecast:493 -   South South      Delta        * Maize (white)         N     438,935/MT  -0.10%
+2026-08-12 20:50:16.985 | SUCCESS  | __main__:run_zonal_forecast:507 -   Zonal JSON  -> C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\forecasts\zonal\zonal_forecast_2026-08-12.json
+2026-08-12 20:50:16.988 | SUCCESS  | __main__:run_zonal_forecast:513 -   Zonal alert -> C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\daily_alerts\alert_zonal_2026-08-12.txt
+2026-08-12 20:50:16.989 | INFO     | __main__:run_zonal_forecast:515 - 
+2026-08-12 20:50:16.989 | INFO     | __main__:run_zonal_forecast:516 - =================================================================
+2026-08-12 20:50:16.989 | INFO     | __main__:run_zonal_forecast:518 -   ================================================
+2026-08-12 20:50:16.990 | INFO     | __main__:run_zonal_forecast:518 -   AGROLINKING ZONAL COMMODITY INTELLIGENCE
+2026-08-12 20:50:16.990 | INFO     | __main__:run_zonal_forecast:518 -   Date: Wednesday, 12 August 2026
+2026-08-12 20:50:16.990 | INFO     | __main__:run_zonal_forecast:518 -   6 Zones | 12 States | 12 Commodities
+2026-08-12 20:50:16.991 | INFO     | __main__:run_zonal_forecast:518 -   ================================================
+2026-08-12 20:50:16.992 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:16.992 | INFO     | __main__:run_zonal_forecast:518 -   NORTH WEST (Kano & Kaduna)
+2026-08-12 20:50:16.992 | INFO     | __main__:run_zonal_forecast:518 -   Nigeria's main grain belt. Highest Maize, Sorghum, Sesame, Wheat production.
+2026-08-12 20:50:16.993 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:16.993 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Kano                Kaduna            
+2026-08-12 20:50:16.994 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 20:50:16.994 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                N2.169M    (-0.0%)    N2.124M    (-0.0%)
+2026-08-12 20:50:16.995 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                * N1.340M    (-0.0%)    N1.373M    (-0.0%)
+2026-08-12 20:50:16.996 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                  N11.490M   (-0.0%)  * N8.442M    (-0.0%)
+2026-08-12 20:50:16.996 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                   N5.837M    (+0.0%)    N6.009M    (+0.0%)
+2026-08-12 20:50:16.997 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans                N678K      (+0.0%)  * N633K      (+0.0%)
+2026-08-12 20:50:16.998 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts             N1.904M    (-0.0%)    N1.942M    (-0.0%)
+2026-08-12 20:50:17.000 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum               * N322K      (-0.0%)  * N330K      (-0.0%)
+2026-08-12 20:50:17.001 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N693K      (-0.0%)    N701K      (-0.0%)
+2026-08-12 20:50:17.002 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)             N808K      (-0.0%)    N817K      (-0.0%)
+2026-08-12 20:50:17.003 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N293K      (-0.1%)  * N296K      (-0.1%)
+2026-08-12 20:50:17.004 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)        * N317K      (-0.1%)  * N321K      (-0.1%)
+2026-08-12 20:50:17.005 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                 * N620K      (-0.0%)  * N606K      (-0.0%)
+2026-08-12 20:50:17.007 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.491M    (+0.1%)    N1.460M    (+0.1%)
+2026-08-12 20:50:17.008 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N4.893M               N4.893M           
+2026-08-12 20:50:17.008 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N4.828M    (-0.0%)    N4.828M    (-0.0%)
+2026-08-12 20:50:17.010 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N1.368M    (+0.0%)    N1.368M    (+0.0%)
+2026-08-12 20:50:17.011 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N5K        (-0.1%)    N5K        (-0.1%)
+2026-08-12 20:50:17.014 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.017 | INFO     | __main__:run_zonal_forecast:518 -   NORTH CENTRAL (Plateau & Kogi)
+2026-08-12 20:50:17.020 | INFO     | __main__:run_zonal_forecast:518 -   Middle Belt. Ginger heartland (Plateau), Cashew/Cocoa belt (Kogi).
+2026-08-12 20:50:17.028 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.030 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Plateau             Kogi              
+2026-08-12 20:50:17.031 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 20:50:17.040 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                N2.215M    (-0.0%)    N2.192M    (-0.0%)
+2026-08-12 20:50:17.047 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                  N1.550M    (-0.0%)    N1.566M    (-0.0%)
+2026-08-12 20:50:17.051 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                * N8.793M    (-0.0%)    N11.021M   (-0.0%)
+2026-08-12 20:50:17.053 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                   N6.181M    (+0.0%)  * N5.036M    (+0.0%)
+2026-08-12 20:50:17.055 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans              * N625K      (+0.0%)  * N655K      (+0.0%)
+2026-08-12 20:50:17.055 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts             N2.000M    (-0.0%)  * N1.523M    (-0.0%)
+2026-08-12 20:50:17.057 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                 N379K      (-0.0%)  * N375K      (-0.0%)
+2026-08-12 20:50:17.057 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N717K      (-0.0%)  * N733K      (-0.0%)
+2026-08-12 20:50:17.058 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)             N853K      (-0.0%)    N844K      (-0.0%)
+2026-08-12 20:50:17.058 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N318K      (-0.1%)  * N329K      (-0.1%)
+2026-08-12 20:50:17.060 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N349K      (-0.1%)    N361K      (-0.1%)
+2026-08-12 20:50:17.061 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                 * N634K      (-0.0%)    N676K      (-0.0%)
+2026-08-12 20:50:17.061 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.413M    (+0.1%)    N1.523M    (+0.1%)
+2026-08-12 20:50:17.063 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N5.343M               N5.343M           
+2026-08-12 20:50:17.065 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N5.272M    (-0.0%)    N5.272M    (-0.0%)
+2026-08-12 20:50:17.068 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N1.494M    (+0.0%)    N1.494M    (+0.0%)
+2026-08-12 20:50:17.072 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N5K        (-0.1%)    N5K        (-0.1%)
+2026-08-12 20:50:17.073 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.076 | INFO     | __main__:run_zonal_forecast:518 -   NORTH EAST (Adamawa & Borno)
+2026-08-12 20:50:17.077 | INFO     | __main__:run_zonal_forecast:518 -   Semi-arid. Sorghum, Maize. Conflict premium on imports in Borno.
+2026-08-12 20:50:17.078 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.079 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Adamawa             Borno             
+2026-08-12 20:50:17.080 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 20:50:17.080 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                N2.238M    (-0.0%)    N2.398M    (-0.0%)
+2026-08-12 20:50:17.083 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                * N1.389M    (-0.0%)  * N1.437M    (-0.0%)
+2026-08-12 20:50:17.083 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                * N9.731M    (-0.0%)    N13.483M   (-0.0%)
+2026-08-12 20:50:17.085 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                   N6.009M    (+0.0%)    N6.753M    (+0.0%)
+2026-08-12 20:50:17.086 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans              * N670K      (+0.0%)    N814K      (+0.0%)
+2026-08-12 20:50:17.088 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts             N1.980M    (-0.0%)    N2.190M    (-0.0%)
+2026-08-12 20:50:17.089 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum               * N359K      (-0.0%)  * N379K      (-0.0%)
+2026-08-12 20:50:17.090 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N733K      (-0.0%)  * N844K      (-0.0%)
+2026-08-12 20:50:17.091 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)             N853K      (-0.0%)    N988K      (-0.0%)
+2026-08-12 20:50:17.092 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N322K      (-0.1%)  * N395K      (-0.1%)
+2026-08-12 20:50:17.092 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N353K      (-0.1%)    N428K      (-0.1%)
+2026-08-12 20:50:17.093 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                   N683K      (-0.0%)  * N780K      (-0.0%)
+2026-08-12 20:50:17.094 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.601M    (+0.1%)    N1.727M    (+0.1%)
+2026-08-12 20:50:17.094 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N5.736M               N5.736M           
+2026-08-12 20:50:17.095 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N5.661M    (-0.0%)    N5.661M    (-0.0%)
+2026-08-12 20:50:17.096 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N1.604M    (+0.0%)    N1.604M    (+0.0%)
+2026-08-12 20:50:17.096 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N6K        (-0.1%)    N6K        (-0.1%)
+2026-08-12 20:50:17.097 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.098 | INFO     | __main__:run_zonal_forecast:518 -   SOUTH WEST (Oyo & Lagos)
+2026-08-12 20:50:17.100 | INFO     | __main__:run_zonal_forecast:518 -   Commercial capital. Lagos is the price-setter for consumer markets.
+2026-08-12 20:50:17.100 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.101 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Oyo                 Lagos             
+2026-08-12 20:50:17.102 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 20:50:17.102 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus              * N2.352M    (-0.0%)  * N2.626M    (-0.0%)
+2026-08-12 20:50:17.103 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                  N1.712M    (-0.0%)  * N1.905M    (-0.0%)
+2026-08-12 20:50:17.105 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                  N12.663M   (-0.0%)    N14.069M   (-0.0%)
+2026-08-12 20:50:17.107 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                 * N5.093M    (+0.0%)  * N6.181M    (+0.0%)
+2026-08-12 20:50:17.112 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans              * N783K      (+0.0%)  * N919K      (+0.0%)
+2026-08-12 20:50:17.113 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts           * N1.638M    (-0.0%)    N2.095M    (-0.0%)
+2026-08-12 20:50:17.118 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                 N433K      (-0.0%)    N486K      (-0.0%)
+2026-08-12 20:50:17.119 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N876K      (-0.0%)  * N1.019M    (-0.0%)
+2026-08-12 20:50:17.119 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)             N1.006M    (-0.0%)  * N1.122M    (-0.0%)
+2026-08-12 20:50:17.120 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N395K      (-0.1%)  * N476K      (-0.1%)
+2026-08-12 20:50:17.121 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N428K      (-0.1%)  * N515K      (-0.1%)
+2026-08-12 20:50:17.122 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                   N766K      (-0.0%)    N801K      (-0.0%)
+2026-08-12 20:50:17.132 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.695M    (+0.1%)    N1.852M    (+0.1%)
+2026-08-12 20:50:17.137 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N6.524M               N6.524M           
+2026-08-12 20:50:17.139 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N6.438M    (-0.0%)    N6.438M    (-0.0%)
+2026-08-12 20:50:17.140 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N1.824M    (+0.0%)    N1.824M    (+0.0%)
+2026-08-12 20:50:17.141 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N7K        (-0.1%)    N7K        (-0.1%)
+2026-08-12 20:50:17.141 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.142 | INFO     | __main__:run_zonal_forecast:518 -   SOUTH EAST (Anambra & Imo)
+2026-08-12 20:50:17.142 | INFO     | __main__:run_zonal_forecast:518 -   High consumption, low production of traded commodities. Import-dependent.
+2026-08-12 20:50:17.143 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.144 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Anambra             Imo               
+2026-08-12 20:50:17.144 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 20:50:17.145 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                N2.557M    (-0.0%)    N2.512M    (-0.0%)
+2026-08-12 20:50:17.145 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                  N1.873M    (-0.0%)    N1.841M    (-0.0%)
+2026-08-12 20:50:17.146 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                  N13.483M   (-0.0%)    N13.132M   (-0.0%)
+2026-08-12 20:50:17.147 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                 * N6.009M    (+0.0%)  * N5.208M    (+0.0%)
+2026-08-12 20:50:17.148 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans                N859K      (+0.0%)    N844K      (+0.0%)
+2026-08-12 20:50:17.149 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts           * N2.095M    (-0.0%)  * N2.019M    (-0.0%)
+2026-08-12 20:50:17.149 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                 N470K      (-0.0%)    N462K      (-0.0%)
+2026-08-12 20:50:17.152 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N940K      (-0.0%)  * N916K      (-0.0%)
+2026-08-12 20:50:17.153 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)           * N1.032M    (-0.0%)    N1.015M    (-0.0%)
+2026-08-12 20:50:17.154 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N439K      (-0.1%)  * N428K      (-0.1%)
+2026-08-12 20:50:17.155 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N476K      (-0.1%)    N464K      (-0.1%)
+2026-08-12 20:50:17.156 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                   N822K      (-0.0%)    N808K      (-0.0%)
+2026-08-12 20:50:17.156 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.758M    (+0.1%)    N1.727M    (+0.1%)
+2026-08-12 20:50:17.157 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N6.355M               N6.355M           
+2026-08-12 20:50:17.157 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N6.271M    (-0.0%)    N6.271M    (-0.0%)
+2026-08-12 20:50:17.158 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N1.777M    (+0.0%)    N1.777M    (+0.0%)
+2026-08-12 20:50:17.158 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N6K        (-0.1%)    N6K        (-0.1%)
+2026-08-12 20:50:17.158 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.159 | INFO     | __main__:run_zonal_forecast:518 -   SOUTH SOUTH (Rivers & Delta)
+2026-08-12 20:50:17.159 | INFO     | __main__:run_zonal_forecast:518 -   Oil belt. High purchasing power. Cocoa producer (Delta).
+2026-08-12 20:50:17.160 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.160 | INFO     | __main__:run_zonal_forecast:518 -     Commodity           Rivers              Delta             
+2026-08-12 20:50:17.161 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 20:50:17.161 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus              * N2.557M    (-0.0%)  * N2.466M    (-0.0%)
+2026-08-12 20:50:17.162 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                * N1.905M    (-0.0%)  * N1.873M    (-0.0%)
+2026-08-12 20:50:17.162 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                  N14.069M   (-0.0%)    N13.483M   (-0.0%)
+2026-08-12 20:50:17.162 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                 * N6.009M    (+0.0%)  * N5.322M    (+0.0%)
+2026-08-12 20:50:17.163 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans                N889K      (+0.0%)  * N859K      (+0.0%)
+2026-08-12 20:50:17.163 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts             N2.190M    (-0.0%)    N2.095M    (-0.0%)
+2026-08-12 20:50:17.164 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                 N495K      (-0.0%)    N486K      (-0.0%)
+2026-08-12 20:50:17.166 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)         * N971K      (-0.0%)  * N932K      (-0.0%)
+2026-08-12 20:50:17.167 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)           * N1.077M    (-0.0%)    N1.032M    (-0.0%)
+2026-08-12 20:50:17.168 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)         * N457K      (-0.1%)  * N439K      (-0.1%)
+2026-08-12 20:50:17.169 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)          N495K      (-0.1%)    N476K      (-0.1%)
+2026-08-12 20:50:17.170 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                   N850K      (-0.0%)    N836K      (-0.0%)
+2026-08-12 20:50:17.170 | INFO     | __main__:run_zonal_forecast:518 -     Rice                    N1.805M    (+0.1%)    N1.758M    (+0.1%)
+2026-08-12 20:50:17.171 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)             N6.411M               N6.411M           
+2026-08-12 20:50:17.171 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)             N6.327M    (-0.0%)    N6.327M    (-0.0%)
+2026-08-12 20:50:17.172 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)            N1.792M    (+0.0%)    N1.792M    (+0.0%)
+2026-08-12 20:50:17.172 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                    N7K        (-0.1%)    N7K        (-0.1%)
+2026-08-12 20:50:17.173 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.173 | INFO     | __main__:run_zonal_forecast:518 -   ==========================================================
+2026-08-12 20:50:17.174 | INFO     | __main__:run_zonal_forecast:518 -   * = primary commodity  (+/-%) = day-on-day change
+2026-08-12 20:50:17.174 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.175 | INFO     | __main__:run_zonal_forecast:518 -   NATIONAL PRICE CHANGES TODAY:
+2026-08-12 20:50:17.175 | INFO     | __main__:run_zonal_forecast:518 -     Commodity                   Price   Day Chg    vs Ref
+2026-08-12 20:50:17.175 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------
+2026-08-12 20:50:17.176 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus                  N2.283M    -0.02%    -1.79%
+2026-08-12 20:50:17.176 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                    N1.615M    -0.02%    -2.14%
+2026-08-12 20:50:17.177 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                   N11.725M    -0.02%    -2.30%
+2026-08-12 20:50:17.177 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                     N5.723M    +0.01%    +1.29%
+2026-08-12 20:50:17.178 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans                    N753K    +0.01%    +1.11%
+2026-08-12 20:50:17.178 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts               N1.904M    -0.02%    -2.34%
+2026-08-12 20:50:17.178 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                     N412K    -0.02%    -1.84%
+2026-08-12 20:50:17.179 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)               N796K    -0.01%    -2.06%
+2026-08-12 20:50:17.179 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)                 N898K    -0.01%    -1.88%
+2026-08-12 20:50:17.180 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)               N366K    -0.10%    -1.14%
+2026-08-12 20:50:17.180 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)              N396K    -0.08%    -0.93%
+2026-08-12 20:50:17.181 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                       N697K    -0.01%    -1.42%
+2026-08-12 20:50:17.182 | INFO     | __main__:run_zonal_forecast:518 -     Rice                      N1.570M    +0.11%    +1.28%
+2026-08-12 20:50:17.182 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)               N5.624M    -0.00%    -0.25%
+2026-08-12 20:50:17.183 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)               N5.550M    -0.03%    -4.29%
+2026-08-12 20:50:17.183 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)              N1.572M    +0.03%    +4.23%
+2026-08-12 20:50:17.184 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                          N6K    -0.09%   -11.91%
+2026-08-12 20:50:17.185 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.186 | INFO     | __main__:run_zonal_forecast:518 -   BEST SOURCING NATIONALLY:
+2026-08-12 20:50:17.186 | INFO     | __main__:run_zonal_forecast:518 -     Commodity              Best State           Price  Spread
+2026-08-12 20:50:17.186 | INFO     | __main__:run_zonal_forecast:518 -     ------------------------------------------------------------
+2026-08-12 20:50:17.188 | INFO     | __main__:run_zonal_forecast:518 -     Hibiscus               Kaduna             N2.124M  24% vs Lagos
+2026-08-12 20:50:17.189 | INFO     | __main__:run_zonal_forecast:518 -     Sesame                 Kano               N1.340M  42% vs Lagos
+2026-08-12 20:50:17.189 | INFO     | __main__:run_zonal_forecast:518 -     Ginger                 Kaduna             N8.442M  67% vs Lagos
+2026-08-12 20:50:17.189 | INFO     | __main__:run_zonal_forecast:518 -     Cocoa                  Kogi               N5.036M  34% vs Borno
+2026-08-12 20:50:17.190 | INFO     | __main__:run_zonal_forecast:518 -     Soybeans               Plateau              N625K  47% vs Lagos
+2026-08-12 20:50:17.191 | INFO     | __main__:run_zonal_forecast:518 -     Cashew Nuts            Kogi               N1.523M  44% vs Borno
+2026-08-12 20:50:17.191 | INFO     | __main__:run_zonal_forecast:518 -     Sorghum                Kano                 N322K  54% vs Rivers
+2026-08-12 20:50:17.191 | INFO     | __main__:run_zonal_forecast:518 -     Beans (white)          Kano                 N693K  47% vs Lagos
+2026-08-12 20:50:17.192 | INFO     | __main__:run_zonal_forecast:518 -     Beans (red)            Kano                 N808K  39% vs Lagos
+2026-08-12 20:50:17.192 | INFO     | __main__:run_zonal_forecast:518 -     Maize (white)          Kano                 N293K  62% vs Lagos
+2026-08-12 20:50:17.193 | INFO     | __main__:run_zonal_forecast:518 -     Maize (yellow)         Kano                 N317K  62% vs Lagos
+2026-08-12 20:50:17.193 | INFO     | __main__:run_zonal_forecast:518 -     Wheat                  Kaduna               N606K  40% vs Rivers
+2026-08-12 20:50:17.194 | INFO     | __main__:run_zonal_forecast:518 -     Rice                   Plateau            N1.413M  31% vs Lagos
+2026-08-12 20:50:17.194 | INFO     | __main__:run_zonal_forecast:518 -     Meat (beef)            Kano               N4.893M  33% vs Oyo
+2026-08-12 20:50:17.195 | INFO     | __main__:run_zonal_forecast:518 -     Meat (goat)            Kano               N4.828M  33% vs Oyo
+2026-08-12 20:50:17.195 | INFO     | __main__:run_zonal_forecast:518 -     Fish (dried)           Kano               N1.368M  33% vs Oyo
+2026-08-12 20:50:17.195 | INFO     | __main__:run_zonal_forecast:518 -     Eggs                   Kano                   N5K  33% vs Oyo
+2026-08-12 20:50:17.196 | INFO     | __main__:run_zonal_forecast:518 -   
+2026-08-12 20:50:17.196 | INFO     | __main__:run_zonal_forecast:518 -   ==========================================================
+2026-08-12 20:50:17.196 | INFO     | __main__:run_zonal_forecast:518 -   Source: Agrolinking Intelligence Platform
+2026-08-12 20:50:17.197 | INFO     | __main__:run_zonal_forecast:518 -   Next update: 13 Aug 2026
+2026-08-12 20:50:17.198 | INFO     | __main__:run_zonal_forecast:519 - =================================================================
+2026-08-12 20:50:17.199 | SUCCESS  | __main__:run_zonal_forecast:520 - ZONAL FORECASTING COMPLETE — 6 zones | 12 states | 17 commodities

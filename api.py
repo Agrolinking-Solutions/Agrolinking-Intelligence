@@ -594,7 +594,11 @@ def food_price_index():
         "value":          fpi.get("value"),
         "base":           fpi.get("base", "2025=100"),
         "mom_change":     fpi.get("mom_change"),
-        "interpretation": fpi.get("interpretation"),
+        "interpretation": (
+            f"Food currently costs {round(fpi.get('value', 100) - 100)}% more than it did in 2025"
+            if fpi.get("value", 100) >= 100
+            else f"Food currently costs {round(100 - fpi.get('value', 100))}% less than it did in 2025"
+        ),
         "breakdown":      fpi.get("breakdown", {}),
     }
 
@@ -1674,15 +1678,20 @@ def forecast_factor_drivers(
 
     # ── Factor 2: Fuel price signal ───────────────────────────────────────
     fuel_signal = "Mid"
-    fuel_note   = "Fuel prices stable (no fuel_prices.csv data)"
+    fuel_note   = "Fuel prices stable"
     fuel_pct    = 0.0
     try:
         fuel_path = os.path.join(BASE_DIR, "data", "external", "fuel_prices.csv")
         if os.path.exists(fuel_path):
             fuel_df = pd.read_csv(fuel_path, parse_dates=["date"])
             fuel_df = fuel_df.sort_values("date")
-            latest_fuel = fuel_df["price"].iloc[-1]
-            avg_3m_fuel = fuel_df["price"].tail(13).mean()  # ~3 months weekly
+            # Auto-detect column name
+            price_col = next(
+                (c for c in ["fuel_diesel_ngn_litre","price","diesel","fuel_price"]
+                 if c in fuel_df.columns), fuel_df.columns[1]
+            )
+            latest_fuel = fuel_df[price_col].iloc[-1]
+            avg_3m_fuel = fuel_df[price_col].tail(13).mean()
             fuel_pct    = (latest_fuel - avg_3m_fuel) / avg_3m_fuel * 100
             if fuel_pct > 10:
                 fuel_signal = "High"

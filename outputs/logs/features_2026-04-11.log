@@ -1,0 +1,228 @@
+2026-04-11 00:21:56.691 | INFO     | __main__:run_feature_engineering:473 - ============================================================
+2026-04-11 00:21:56.691 | INFO     | __main__:run_feature_engineering:474 - STEP 3 — FEATURE ENGINEERING
+2026-04-11 00:21:56.691 | INFO     | __main__:run_feature_engineering:475 - ============================================================
+2026-04-11 00:21:56.698 | INFO     | __main__:run_feature_engineering:478 - Loading datasets...
+2026-04-11 00:21:56.938 | INFO     | __main__:load_external_data:89 -   External data loaded:
+2026-04-11 00:21:56.938 | INFO     | __main__:load_external_data:90 -     FX:        1,293 rows (2002-01-07 → 2026-10-12)
+2026-04-11 00:21:56.958 | INFO     | __main__:load_external_data:91 -     Fuel:      137 rows (2014-05-15 → 2026-10-12)
+2026-04-11 00:21:56.958 | INFO     | __main__:load_external_data:92 -     Inflation: 563 rows
+2026-04-11 00:21:56.962 | INFO     | __main__:load_external_data:93 -     Seasons:   1,293 rows
+2026-04-11 00:21:56.962 | INFO     | __main__:run_feature_engineering:482 - 
+Building feature matrices for 11 commodities...
+2026-04-11 00:21:56.964 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Hibiscus
+2026-04-11 00:21:57.248 | DEBUG    | __main__:validate_features:382 -   [Hibiscus] All feature checks passed
+2026-04-11 00:21:57.269 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_hibiscus.csv
+2026-04-11 00:21:57.283 | INFO     | __main__:print_feature_summary:454 -   Hibiscus             |   63 rows |  78 features | null: 6.7% | price: ₦   2,550,000/MT | last: 2026-03-16
+2026-04-11 00:21:57.283 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Sesame
+2026-04-11 00:21:57.505 | DEBUG    | __main__:validate_features:382 -   [Sesame] All feature checks passed
+2026-04-11 00:21:57.524 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_sesame.csv
+2026-04-11 00:21:57.528 | INFO     | __main__:print_feature_summary:454 -   Sesame               |   41 rows |  78 features | null: 7.8% | price: ₦   1,280,000/MT | last: 2026-03-16
+2026-04-11 00:21:57.528 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Ginger
+2026-04-11 00:21:57.661 | DEBUG    | __main__:validate_features:382 -   [Ginger] All feature checks passed
+2026-04-11 00:21:57.681 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_ginger.csv
+2026-04-11 00:21:57.688 | INFO     | __main__:print_feature_summary:454 -   Ginger               |   63 rows |  78 features | null: 6.7% | price: ₦   9,900,000/MT | last: 2026-03-16
+2026-04-11 00:21:57.688 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Cocoa
+2026-04-11 00:21:57.831 | DEBUG    | __main__:validate_features:382 -   [Cocoa] All feature checks passed
+2026-04-11 00:21:57.847 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_cocoa.csv
+2026-04-11 00:21:57.852 | INFO     | __main__:print_feature_summary:454 -   Cocoa                |   63 rows |  78 features | null: 6.6% | price: ₦   5,850,000/MT | last: 2026-03-16
+2026-04-11 00:21:57.852 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Soybeans
+2026-04-11 00:21:57.999 | DEBUG    | __main__:validate_features:382 -   [Soybeans] All feature checks passed
+2026-04-11 00:21:58.018 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_soybeans.csv
+2026-04-11 00:21:58.023 | INFO     | __main__:print_feature_summary:454 -   Soybeans             |   63 rows |  78 features | null: 6.6% | price: ₦     675,000/MT | last: 2026-03-16
+2026-04-11 00:21:58.023 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Cashew Nuts
+2026-04-11 00:21:58.167 | DEBUG    | __main__:validate_features:382 -   [Cashew Nuts] All feature checks passed
+2026-04-11 00:21:58.190 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_cashew_nuts.csv
+2026-04-11 00:21:58.197 | INFO     | __main__:print_feature_summary:454 -   Cashew Nuts          |   63 rows |  78 features | null: 6.6% | price: ₦   1,800,000/MT | last: 2026-03-16
+2026-04-11 00:21:58.199 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Sorghum
+2026-04-11 00:21:58.352 | DEBUG    | __main__:validate_features:382 -   [Sorghum] All feature checks passed
+2026-04-11 00:21:58.539 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_sorghum.csv
+2026-04-11 00:21:58.545 | INFO     | __main__:print_feature_summary:454 -   Sorghum              | 1262 rows |  78 features | null: 3.7% | price: ₦     282,500/MT | last: 2026-03-16
+2026-04-11 00:21:58.545 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Beans (white)
+2026-04-11 00:21:58.705 | DEBUG    | __main__:validate_features:382 -   [Beans (white)] All feature checks passed
+2026-04-11 00:21:58.873 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_beans_white.csv
+2026-04-11 00:21:58.885 | INFO     | __main__:print_feature_summary:454 -   Beans (white)        | 1262 rows |  78 features | null: 4.4% | price: ₦     825,469/MT | last: 2026-03-16
+2026-04-11 00:21:58.885 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Beans (red)
+2026-04-11 00:21:59.040 | DEBUG    | __main__:validate_features:382 -   [Beans (red)] All feature checks passed
+2026-04-11 00:21:59.145 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_beans_red.csv
+2026-04-11 00:21:59.149 | INFO     | __main__:print_feature_summary:454 -   Beans (red)          |  532 rows |  78 features | null: 4.1% | price: ₦     893,854/MT | last: 2026-03-16
+2026-04-11 00:21:59.155 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Maize (white)
+2026-04-11 00:21:59.322 | DEBUG    | __main__:validate_features:382 -   [Maize (white)] All feature checks passed
+2026-04-11 00:21:59.456 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_maize_white.csv
+2026-04-11 00:21:59.469 | INFO     | __main__:print_feature_summary:454 -   Maize (white)        | 1097 rows |  78 features | null: 3.8% | price: ₦     208,850/MT | last: 2023-01-16
+2026-04-11 00:21:59.469 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Maize (yellow)
+2026-04-11 00:21:59.595 | DEBUG    | __main__:validate_features:382 -   [Maize (yellow)] All feature checks passed
+2026-04-11 00:21:59.651 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_maize_yellow.csv
+2026-04-11 00:21:59.660 | INFO     | __main__:print_feature_summary:454 -   Maize (yellow)       |  454 rows |  78 features | null: 4.1% | price: ₦     229,729/MT | last: 2023-01-16
+2026-04-11 00:21:59.660 | INFO     | __main__:run_feature_engineering:498 - 
+Feature columns (example — Sorghum):
+2026-04-11 00:21:59.660 | INFO     | __main__:run_feature_engineering:501 -   Total: 83 columns
+2026-04-11 00:21:59.660 | INFO     | __main__:run_feature_engineering:507 -   Model features: 70
+2026-04-11 00:21:59.660 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_ngn_mt', 'fx_rate', 'rainfall_index', 'data_quality_score', 'price_raw_ngn_mt']
+2026-04-11 00:21:59.660 | DEBUG    | __main__:run_feature_engineering:509 -     ['fx_rate_usd_ngn', 'fuel_diesel_ngn_litre', 'fuel_petrol_ngn_litre', 'headline_inflation_yoy', 'food_inflation_yoy']
+2026-04-11 00:21:59.664 | DEBUG    | __main__:run_feature_engineering:509 -     ['season_dry', 'season_rainy', 'season_planting', 'season_planting_early', 'season_planting_late']
+2026-04-11 00:21:59.664 | DEBUG    | __main__:run_feature_engineering:509 -     ['season_harvesting', 'season_harvest_early', 'season_harvest_lean', 'cashew_harvest', 'cocoa_main_crop']
+2026-04-11 00:21:59.664 | DEBUG    | __main__:run_feature_engineering:509 -     ['cocoa_mid_crop', 'sesame_harvest', 'ginger_harvest', 'hibiscus_harvest', 'sorghum_harvest']
+2026-04-11 00:21:59.664 | DEBUG    | __main__:run_feature_engineering:509 -     ['maize_harvest', 'soybean_harvest', 'is_ramadan', 'is_lean_season', 'is_festive_period']
+2026-04-11 00:21:59.664 | DEBUG    | __main__:run_feature_engineering:509 -     ['month_sin', 'month_cos', 'week_sin', 'week_cos', 'price_usd_mt']
+2026-04-11 00:21:59.666 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_lag_1w', 'price_lag_2w', 'price_lag_4w', 'price_lag_8w', 'price_lag_12w']
+2026-04-11 00:21:59.666 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_lag_26w', 'price_lag_52w', 'rolling_mean_4w', 'rolling_std_4w', 'rolling_mean_8w']
+2026-04-11 00:21:59.666 | DEBUG    | __main__:run_feature_engineering:509 -     ['rolling_std_8w', 'rolling_mean_12w', 'rolling_std_12w', 'rolling_mean_26w', 'rolling_std_26w']
+2026-04-11 00:21:59.666 | DEBUG    | __main__:run_feature_engineering:509 -     ['rolling_max_4w', 'rolling_min_4w', 'rolling_max_12w', 'rolling_min_12w', 'pct_change_1w']
+2026-04-11 00:21:59.669 | DEBUG    | __main__:run_feature_engineering:509 -     ['pct_change_4w', 'pct_change_12w', 'pct_change_52w', 'momentum_4w_vs_26w', 'acceleration_1w']
+2026-04-11 00:21:59.669 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_zscore_52w', 'log_price', 'fuel_cost_index', 'shock_active', 'shock_severity']
+2026-04-11 00:21:59.669 | DEBUG    | __main__:run_feature_engineering:509 -     ['commodity_season_score', 'price_real_ngn_mt', 'weeks_since_start', 'year', 'quarter']
+2026-04-11 00:21:59.671 | INFO     | __main__:run_feature_engineering:511 - ============================================================
+2026-04-11 00:21:59.673 | SUCCESS  | __main__:run_feature_engineering:512 - FEATURE ENGINEERING COMPLETE — 11 commodities
+2026-04-11 00:21:59.673 | INFO     | __main__:run_feature_engineering:513 - ============================================================
+2026-04-11 14:48:06.849 | INFO     | __main__:run_feature_engineering:473 - ============================================================
+2026-04-11 14:48:06.865 | INFO     | __main__:run_feature_engineering:474 - STEP 3 — FEATURE ENGINEERING
+2026-04-11 14:48:06.866 | INFO     | __main__:run_feature_engineering:475 - ============================================================
+2026-04-11 14:48:06.866 | INFO     | __main__:run_feature_engineering:478 - Loading datasets...
+2026-04-11 14:48:07.216 | INFO     | __main__:load_external_data:89 -   External data loaded:
+2026-04-11 14:48:07.246 | INFO     | __main__:load_external_data:90 -     FX:        1,293 rows (2002-01-07 → 2026-10-12)
+2026-04-11 14:48:07.249 | INFO     | __main__:load_external_data:91 -     Fuel:      137 rows (2014-05-15 → 2026-10-12)
+2026-04-11 14:48:07.249 | INFO     | __main__:load_external_data:92 -     Inflation: 563 rows
+2026-04-11 14:48:07.249 | INFO     | __main__:load_external_data:93 -     Seasons:   1,293 rows
+2026-04-11 14:48:07.249 | INFO     | __main__:run_feature_engineering:482 - 
+Building feature matrices for 11 commodities...
+2026-04-11 14:48:07.249 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Hibiscus
+2026-04-11 14:48:07.499 | DEBUG    | __main__:validate_features:382 -   [Hibiscus] All feature checks passed
+2026-04-11 14:48:07.525 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_hibiscus.csv
+2026-04-11 14:48:07.535 | INFO     | __main__:print_feature_summary:454 -   Hibiscus             |   63 rows |  78 features | null: 6.7% | price: ₦   2,550,000/MT | last: 2026-03-16
+2026-04-11 14:48:07.537 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Sesame
+2026-04-11 14:48:07.748 | DEBUG    | __main__:validate_features:382 -   [Sesame] All feature checks passed
+2026-04-11 14:48:07.759 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_sesame.csv
+2026-04-11 14:48:07.767 | INFO     | __main__:print_feature_summary:454 -   Sesame               |   41 rows |  78 features | null: 7.8% | price: ₦   1,280,000/MT | last: 2026-03-16
+2026-04-11 14:48:07.767 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Ginger
+2026-04-11 14:48:07.951 | DEBUG    | __main__:validate_features:382 -   [Ginger] All feature checks passed
+2026-04-11 14:48:07.965 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_ginger.csv
+2026-04-11 14:48:07.973 | INFO     | __main__:print_feature_summary:454 -   Ginger               |   63 rows |  78 features | null: 6.7% | price: ₦   9,900,000/MT | last: 2026-03-16
+2026-04-11 14:48:07.973 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Cocoa
+2026-04-11 14:48:08.182 | DEBUG    | __main__:validate_features:382 -   [Cocoa] All feature checks passed
+2026-04-11 14:48:08.214 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_cocoa.csv
+2026-04-11 14:48:08.236 | INFO     | __main__:print_feature_summary:454 -   Cocoa                |   63 rows |  78 features | null: 6.6% | price: ₦   5,850,000/MT | last: 2026-03-16
+2026-04-11 14:48:08.236 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Soybeans
+2026-04-11 14:48:08.388 | DEBUG    | __main__:validate_features:382 -   [Soybeans] All feature checks passed
+2026-04-11 14:48:08.400 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_soybeans.csv
+2026-04-11 14:48:08.416 | INFO     | __main__:print_feature_summary:454 -   Soybeans             |   63 rows |  78 features | null: 6.6% | price: ₦     675,000/MT | last: 2026-03-16
+2026-04-11 14:48:08.417 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Cashew Nuts
+2026-04-11 14:48:08.587 | DEBUG    | __main__:validate_features:382 -   [Cashew Nuts] All feature checks passed
+2026-04-11 14:48:08.613 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_cashew_nuts.csv
+2026-04-11 14:48:08.620 | INFO     | __main__:print_feature_summary:454 -   Cashew Nuts          |   63 rows |  78 features | null: 6.6% | price: ₦   1,800,000/MT | last: 2026-03-16
+2026-04-11 14:48:08.625 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Sorghum
+2026-04-11 14:48:08.802 | DEBUG    | __main__:validate_features:382 -   [Sorghum] All feature checks passed
+2026-04-11 14:48:08.999 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_sorghum.csv
+2026-04-11 14:48:09.010 | INFO     | __main__:print_feature_summary:454 -   Sorghum              | 1262 rows |  78 features | null: 3.7% | price: ₦     282,500/MT | last: 2026-03-16
+2026-04-11 14:48:09.010 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Beans (white)
+2026-04-11 14:48:09.200 | DEBUG    | __main__:validate_features:382 -   [Beans (white)] All feature checks passed
+2026-04-11 14:48:09.388 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_beans_white.csv
+2026-04-11 14:48:09.396 | INFO     | __main__:print_feature_summary:454 -   Beans (white)        | 1262 rows |  78 features | null: 4.4% | price: ₦     825,469/MT | last: 2026-03-16
+2026-04-11 14:48:09.398 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Beans (red)
+2026-04-11 14:48:09.600 | DEBUG    | __main__:validate_features:382 -   [Beans (red)] All feature checks passed
+2026-04-11 14:48:09.750 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_beans_red.csv
+2026-04-11 14:48:09.767 | INFO     | __main__:print_feature_summary:454 -   Beans (red)          |  532 rows |  78 features | null: 4.1% | price: ₦     893,854/MT | last: 2026-03-16
+2026-04-11 14:48:09.767 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Maize (white)
+2026-04-11 14:48:10.037 | DEBUG    | __main__:validate_features:382 -   [Maize (white)] All feature checks passed
+2026-04-11 14:48:10.189 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_maize_white.csv
+2026-04-11 14:48:10.198 | INFO     | __main__:print_feature_summary:454 -   Maize (white)        | 1097 rows |  78 features | null: 3.8% | price: ₦     208,850/MT | last: 2023-01-16
+2026-04-11 14:48:10.198 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Maize (yellow)
+2026-04-11 14:48:10.349 | DEBUG    | __main__:validate_features:382 -   [Maize (yellow)] All feature checks passed
+2026-04-11 14:48:10.438 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_maize_yellow.csv
+2026-04-11 14:48:10.446 | INFO     | __main__:print_feature_summary:454 -   Maize (yellow)       |  454 rows |  78 features | null: 4.1% | price: ₦     229,729/MT | last: 2023-01-16
+2026-04-11 14:48:10.446 | INFO     | __main__:run_feature_engineering:498 - 
+Feature columns (example — Sorghum):
+2026-04-11 14:48:10.450 | INFO     | __main__:run_feature_engineering:501 -   Total: 83 columns
+2026-04-11 14:48:10.451 | INFO     | __main__:run_feature_engineering:507 -   Model features: 70
+2026-04-11 14:48:10.452 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_ngn_mt', 'fx_rate', 'rainfall_index', 'data_quality_score', 'price_raw_ngn_mt']
+2026-04-11 14:48:10.452 | DEBUG    | __main__:run_feature_engineering:509 -     ['fx_rate_usd_ngn', 'fuel_diesel_ngn_litre', 'fuel_petrol_ngn_litre', 'headline_inflation_yoy', 'food_inflation_yoy']
+2026-04-11 14:48:10.452 | DEBUG    | __main__:run_feature_engineering:509 -     ['season_dry', 'season_rainy', 'season_planting', 'season_planting_early', 'season_planting_late']
+2026-04-11 14:48:10.454 | DEBUG    | __main__:run_feature_engineering:509 -     ['season_harvesting', 'season_harvest_early', 'season_harvest_lean', 'cashew_harvest', 'cocoa_main_crop']
+2026-04-11 14:48:10.454 | DEBUG    | __main__:run_feature_engineering:509 -     ['cocoa_mid_crop', 'sesame_harvest', 'ginger_harvest', 'hibiscus_harvest', 'sorghum_harvest']
+2026-04-11 14:48:10.454 | DEBUG    | __main__:run_feature_engineering:509 -     ['maize_harvest', 'soybean_harvest', 'is_ramadan', 'is_lean_season', 'is_festive_period']
+2026-04-11 14:48:10.454 | DEBUG    | __main__:run_feature_engineering:509 -     ['month_sin', 'month_cos', 'week_sin', 'week_cos', 'price_usd_mt']
+2026-04-11 14:48:10.454 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_lag_1w', 'price_lag_2w', 'price_lag_4w', 'price_lag_8w', 'price_lag_12w']
+2026-04-11 14:48:10.457 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_lag_26w', 'price_lag_52w', 'rolling_mean_4w', 'rolling_std_4w', 'rolling_mean_8w']
+2026-04-11 14:48:10.457 | DEBUG    | __main__:run_feature_engineering:509 -     ['rolling_std_8w', 'rolling_mean_12w', 'rolling_std_12w', 'rolling_mean_26w', 'rolling_std_26w']
+2026-04-11 14:48:10.459 | DEBUG    | __main__:run_feature_engineering:509 -     ['rolling_max_4w', 'rolling_min_4w', 'rolling_max_12w', 'rolling_min_12w', 'pct_change_1w']
+2026-04-11 14:48:10.460 | DEBUG    | __main__:run_feature_engineering:509 -     ['pct_change_4w', 'pct_change_12w', 'pct_change_52w', 'momentum_4w_vs_26w', 'acceleration_1w']
+2026-04-11 14:48:10.460 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_zscore_52w', 'log_price', 'fuel_cost_index', 'shock_active', 'shock_severity']
+2026-04-11 14:48:10.460 | DEBUG    | __main__:run_feature_engineering:509 -     ['commodity_season_score', 'price_real_ngn_mt', 'weeks_since_start', 'year', 'quarter']
+2026-04-11 14:48:10.462 | INFO     | __main__:run_feature_engineering:511 - ============================================================
+2026-04-11 14:48:10.462 | SUCCESS  | __main__:run_feature_engineering:512 - FEATURE ENGINEERING COMPLETE — 11 commodities
+2026-04-11 14:48:10.464 | INFO     | __main__:run_feature_engineering:513 - ============================================================
+2026-04-11 15:39:19.977 | INFO     | __main__:run_feature_engineering:473 - ============================================================
+2026-04-11 15:39:19.986 | INFO     | __main__:run_feature_engineering:474 - STEP 3 — FEATURE ENGINEERING
+2026-04-11 15:39:19.987 | INFO     | __main__:run_feature_engineering:475 - ============================================================
+2026-04-11 15:39:19.988 | INFO     | __main__:run_feature_engineering:478 - Loading datasets...
+2026-04-11 15:39:20.422 | INFO     | __main__:load_external_data:89 -   External data loaded:
+2026-04-11 15:39:20.436 | INFO     | __main__:load_external_data:90 -     FX:        1,293 rows (2002-01-07 → 2026-10-12)
+2026-04-11 15:39:20.439 | INFO     | __main__:load_external_data:91 -     Fuel:      137 rows (2014-05-15 → 2026-10-12)
+2026-04-11 15:39:20.443 | INFO     | __main__:load_external_data:92 -     Inflation: 563 rows
+2026-04-11 15:39:20.443 | INFO     | __main__:load_external_data:93 -     Seasons:   1,293 rows
+2026-04-11 15:39:20.443 | INFO     | __main__:run_feature_engineering:482 - 
+Building feature matrices for 11 commodities...
+2026-04-11 15:39:20.443 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Hibiscus
+2026-04-11 15:39:21.082 | DEBUG    | __main__:validate_features:382 -   [Hibiscus] All feature checks passed
+2026-04-11 15:39:21.477 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_hibiscus.csv
+2026-04-11 15:39:21.530 | INFO     | __main__:print_feature_summary:454 -   Hibiscus             |  846 rows |  78 features | null: 3.8% | price: ₦   2,550,000/MT | last: 2026-03-16
+2026-04-11 15:39:21.534 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Sesame
+2026-04-11 15:39:21.924 | DEBUG    | __main__:validate_features:382 -   [Sesame] All feature checks passed
+2026-04-11 15:39:22.170 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_sesame.csv
+2026-04-11 15:39:22.196 | INFO     | __main__:print_feature_summary:454 -   Sesame               |  846 rows |  78 features | null: 3.8% | price: ₦   1,280,000/MT | last: 2026-03-16
+2026-04-11 15:39:22.196 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Ginger
+2026-04-11 15:39:22.504 | DEBUG    | __main__:validate_features:382 -   [Ginger] All feature checks passed
+2026-04-11 15:39:22.854 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_ginger.csv
+2026-04-11 15:39:22.870 | INFO     | __main__:print_feature_summary:454 -   Ginger               | 1368 rows |  78 features | null: 6.0% | price: ₦   9,900,000/MT | last: 2026-03-16
+2026-04-11 15:39:22.885 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Cocoa
+2026-04-11 15:39:23.137 | DEBUG    | __main__:validate_features:382 -   [Cocoa] All feature checks passed
+2026-04-11 15:39:23.454 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_cocoa.csv
+2026-04-11 15:39:23.487 | INFO     | __main__:print_feature_summary:454 -   Cocoa                | 1368 rows |  78 features | null: 6.1% | price: ₦   5,798,861/MT | last: 2026-03-16
+2026-04-11 15:39:23.488 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Soybeans
+2026-04-11 15:39:23.760 | DEBUG    | __main__:validate_features:382 -   [Soybeans] All feature checks passed
+2026-04-11 15:39:24.187 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_soybeans.csv
+2026-04-11 15:39:24.223 | INFO     | __main__:print_feature_summary:454 -   Soybeans             | 1368 rows |  78 features | null: 6.1% | price: ₦     679,710/MT | last: 2026-03-16
+2026-04-11 15:39:24.232 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Cashew Nuts
+2026-04-11 15:39:24.526 | DEBUG    | __main__:validate_features:382 -   [Cashew Nuts] All feature checks passed
+2026-04-11 15:39:24.720 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_cashew_nuts.csv
+2026-04-11 15:39:24.725 | INFO     | __main__:print_feature_summary:454 -   Cashew Nuts          |  846 rows |  78 features | null: 3.8% | price: ₦   1,800,000/MT | last: 2026-03-16
+2026-04-11 15:39:24.737 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Sorghum
+2026-04-11 15:39:25.004 | DEBUG    | __main__:validate_features:382 -   [Sorghum] All feature checks passed
+2026-04-11 15:39:25.271 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_sorghum.csv
+2026-04-11 15:39:25.304 | INFO     | __main__:print_feature_summary:454 -   Sorghum              | 1262 rows |  78 features | null: 3.7% | price: ₦     280,000/MT | last: 2026-03-16
+2026-04-11 15:39:25.304 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Beans (white)
+2026-04-11 15:39:25.554 | DEBUG    | __main__:validate_features:382 -   [Beans (white)] All feature checks passed
+2026-04-11 15:39:25.837 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_beans_white.csv
+2026-04-11 15:39:25.856 | INFO     | __main__:print_feature_summary:454 -   Beans (white)        | 1262 rows |  78 features | null: 3.8% | price: ₦     813,334/MT | last: 2026-03-16
+2026-04-11 15:39:25.856 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Beans (red)
+2026-04-11 15:39:26.121 | DEBUG    | __main__:validate_features:382 -   [Beans (red)] All feature checks passed
+2026-04-11 15:39:26.254 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_beans_red.csv
+2026-04-11 15:39:26.271 | INFO     | __main__:print_feature_summary:454 -   Beans (red)          |  531 rows |  78 features | null: 4.1% | price: ₦     915,000/MT | last: 2026-03-16
+2026-04-11 15:39:26.271 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Maize (white)
+2026-04-11 15:39:26.564 | DEBUG    | __main__:validate_features:382 -   [Maize (white)] All feature checks passed
+2026-04-11 15:39:26.977 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_maize_white.csv
+2026-04-11 15:39:27.012 | INFO     | __main__:print_feature_summary:454 -   Maize (white)        | 1262 rows |  78 features | null: 3.9% | price: ₦     213,194/MT | last: 2026-03-16
+2026-04-11 15:39:27.014 | DEBUG    | __main__:run_feature_engineering:486 -   Processing: Maize (yellow)
+2026-04-11 15:39:27.380 | DEBUG    | __main__:validate_features:382 -   [Maize (yellow)] All feature checks passed
+2026-04-11 15:39:27.523 | DEBUG    | __main__:save_features:443 -     Saved: c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\features\features_maize_yellow.csv
+2026-04-11 15:39:27.537 | INFO     | __main__:print_feature_summary:454 -   Maize (yellow)       |  618 rows |  78 features | null: 4.0% | price: ₦     230,040/MT | last: 2026-03-16
+2026-04-11 15:39:27.537 | INFO     | __main__:run_feature_engineering:498 - 
+Feature columns (example — Sorghum):
+2026-04-11 15:39:27.537 | INFO     | __main__:run_feature_engineering:501 -   Total: 83 columns
+2026-04-11 15:39:27.537 | INFO     | __main__:run_feature_engineering:507 -   Model features: 70
+2026-04-11 15:39:27.551 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_ngn_mt', 'fx_rate', 'rainfall_index', 'data_quality_score', 'price_raw_ngn_mt']
+2026-04-11 15:39:27.552 | DEBUG    | __main__:run_feature_engineering:509 -     ['fx_rate_usd_ngn', 'fuel_diesel_ngn_litre', 'fuel_petrol_ngn_litre', 'headline_inflation_yoy', 'food_inflation_yoy']
+2026-04-11 15:39:27.553 | DEBUG    | __main__:run_feature_engineering:509 -     ['season_dry', 'season_rainy', 'season_planting', 'season_planting_early', 'season_planting_late']
+2026-04-11 15:39:27.553 | DEBUG    | __main__:run_feature_engineering:509 -     ['season_harvesting', 'season_harvest_early', 'season_harvest_lean', 'cashew_harvest', 'cocoa_main_crop']
+2026-04-11 15:39:27.554 | DEBUG    | __main__:run_feature_engineering:509 -     ['cocoa_mid_crop', 'sesame_harvest', 'ginger_harvest', 'hibiscus_harvest', 'sorghum_harvest']
+2026-04-11 15:39:27.555 | DEBUG    | __main__:run_feature_engineering:509 -     ['maize_harvest', 'soybean_harvest', 'is_ramadan', 'is_lean_season', 'is_festive_period']
+2026-04-11 15:39:27.556 | DEBUG    | __main__:run_feature_engineering:509 -     ['month_sin', 'month_cos', 'week_sin', 'week_cos', 'price_usd_mt']
+2026-04-11 15:39:27.556 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_lag_1w', 'price_lag_2w', 'price_lag_4w', 'price_lag_8w', 'price_lag_12w']
+2026-04-11 15:39:27.556 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_lag_26w', 'price_lag_52w', 'rolling_mean_4w', 'rolling_std_4w', 'rolling_mean_8w']
+2026-04-11 15:39:27.558 | DEBUG    | __main__:run_feature_engineering:509 -     ['rolling_std_8w', 'rolling_mean_12w', 'rolling_std_12w', 'rolling_mean_26w', 'rolling_std_26w']
+2026-04-11 15:39:27.558 | DEBUG    | __main__:run_feature_engineering:509 -     ['rolling_max_4w', 'rolling_min_4w', 'rolling_max_12w', 'rolling_min_12w', 'pct_change_1w']
+2026-04-11 15:39:27.560 | DEBUG    | __main__:run_feature_engineering:509 -     ['pct_change_4w', 'pct_change_12w', 'pct_change_52w', 'momentum_4w_vs_26w', 'acceleration_1w']
+2026-04-11 15:39:27.560 | DEBUG    | __main__:run_feature_engineering:509 -     ['price_zscore_52w', 'log_price', 'fuel_cost_index', 'shock_active', 'shock_severity']
+2026-04-11 15:39:27.560 | DEBUG    | __main__:run_feature_engineering:509 -     ['commodity_season_score', 'price_real_ngn_mt', 'weeks_since_start', 'year', 'quarter']
+2026-04-11 15:39:27.563 | INFO     | __main__:run_feature_engineering:511 - ============================================================
+2026-04-11 15:39:27.563 | SUCCESS  | __main__:run_feature_engineering:512 - FEATURE ENGINEERING COMPLETE — 11 commodities
+2026-04-11 15:39:27.564 | INFO     | __main__:run_feature_engineering:513 - ============================================================

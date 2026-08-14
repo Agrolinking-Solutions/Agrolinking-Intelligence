@@ -72,7 +72,7 @@ MANUAL_PRICES = {
     # ── Livestock — market research Aug 2026 ─────────────────────────────
     "Meat (beef)":   4_536_000,   # Market research Jul 2026
     "Meat (goat)":   7_000_000,   # Confirmed Kaduna market Aug 2026 (N7,000/kg)
-    "Fish (dried)":  1_500_000,   # WFP NE Nigeria retail dried fish (N1,000-1,200/kg Mar 2026, bridged to Aug)
+    "Fish (dried)":  10_000_000,   # WFP NE Nigeria retail dried fish (N1,000-1,200/kg Mar 2026, bridged to Aug)
     "Eggs":              7_920,   # Market research Jul 2026 (NGN/crate)
 }
 

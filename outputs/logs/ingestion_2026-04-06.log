@@ -1,0 +1,34 @@
+2026-04-06 23:38:36.489 | INFO     | __main__:run_ingestion:370 - ============================================================
+2026-04-06 23:38:36.489 | INFO     | __main__:run_ingestion:371 - STEP 1 — DATA INGESTION
+2026-04-06 23:38:36.489 | INFO     | __main__:run_ingestion:372 - ============================================================
+2026-04-06 23:38:36.489 | INFO     | __main__:load_agricome:37 - Loading Agricome raw data...
+2026-04-06 23:38:36.587 | SUCCESS  | __main__:load_agricome:76 - Agricome loaded: 1,355 rows | 11 commodities
+2026-04-06 23:38:36.589 | DEBUG    | __main__:load_agricome:77 -   Commodities: ['Beans (red)', 'Beans (white)', 'Cashew Nuts', 'Cocoa', 'Ginger', 'Hibiscus', 'Maize (white)', 'Maize (yellow)', 'Sesame', 'Sorghum', 'Soybeans']
+2026-04-06 23:38:36.592 | DEBUG    | __main__:load_agricome:78 -   Date range:  2003-09-15 → 2026-03-18
+2026-04-06 23:38:36.595 | INFO     | __main__:load_wfp:129 - Loading WFP Nigeria data...
+2026-04-06 23:38:37.240 | SUCCESS  | __main__:load_wfp:178 - WFP fuel data: 107 weekly rows
+2026-04-06 23:38:40.455 | SUCCESS  | __main__:load_wfp:215 - WFP commodities loaded: 853 rows | 5 commodities
+2026-04-06 23:38:40.455 | DEBUG    | __main__:load_wfp:219 -   Commodities: ['Beans (red)', 'Beans (white)', 'Maize (white)', 'Maize (yellow)', 'Sorghum']
+2026-04-06 23:38:40.455 | DEBUG    | __main__:load_wfp:220 -   Date range:  2002-01-15 → 2026-03-15
+2026-04-06 23:38:40.471 | INFO     | __main__:merge_sources:239 - Merging Agricome and WFP data sources...
+2026-04-06 23:38:40.504 | INFO     | __main__:merge_sources:266 -   Deduplication: removed 635 overlapping rows (Agricome priority)
+2026-04-06 23:38:40.516 | SUCCESS  | __main__:merge_sources:276 - Merged dataset: 1,573 rows | 11 commodities
+2026-04-06 23:38:40.519 | INFO     | __main__:merge_sources:282 -   Coverage per commodity:
+2026-04-06 23:38:40.524 | INFO     | __main__:merge_sources:285 -     Beans (red)           204 rows | 2016-01-11 → 2026-03-16
+2026-04-06 23:38:40.530 | INFO     | __main__:merge_sources:285 -     Beans (white)         214 rows | 2002-01-14 → 2026-03-16
+2026-04-06 23:38:40.532 | INFO     | __main__:merge_sources:285 -     Cashew Nuts            44 rows | 2025-01-06 → 2026-03-16
+2026-04-06 23:38:40.538 | INFO     | __main__:merge_sources:285 -     Cocoa                  44 rows | 2025-01-06 → 2026-03-16
+2026-04-06 23:38:40.546 | INFO     | __main__:merge_sources:285 -     Ginger                 40 rows | 2025-01-06 → 2026-03-16
+2026-04-06 23:38:40.550 | INFO     | __main__:merge_sources:285 -     Hibiscus               39 rows | 2025-01-06 → 2026-03-16
+2026-04-06 23:38:40.561 | INFO     | __main__:merge_sources:285 -     Maize (white)         410 rows | 2002-01-14 → 2023-01-16
+2026-04-06 23:38:40.568 | INFO     | __main__:merge_sources:285 -     Maize (yellow)        191 rows | 2014-05-12 → 2023-01-16
+2026-04-06 23:38:40.574 | INFO     | __main__:merge_sources:285 -     Sesame                 36 rows | 2025-06-09 → 2026-03-16
+2026-04-06 23:38:40.579 | INFO     | __main__:merge_sources:285 -     Sorghum               307 rows | 2002-01-14 → 2026-03-16
+2026-04-06 23:38:40.586 | INFO     | __main__:merge_sources:285 -     Soybeans               44 rows | 2025-01-06 → 2026-03-16
+2026-04-06 23:38:40.652 | INFO     | __main__:save_outputs:308 -   Existing master found: 5,313 rows (5,291 historical + 0 forecast)
+2026-04-06 23:38:40.707 | SUCCESS  | __main__:save_outputs:318 -   Master updated: 1,573 total rows → c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\processed\agrolinking_master.csv
+2026-04-06 23:38:40.721 | SUCCESS  | __main__:save_outputs:343 -   Fuel prices updated: 111 rows → c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\data\external\fuel_prices.csv
+2026-04-06 23:38:40.728 | INFO     | __main__:save_outputs:361 -   Ingestion metadata saved → c:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\logs\ingestion_meta.json
+2026-04-06 23:38:40.728 | INFO     | __main__:run_ingestion:379 - ============================================================
+2026-04-06 23:38:40.728 | SUCCESS  | __main__:run_ingestion:380 - INGESTION COMPLETE
+2026-04-06 23:38:40.728 | INFO     | __main__:run_ingestion:381 - ============================================================

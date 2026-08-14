@@ -1,0 +1,354 @@
+2026-05-27 07:40:17.341 | INFO     | __main__:run_training:490 - =================================================================
+2026-05-27 07:40:17.347 | INFO     | __main__:run_training:491 - STEP 4 — MODEL TRAINING
+2026-05-27 07:40:17.351 | INFO     | __main__:run_training:492 -   Commodities : 13
+2026-05-27 07:40:17.353 | INFO     | __main__:run_training:493 -   Models      : ARIMA + Prophet + Holt-Winters + XGBoost + LightGBM
+2026-05-27 07:40:17.356 | INFO     | __main__:run_training:494 -   Weighting   : Inverse-MAPE (lower error = higher weight, floor 0.05)
+2026-05-27 07:40:17.356 | INFO     | __main__:run_training:495 - =================================================================
+2026-05-27 07:40:18.259 | INFO     | __main__:run_training:498 -   Features loaded: 13749 rows
+2026-05-27 07:40:18.259 | INFO     | __main__:run_training:505 - 
+[1/13] Starting Hibiscus...
+2026-05-27 07:40:18.357 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:40:18.357 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:40:18.359 | INFO     | __main__:train_commodity:388 -   Hibiscus  (853 rows | last: 2026-06-02)
+2026-05-27 07:40:18.360 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:40:18.362 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:41:43.598 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(2, 1, 2) seasonal=(0, 0, 0, 0) MAPE=24.5%
+2026-05-27 07:41:43.598 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:42:41.994 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=17.0%
+2026-05-27 07:42:41.996 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:42:42.157 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=17.9%
+2026-05-27 07:42:42.157 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:42:45.687 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=33.6%
+2026-05-27 07:42:45.687 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:42:45.689 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:42:45.752 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.220 | prophet: 0.318 | holt_winters: 0.302 | xgboost: 0.161 | lightgbm: 0.000
+2026-05-27 07:42:45.754 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:42:45.754 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:42:45.756 | INFO     | __main__:train_commodity:478 -   arima             24.5%  N     407,872     0.220
+2026-05-27 07:42:45.756 | INFO     | __main__:train_commodity:478 -   prophet           17.0%  N     283,391     0.318 *
+2026-05-27 07:42:45.756 | INFO     | __main__:train_commodity:478 -   holt_winters      17.9%  N     302,030     0.302
+2026-05-27 07:42:45.758 | INFO     | __main__:train_commodity:478 -   xgboost           33.6%  N     536,135     0.161
+2026-05-27 07:42:45.758 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:42:45.760 | INFO     | __main__:train_commodity:485 -   Best model: prophet (17.0% MAPE)
+2026-05-27 07:42:45.764 | INFO     | __main__:run_training:505 - 
+[2/13] Starting Sesame...
+2026-05-27 07:42:45.807 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:42:45.807 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:42:45.809 | INFO     | __main__:train_commodity:388 -   Sesame  (831 rows | last: 2026-06-02)
+2026-05-27 07:42:45.811 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:42:45.813 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:42:51.375 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(0, 1, 1) seasonal=(0, 0, 0, 0) MAPE=15.6%
+2026-05-27 07:42:51.375 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:42:54.820 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=7.2%
+2026-05-27 07:42:54.820 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:42:54.995 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=14.5%
+2026-05-27 07:42:54.995 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:42:56.959 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=18.6%
+2026-05-27 07:42:56.959 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:42:56.961 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:42:57.009 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.197 | prophet: 0.426 | holt_winters: 0.212 | xgboost: 0.165 | lightgbm: 0.000
+2026-05-27 07:42:57.010 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:42:57.010 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:42:57.012 | INFO     | __main__:train_commodity:478 -   arima             15.6%  N     200,242     0.197
+2026-05-27 07:42:57.012 | INFO     | __main__:train_commodity:478 -   prophet            7.2%  N      90,855     0.426 *
+2026-05-27 07:42:57.012 | INFO     | __main__:train_commodity:478 -   holt_winters      14.5%  N     187,041     0.212
+2026-05-27 07:42:57.018 | INFO     | __main__:train_commodity:478 -   xgboost           18.6%  N     238,048     0.165
+2026-05-27 07:42:57.018 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:42:57.019 | INFO     | __main__:train_commodity:485 -   Best model: prophet (7.2% MAPE)
+2026-05-27 07:42:57.024 | INFO     | __main__:run_training:505 - 
+[3/13] Starting Ginger...
+2026-05-27 07:42:57.051 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:42:57.053 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:42:57.053 | INFO     | __main__:train_commodity:388 -   Ginger  (1375 rows | last: 2026-06-02)
+2026-05-27 07:42:57.053 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:42:57.057 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:43:16.927 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(2, 0, 2) seasonal=(0, 0, 0, 0) MAPE=61.5%
+2026-05-27 07:43:16.927 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:43:19.665 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=62.8%
+2026-05-27 07:43:19.665 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:43:19.760 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=56.8%
+2026-05-27 07:43:19.761 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:43:20.952 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=56.0%
+2026-05-27 07:43:20.952 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:43:20.954 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:43:20.989 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.240 | prophet: 0.235 | holt_winters: 0.261 | xgboost: 0.264 | lightgbm: 0.000
+2026-05-27 07:43:20.989 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:43:20.989 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:43:20.991 | INFO     | __main__:train_commodity:478 -   arima             61.5%  N   4,844,469     0.240
+2026-05-27 07:43:20.991 | INFO     | __main__:train_commodity:478 -   prophet           62.8%  N   4,882,301     0.235
+2026-05-27 07:43:20.991 | INFO     | __main__:train_commodity:478 -   holt_winters      56.8%  N   4,570,563     0.261
+2026-05-27 07:43:20.991 | INFO     | __main__:train_commodity:478 -   xgboost           56.0%  N   4,666,665     0.264 *
+2026-05-27 07:43:20.993 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:43:20.993 | INFO     | __main__:train_commodity:485 -   Best model: xgboost (56.0% MAPE)
+2026-05-27 07:43:20.997 | INFO     | __main__:run_training:505 - 
+[4/13] Starting Cocoa...
+2026-05-27 07:43:21.022 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:43:21.022 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:43:21.024 | INFO     | __main__:train_commodity:388 -   Cocoa  (1375 rows | last: 2026-06-02)
+2026-05-27 07:43:21.024 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:43:21.026 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:43:31.550 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(0, 1, 2) seasonal=(0, 0, 0, 0) MAPE=52.4%
+2026-05-27 07:43:31.550 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:43:35.381 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=56.3%
+2026-05-27 07:43:35.383 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:43:35.561 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=52.0%
+2026-05-27 07:43:35.561 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:43:38.091 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=52.6%
+2026-05-27 07:43:38.091 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:43:38.093 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:43:38.169 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.254 | prophet: 0.237 | holt_winters: 0.256 | xgboost: 0.253 | lightgbm: 0.000
+2026-05-27 07:43:38.169 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:43:38.171 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:43:38.173 | INFO     | __main__:train_commodity:478 -   arima             52.4%  N   4,509,721     0.254
+2026-05-27 07:43:38.173 | INFO     | __main__:train_commodity:478 -   prophet           56.3%  N   4,571,165     0.237
+2026-05-27 07:43:38.173 | INFO     | __main__:train_commodity:478 -   holt_winters      52.0%  N   4,474,366     0.256 *
+2026-05-27 07:43:38.177 | INFO     | __main__:train_commodity:478 -   xgboost           52.6%  N   4,594,185     0.253
+2026-05-27 07:43:38.179 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:43:38.179 | INFO     | __main__:train_commodity:485 -   Best model: holt_winters (52.0% MAPE)
+2026-05-27 07:43:38.187 | INFO     | __main__:run_training:505 - 
+[5/13] Starting Soybeans...
+2026-05-27 07:43:38.252 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:43:38.252 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:43:38.252 | INFO     | __main__:train_commodity:388 -   Soybeans  (1375 rows | last: 2026-06-02)
+2026-05-27 07:43:38.254 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:43:38.256 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:43:52.941 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(0, 1, 1) seasonal=(0, 0, 0, 0) MAPE=38.1%
+2026-05-27 07:43:52.941 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:43:59.197 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=56.7%
+2026-05-27 07:43:59.197 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:43:59.748 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=31.1%
+2026-05-27 07:43:59.750 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:44:02.757 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=44.3%
+2026-05-27 07:44:02.757 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:44:02.762 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:44:02.859 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.266 | prophet: 0.179 | holt_winters: 0.326 | xgboost: 0.229 | lightgbm: 0.000
+2026-05-27 07:44:02.860 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:44:02.861 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:44:02.861 | INFO     | __main__:train_commodity:478 -   arima             38.1%  N     274,755     0.266
+2026-05-27 07:44:02.863 | INFO     | __main__:train_commodity:478 -   prophet           56.7%  N     340,064     0.179
+2026-05-27 07:44:02.863 | INFO     | __main__:train_commodity:478 -   holt_winters      31.1%  N     152,016     0.326 *
+2026-05-27 07:44:02.868 | INFO     | __main__:train_commodity:478 -   xgboost           44.3%  N     300,411     0.229
+2026-05-27 07:44:02.871 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:44:02.875 | INFO     | __main__:train_commodity:485 -   Best model: holt_winters (31.1% MAPE)
+2026-05-27 07:44:02.929 | INFO     | __main__:run_training:505 - 
+[6/13] Starting Cashew Nuts...
+2026-05-27 07:44:02.994 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:44:03.000 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:44:03.004 | INFO     | __main__:train_commodity:388 -   Cashew Nuts  (853 rows | last: 2026-06-02)
+2026-05-27 07:44:03.008 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:44:03.013 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:44:24.001 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(2, 1, 2) seasonal=(0, 0, 0, 0) MAPE=22.5%
+2026-05-27 07:44:24.003 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:44:31.211 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=17.6%
+2026-05-27 07:44:31.212 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:44:31.489 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=17.5%
+2026-05-27 07:44:31.490 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:44:46.862 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=24.8%
+2026-05-27 07:44:46.864 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:44:46.869 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:44:46.938 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.224 | prophet: 0.286 | holt_winters: 0.288 | xgboost: 0.203 | lightgbm: 0.000
+2026-05-27 07:44:46.939 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:44:46.940 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:44:46.943 | INFO     | __main__:train_commodity:478 -   arima             22.5%  N     428,653     0.224
+2026-05-27 07:44:46.944 | INFO     | __main__:train_commodity:478 -   prophet           17.6%  N     338,999     0.286
+2026-05-27 07:44:46.945 | INFO     | __main__:train_commodity:478 -   holt_winters      17.5%  N     327,429     0.288 *
+2026-05-27 07:44:46.945 | INFO     | __main__:train_commodity:478 -   xgboost           24.8%  N     477,512     0.203
+2026-05-27 07:44:46.947 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:44:46.949 | INFO     | __main__:train_commodity:485 -   Best model: holt_winters (17.5% MAPE)
+2026-05-27 07:44:46.960 | INFO     | __main__:run_training:505 - 
+[7/13] Starting Sorghum...
+2026-05-27 07:44:47.000 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:44:47.002 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:44:47.003 | INFO     | __main__:train_commodity:388 -   Sorghum  (1269 rows | last: 2026-06-02)
+2026-05-27 07:44:47.005 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:44:47.007 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:45:13.423 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(2, 1, 2) seasonal=(0, 0, 0, 0) MAPE=28.4%
+2026-05-27 07:45:13.423 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:45:18.762 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=49.7%
+2026-05-27 07:45:18.769 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:45:19.059 | WARNING  | __main__:train_holt_winters:255 -     Holt-Winters: all configs failed, using simple ETS
+2026-05-27 07:45:19.318 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:45:26.243 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=26.3%
+2026-05-27 07:45:26.243 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:45:26.248 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:45:26.342 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.310 | prophet: 0.178 | holt_winters: 0.176 | xgboost: 0.336 | lightgbm: 0.000
+2026-05-27 07:45:26.344 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:45:26.345 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:45:26.345 | INFO     | __main__:train_commodity:478 -   arima             28.4%  N     152,542     0.310
+2026-05-27 07:45:26.347 | INFO     | __main__:train_commodity:478 -   prophet           49.7%  N     223,355     0.178
+2026-05-27 07:45:26.348 | INFO     | __main__:train_commodity:478 -   holt_winters      50.0%  N           0     0.176
+2026-05-27 07:45:26.351 | INFO     | __main__:train_commodity:478 -   xgboost           26.3%  N     145,085     0.336 *
+2026-05-27 07:45:26.353 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:45:26.353 | INFO     | __main__:train_commodity:485 -   Best model: xgboost (26.3% MAPE)
+2026-05-27 07:45:26.360 | INFO     | __main__:run_training:505 - 
+[8/13] Starting Beans (white)...
+2026-05-27 07:45:26.401 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:45:26.401 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:45:26.403 | INFO     | __main__:train_commodity:388 -   Beans (white)  (1265 rows | last: 2026-06-02)
+2026-05-27 07:45:26.403 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:45:26.408 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:45:47.129 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(2, 1, 2) seasonal=(0, 0, 0, 0) MAPE=33.2%
+2026-05-27 07:45:47.129 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:45:53.836 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=70.2%
+2026-05-27 07:45:53.838 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:45:54.064 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=48.6%
+2026-05-27 07:45:54.064 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:45:56.401 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=2.7%
+2026-05-27 07:45:56.401 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:45:56.405 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:45:56.521 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.067 | prophet: 0.049 | holt_winters: 0.049 | xgboost: 0.835 | lightgbm: 0.000
+2026-05-27 07:45:56.523 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:45:56.523 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:45:56.525 | INFO     | __main__:train_commodity:478 -   arima             33.2%  N     327,263     0.067
+2026-05-27 07:45:56.527 | INFO     | __main__:train_commodity:478 -   prophet           70.2%  N     603,593     0.049
+2026-05-27 07:45:56.528 | INFO     | __main__:train_commodity:478 -   holt_winters      48.6%  N     304,114     0.049
+2026-05-27 07:45:56.528 | INFO     | __main__:train_commodity:478 -   xgboost            2.7%  N      26,833     0.835 *
+2026-05-27 07:45:56.528 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:45:56.530 | INFO     | __main__:train_commodity:485 -   Best model: xgboost (2.7% MAPE)
+2026-05-27 07:45:56.541 | INFO     | __main__:run_training:505 - 
+[9/13] Starting Beans (red)...
+2026-05-27 07:45:56.574 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:45:56.574 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:45:56.576 | INFO     | __main__:train_commodity:388 -   Beans (red)  (535 rows | last: 2026-06-02)
+2026-05-27 07:45:56.576 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:45:56.580 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:46:04.161 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(0, 1, 1) seasonal=(0, 0, 0, 0) MAPE=28.8%
+2026-05-27 07:46:04.161 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:46:06.862 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=37.1%
+2026-05-27 07:46:06.862 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:46:06.935 | WARNING  | __main__:train_holt_winters:255 -     Holt-Winters: all configs failed, using simple ETS
+2026-05-27 07:46:07.097 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:46:09.163 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=12.4%
+2026-05-27 07:46:09.163 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:46:09.166 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:46:09.203 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.214 | prophet: 0.167 | holt_winters: 0.123 | xgboost: 0.496 | lightgbm: 0.000
+2026-05-27 07:46:09.203 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:46:09.203 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:46:09.205 | INFO     | __main__:train_commodity:478 -   arima             28.8%  N     335,037     0.214
+2026-05-27 07:46:09.205 | INFO     | __main__:train_commodity:478 -   prophet           37.1%  N     478,188     0.167
+2026-05-27 07:46:09.205 | INFO     | __main__:train_commodity:478 -   holt_winters      50.0%  N           0     0.123
+2026-05-27 07:46:09.208 | INFO     | __main__:train_commodity:478 -   xgboost           12.4%  N     191,817     0.496 *
+2026-05-27 07:46:09.209 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:46:09.209 | INFO     | __main__:train_commodity:485 -   Best model: xgboost (12.4% MAPE)
+2026-05-27 07:46:09.211 | INFO     | __main__:run_training:505 - 
+[10/13] Starting Maize (white)...
+2026-05-27 07:46:09.243 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:46:09.243 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:46:09.245 | INFO     | __main__:train_commodity:388 -   Maize (white)  (1268 rows | last: 2026-06-02)
+2026-05-27 07:46:09.245 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:46:09.248 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:46:24.445 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(2, 1, 2) seasonal=(0, 0, 0, 0) MAPE=21.8%
+2026-05-27 07:46:24.446 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:46:27.654 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=38.1%
+2026-05-27 07:46:27.654 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:46:27.945 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=15.5%
+2026-05-27 07:46:27.946 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:46:30.648 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=14.3%
+2026-05-27 07:46:30.648 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:46:30.651 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:46:30.708 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.223 | prophet: 0.127 | holt_winters: 0.312 | xgboost: 0.338 | lightgbm: 0.000
+2026-05-27 07:46:30.708 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:46:30.709 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:46:30.712 | INFO     | __main__:train_commodity:478 -   arima             21.8%  N      65,797     0.223
+2026-05-27 07:46:30.712 | INFO     | __main__:train_commodity:478 -   prophet           38.1%  N     105,595     0.127
+2026-05-27 07:46:30.712 | INFO     | __main__:train_commodity:478 -   holt_winters      15.5%  N      47,208     0.312
+2026-05-27 07:46:30.714 | INFO     | __main__:train_commodity:478 -   xgboost           14.3%  N      45,415     0.338 *
+2026-05-27 07:46:30.714 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:46:30.714 | INFO     | __main__:train_commodity:485 -   Best model: xgboost (14.3% MAPE)
+2026-05-27 07:46:30.721 | INFO     | __main__:run_training:505 - 
+[11/13] Starting Maize (yellow)...
+2026-05-27 07:46:30.750 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:46:30.751 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:46:30.751 | INFO     | __main__:train_commodity:388 -   Maize (yellow)  (625 rows | last: 2026-06-02)
+2026-05-27 07:46:30.752 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:46:30.755 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:46:34.868 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(2, 1, 0) seasonal=(0, 0, 0, 0) MAPE=19.6%
+2026-05-27 07:46:34.868 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:46:38.219 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=18.7%
+2026-05-27 07:46:38.220 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:46:38.380 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=7.6%
+2026-05-27 07:46:38.380 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:46:40.753 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=18.0%
+2026-05-27 07:46:40.753 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:46:40.758 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:46:40.816 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.175 | prophet: 0.183 | holt_winters: 0.450 | xgboost: 0.191 | lightgbm: 0.000
+2026-05-27 07:46:40.821 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:46:40.836 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:46:40.844 | INFO     | __main__:train_commodity:478 -   arima             19.6%  N      69,824     0.175
+2026-05-27 07:46:40.850 | INFO     | __main__:train_commodity:478 -   prophet           18.7%  N      65,542     0.183
+2026-05-27 07:46:40.851 | INFO     | __main__:train_commodity:478 -   holt_winters       7.6%  N      27,044     0.450 *
+2026-05-27 07:46:40.856 | INFO     | __main__:train_commodity:478 -   xgboost           18.0%  N      64,622     0.191
+2026-05-27 07:46:40.857 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:46:40.859 | INFO     | __main__:train_commodity:485 -   Best model: holt_winters (7.6% MAPE)
+2026-05-27 07:46:40.871 | INFO     | __main__:run_training:505 - 
+[12/13] Starting Wheat...
+2026-05-27 07:46:40.927 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:46:40.928 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:46:40.930 | INFO     | __main__:train_commodity:388 -   Wheat  (853 rows | last: 2026-06-02)
+2026-05-27 07:46:40.931 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:46:40.933 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:47:02.311 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(2, 0, 0) seasonal=(0, 0, 0, 0) MAPE=40.9%
+2026-05-27 07:47:02.313 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:47:06.122 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=40.5%
+2026-05-27 07:47:06.122 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:47:06.267 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=27.2%
+2026-05-27 07:47:06.267 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:47:08.361 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=28.7%
+2026-05-27 07:47:08.363 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:47:08.368 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:47:08.419 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.202 | prophet: 0.204 | holt_winters: 0.305 | xgboost: 0.288 | lightgbm: 0.000
+2026-05-27 07:47:08.421 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:47:08.422 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:47:08.424 | INFO     | __main__:train_commodity:478 -   arima             40.9%  N     270,263     0.202
+2026-05-27 07:47:08.424 | INFO     | __main__:train_commodity:478 -   prophet           40.5%  N     266,737     0.204
+2026-05-27 07:47:08.426 | INFO     | __main__:train_commodity:478 -   holt_winters      27.2%  N     182,948     0.305 *
+2026-05-27 07:47:08.427 | INFO     | __main__:train_commodity:478 -   xgboost           28.7%  N     194,835     0.288
+2026-05-27 07:47:08.427 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:47:08.429 | INFO     | __main__:train_commodity:485 -   Best model: holt_winters (27.2% MAPE)
+2026-05-27 07:47:08.434 | INFO     | __main__:run_training:505 - 
+[13/13] Starting Rice...
+2026-05-27 07:47:08.472 | INFO     | __main__:train_commodity:386 - 
+2026-05-27 07:47:08.474 | INFO     | __main__:train_commodity:387 - ───────────────────────────────────────────────────────
+2026-05-27 07:47:08.479 | INFO     | __main__:train_commodity:388 -   Rice  (1272 rows | last: 2026-06-02)
+2026-05-27 07:47:08.479 | INFO     | __main__:train_commodity:389 - ───────────────────────────────────────────────────────
+2026-05-27 07:47:08.482 | INFO     | __main__:train_commodity:402 -   [1/5] ARIMA...
+2026-05-27 07:47:23.595 | DEBUG    | __main__:train_arima:139 -     ARIMA order=(1, 1, 2) seasonal=(0, 0, 0, 0) MAPE=44.4%
+2026-05-27 07:47:23.595 | INFO     | __main__:train_commodity:407 -   [2/5] Prophet...
+2026-05-27 07:47:28.212 | DEBUG    | __main__:train_prophet:196 -     Prophet MAPE=37.2%
+2026-05-27 07:47:28.212 | INFO     | __main__:train_commodity:412 -   [3/5] Holt-Winters...
+2026-05-27 07:47:28.453 | DEBUG    | __main__:train_holt_winters:260 -     Holt-Winters MAPE=32.4%
+2026-05-27 07:47:28.453 | INFO     | __main__:train_commodity:417 -   [4/5] XGBoost...
+2026-05-27 07:47:32.230 | DEBUG    | __main__:train_xgboost:320 -     XGBoost MAPE=41.4%
+2026-05-27 07:47:32.230 | INFO     | __main__:train_commodity:422 -   [5/5] LightGBM...
+2026-05-27 07:47:32.234 | WARNING  | __main__:train_lightgbm:337 -     LightGBM not installed. Run: pip install lightgbm
+2026-05-27 07:47:32.320 | INFO     | __main__:train_commodity:468 -   Weights: arima: 0.215 | prophet: 0.258 | holt_winters: 0.296 | xgboost: 0.231 | lightgbm: 0.000
+2026-05-27 07:47:32.321 | INFO     | __main__:train_commodity:471 -   Model              MAPE             MAE    Weight
+2026-05-27 07:47:32.322 | INFO     | __main__:train_commodity:472 -   --------------------------------------------------
+2026-05-27 07:47:32.323 | INFO     | __main__:train_commodity:478 -   arima             44.4%  N     575,896     0.215
+2026-05-27 07:47:32.323 | INFO     | __main__:train_commodity:478 -   prophet           37.2%  N     478,356     0.258
+2026-05-27 07:47:32.326 | INFO     | __main__:train_commodity:478 -   holt_winters      32.4%  N     429,757     0.296 *
+2026-05-27 07:47:32.326 | INFO     | __main__:train_commodity:478 -   xgboost           41.4%  N     549,364     0.231
+2026-05-27 07:47:32.328 | INFO     | __main__:train_commodity:483 -   lightgbm         failed              --     0.000
+2026-05-27 07:47:32.330 | INFO     | __main__:train_commodity:485 -   Best model: holt_winters (32.4% MAPE)
+2026-05-27 07:47:32.336 | INFO     | __main__:run_training:520 - 
+2026-05-27 07:47:32.336 | INFO     | __main__:run_training:521 - ======================================================================
+2026-05-27 07:47:32.338 | INFO     | __main__:run_training:522 -   FINAL TRAINING SUMMARY
+2026-05-27 07:47:32.339 | INFO     | __main__:run_training:523 - ======================================================================
+2026-05-27 07:47:32.339 | INFO     | __main__:run_training:524 -   Commodity                ARIMA  Prophet   HoltW     XGB     LGB  Best
+2026-05-27 07:47:32.339 | INFO     | __main__:run_training:525 -   ----------------------------------------------------------------------
+2026-05-27 07:47:32.340 | INFO     | __main__:run_training:538 -   Hibiscus                 24.5%    17.0%   17.9%   33.6%    fail  prophet
+2026-05-27 07:47:32.341 | INFO     | __main__:run_training:538 -   Sesame                   15.6%     7.2%   14.5%   18.6%    fail  prophet
+2026-05-27 07:47:32.341 | INFO     | __main__:run_training:538 -   Ginger                   61.5%    62.9%   56.8%   56.0%    fail  xgboost
+2026-05-27 07:47:32.341 | INFO     | __main__:run_training:538 -   Cocoa                    52.4%    56.3%   52.0%   52.6%    fail  holt_winters
+2026-05-27 07:47:32.341 | INFO     | __main__:run_training:538 -   Soybeans                 38.1%    56.7%   31.1%   44.3%    fail  holt_winters
+2026-05-27 07:47:32.343 | INFO     | __main__:run_training:538 -   Cashew Nuts              22.5%    17.6%   17.5%   24.8%    fail  holt_winters
+2026-05-27 07:47:32.343 | INFO     | __main__:run_training:538 -   Sorghum                  28.4%    49.7%   50.0%   26.3%    fail  xgboost
+2026-05-27 07:47:32.343 | INFO     | __main__:run_training:538 -   Beans (white)            33.2%    70.2%   48.6%    2.7%    fail  xgboost
+2026-05-27 07:47:32.346 | INFO     | __main__:run_training:538 -   Beans (red)              28.8%    37.1%   50.0%   12.4%    fail  xgboost
+2026-05-27 07:47:32.346 | INFO     | __main__:run_training:538 -   Maize (white)            21.8%    38.1%   15.5%   14.3%    fail  xgboost
+2026-05-27 07:47:32.346 | INFO     | __main__:run_training:538 -   Maize (yellow)           19.6%    18.7%    7.6%   18.0%    fail  holt_winters
+2026-05-27 07:47:32.348 | INFO     | __main__:run_training:538 -   Wheat                    40.9%    40.5%   27.2%   28.7%    fail  holt_winters
+2026-05-27 07:47:32.348 | INFO     | __main__:run_training:538 -   Rice                     44.4%    37.2%   32.4%   41.4%    fail  holt_winters
+2026-05-27 07:47:32.348 | INFO     | __main__:run_training:542 - ======================================================================
+2026-05-27 07:47:32.350 | INFO     | __main__:run_training:543 -   Trained: 13/13
+2026-05-27 07:47:32.355 | SUCCESS  | __main__:run_training:573 - TRAINING COMPLETE — 13/13 commodities

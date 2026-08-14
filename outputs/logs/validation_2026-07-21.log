@@ -1,0 +1,86 @@
+2026-07-21 07:45:29.880 | INFO     | __main__:run_validation:527 - =================================================================
+2026-07-21 07:45:29.889 | INFO     | __main__:run_validation:528 - STEP 6 — CROSS-REFERENCE VALIDATION
+2026-07-21 07:45:29.890 | INFO     | __main__:run_validation:529 -   Run date  : Tuesday, 21 July 2026
+2026-07-21 07:45:29.892 | INFO     | __main__:run_validation:530 -   Target    : <3.0% error vs live market prices
+2026-07-21 07:45:29.892 | INFO     | __main__:run_validation:531 - =================================================================
+2026-07-21 07:45:29.964 | INFO     | __main__:load_latest_forecast:404 -   Loaded forecast: forecast_2026-07-21.json
+2026-07-21 07:45:29.964 | INFO     | __main__:run_validation:536 - 
+  Validating 17 commodities against reference prices...
+
+2026-07-21 07:45:29.966 | INFO     | __main__:run_validation:540 -   Commodity                  Forecast      Reference  Error Before  Error After       Action
+2026-07-21 07:45:29.966 | INFO     | __main__:run_validation:544 -   -------------------------------------------------------------------------------------
+2026-07-21 07:45:36.727 | DEBUG    | __main__:validate_commodity:311 -   [Hibiscus] Forecast: ₦   2,199,627 | Reference: ₦   2,325,000 | Error: 5.4% (Agricom manual entry)
+2026-07-21 07:45:36.729 | INFO     | __main__:run_validation:567 -   Hibiscus             ₦   2,199,627  ₦   2,325,000         5.4%         1.4%    soft_blend  ✅
+2026-07-21 07:45:39.813 | DEBUG    | __main__:validate_commodity:311 -   [Sesame] Forecast: ₦   1,567,225 | Reference: ₦   1,650,000 | Error: 5.0% (Agricom manual entry)
+2026-07-21 07:45:39.815 | INFO     | __main__:run_validation:567 -   Sesame               ₦   1,567,225  ₦   1,650,000         5.0%         1.2%    soft_blend  ✅
+2026-07-21 07:45:43.179 | DEBUG    | __main__:validate_commodity:311 -   [Ginger] Forecast: ₦  12,342,230 | Reference: ₦  12,000,000 | Error: 2.9% (Agricom manual entry)
+2026-07-21 07:45:43.183 | INFO     | __main__:run_validation:567 -   Ginger               ₦  12,342,230  ₦  12,000,000         2.9%         0.7%    soft_blend  ✅
+2026-07-21 07:45:47.158 | DEBUG    | __main__:validate_commodity:311 -   [Cocoa] Forecast: ₦   8,877,222 | Reference: ₦   5,650,000 | Error: 57.1% (Agricom manual entry)
+2026-07-21 07:45:47.161 | INFO     | __main__:run_validation:567 -   Cocoa                ₦   8,877,222  ₦   5,650,000        57.1%         2.3%  extreme_blend  ✅
+2026-07-21 07:45:50.379 | DEBUG    | __main__:validate_commodity:311 -   [Soybeans] Forecast: ₦     849,296 | Reference: ₦     745,000 | Error: 14.0% (Agricom manual entry)
+2026-07-21 07:45:50.381 | INFO     | __main__:run_validation:567 -   Soybeans             ₦     849,296  ₦     745,000        14.0%         1.4%    hard_blend  ✅
+2026-07-21 07:45:55.319 | DEBUG    | __main__:validate_commodity:311 -   [Cashew Nuts] Forecast: ₦   2,127,340 | Reference: ₦   1,950,000 | Error: 9.1% (Agricom manual entry)
+2026-07-21 07:45:55.321 | INFO     | __main__:run_validation:567 -   Cashew Nuts          ₦   2,127,340  ₦   1,950,000         9.1%         2.3%    soft_blend  ✅
+2026-07-21 07:45:58.412 | DEBUG    | __main__:validate_commodity:311 -   [Sorghum] Forecast: ₦     469,184 | Reference: ₦     420,000 | Error: 11.7% (Agricom manual entry)
+2026-07-21 07:45:58.415 | INFO     | __main__:run_validation:567 -   Sorghum              ₦     469,184  ₦     420,000        11.7%         1.2%    hard_blend  ✅
+2026-07-21 07:46:02.029 | DEBUG    | __main__:validate_commodity:311 -   [Beans (white)] Forecast: ₦     999,062 | Reference: ₦     813,000 | Error: 22.9% (Agricom manual entry)
+2026-07-21 07:46:02.031 | INFO     | __main__:run_validation:567 -   Beans (white)        ₦     999,062  ₦     813,000        22.9%         2.3%    hard_blend  ✅
+2026-07-21 07:46:11.801 | DEBUG    | __main__:validate_commodity:311 -   [Beans (red)] Forecast: ₦     840,258 | Reference: ₦     915,000 | Error: 8.2% (Agricom manual entry)
+2026-07-21 07:46:11.809 | INFO     | __main__:run_validation:567 -   Beans (red)          ₦     840,258  ₦     915,000         8.2%         2.0%    soft_blend  ✅
+2026-07-21 07:46:16.652 | DEBUG    | __main__:validate_commodity:311 -   [Maize (white)] Forecast: ₦     374,119 | Reference: ₦     370,000 | Error: 1.1% (Agricom manual entry)
+2026-07-21 07:46:16.661 | INFO     | __main__:run_validation:567 -   Maize (white)        ₦     374,119  ₦     370,000         1.1%         1.1%          none  ✅
+2026-07-21 07:46:20.561 | DEBUG    | __main__:validate_commodity:311 -   [Maize (yellow)] Forecast: ₦     412,414 | Reference: ₦     400,000 | Error: 3.1% (Agricom manual entry)
+2026-07-21 07:46:20.563 | INFO     | __main__:run_validation:567 -   Maize (yellow)       ₦     412,414  ₦     400,000         3.1%         0.8%    soft_blend  ✅
+2026-07-21 07:46:24.530 | DEBUG    | __main__:validate_commodity:311 -   [Wheat] Forecast: ₦     747,212 | Reference: ₦     706,833 | Error: 5.7% (Agricom manual entry)
+2026-07-21 07:46:24.532 | INFO     | __main__:run_validation:567 -   Wheat                ₦     747,212  ₦     706,833         5.7%         1.4%    soft_blend  ✅
+2026-07-21 07:46:28.378 | DEBUG    | __main__:validate_commodity:311 -   [Rice] Forecast: ₦   1,695,200 | Reference: ₦   1,550,000 | Error: 9.4% (Agricom manual entry)
+2026-07-21 07:46:28.380 | INFO     | __main__:run_validation:567 -   Rice                 ₦   1,695,200  ₦   1,550,000         9.4%         2.3%    soft_blend  ✅
+2026-07-21 07:46:32.029 | WARNING  | __main__:validate_commodity:303 -   [Eggs] No reference price — skipping validation
+2026-07-21 07:46:32.031 | INFO     | __main__:run_validation:567 -   Eggs                 ₦           0  ₦           0         0.0%         0.0%          none  ✅
+2026-07-21 07:46:36.355 | WARNING  | __main__:validate_commodity:303 -   [Fish (dried)] No reference price — skipping validation
+2026-07-21 07:46:36.376 | INFO     | __main__:run_validation:567 -   Fish (dried)         ₦           0  ₦           0         0.0%         0.0%          none  ✅
+2026-07-21 07:46:40.013 | WARNING  | __main__:validate_commodity:303 -   [Meat (goat)] No reference price — skipping validation
+2026-07-21 07:46:40.026 | INFO     | __main__:run_validation:567 -   Meat (goat)          ₦           0  ₦           0         0.0%         0.0%          none  ✅
+2026-07-21 07:46:43.289 | WARNING  | __main__:validate_commodity:303 -   [Meat (beef)] No reference price — skipping validation
+2026-07-21 07:46:43.291 | INFO     | __main__:run_validation:567 -   Meat (beef)          ₦           0  ₦           0         0.0%         0.0%          none  ✅
+2026-07-21 07:46:43.297 | INFO     | __main__:run_validation:591 - 
+  -------------------------------------------------------------------------------------
+2026-07-21 07:46:43.297 | INFO     | __main__:run_validation:592 -   Within <3% target : 17/17 commodities
+2026-07-21 07:46:43.303 | INFO     | __main__:run_validation:593 -   Avg error before  : 9.1%
+2026-07-21 07:46:43.307 | INFO     | __main__:run_validation:594 -   Avg error after   : 1.2%
+2026-07-21 07:46:43.452 | INFO     | __main__:run_validation:602 - 
+  Validated forecast → C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\forecasts\validated\forecast_validated_2026-07-21.json
+2026-07-21 07:46:43.459 | INFO     | __main__:run_validation:611 -   Validated alert   → C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\daily_alerts\alert_validated_2026-07-21.txt
+2026-07-21 07:46:43.462 | INFO     | __main__:run_validation:614 - 
+=================================================================
+2026-07-21 07:46:43.468 | INFO     | __main__:run_validation:615 -   VALIDATED DAILY PRICE ALERT
+2026-07-21 07:46:43.470 | INFO     | __main__:run_validation:616 - =================================================================
+2026-07-21 07:46:43.478 | INFO     | __main__:run_validation:618 -   📊 AGROLINKING COMMODITY INTELLIGENCE — VALIDATED FORECAST
+2026-07-21 07:46:43.481 | INFO     | __main__:run_validation:618 -   📅 Tuesday, 21 July 2026
+2026-07-21 07:46:43.483 | INFO     | __main__:run_validation:618 -   ✅ Cross-referenced against NGX · WFP · Market sources
+2026-07-21 07:46:43.484 | INFO     | __main__:run_validation:618 -   ──────────────────────────────────────────────────
+2026-07-21 07:46:43.495 | INFO     | __main__:run_validation:618 -   → Hibiscus             ₦    2,293,657/MT    -0.3%  ✅
+2026-07-21 07:46:43.498 | INFO     | __main__:run_validation:618 -   → Sesame               ₦    1,629,306/MT    -0.4%  ✅
+2026-07-21 07:46:43.502 | INFO     | __main__:run_validation:618 -   → Ginger               ₦   12,085,558/MT    -0.4%  ✅
+2026-07-21 07:46:43.507 | INFO     | __main__:run_validation:618 -   ▲ Cocoa                ₦    5,779,089/MT    +2.3%  ✅
+2026-07-21 07:46:43.515 | INFO     | __main__:run_validation:618 -   ▲ Soybeans             ₦      755,430/MT    +1.4%  ✅
+2026-07-21 07:46:43.519 | INFO     | __main__:run_validation:618 -   → Cashew Nuts          ₦    1,994,335/MT    +0.1%  ✅
+2026-07-21 07:46:43.522 | INFO     | __main__:run_validation:618 -   ▲ Sorghum              ₦      424,918/MT   +19.3%  ✅
+2026-07-21 07:46:43.526 | INFO     | __main__:run_validation:618 -   → Beans (white)        ₦      831,606/MT    +0.4%  ✅
+2026-07-21 07:46:43.532 | INFO     | __main__:run_validation:618 -   ▼ Beans (red)          ₦      896,315/MT    -0.9%  ✅
+2026-07-21 07:46:43.536 | INFO     | __main__:run_validation:618 -   ▲ Maize (white)        ₦      374,119/MT    +0.6%  ✅
+2026-07-21 07:46:43.536 | INFO     | __main__:run_validation:618 -   → Maize (yellow)       ₦      403,103/MT    -0.3%  ✅
+2026-07-21 07:46:43.536 | INFO     | __main__:run_validation:618 -   → Wheat                ₦      716,928/MT    +0.0%  ✅
+2026-07-21 07:46:43.543 | INFO     | __main__:run_validation:618 -   ▲ Rice                 ₦    1,586,300/MT    +0.7%  ✅
+2026-07-21 07:46:43.551 | INFO     | __main__:run_validation:618 -   ▼ Eggs                 ₦        7,038/MT    -1.9%  ✅
+2026-07-21 07:46:43.555 | INFO     | __main__:run_validation:618 -   ▼ Fish (dried)         ₦    2,499,073/MT    -7.2%  ✅
+2026-07-21 07:46:43.573 | INFO     | __main__:run_validation:618 -   ▲ Meat (goat)          ₦    5,680,888/MT   +13.3%  ✅
+2026-07-21 07:46:43.586 | INFO     | __main__:run_validation:618 -   ▲ Meat (beef)          ₦    5,323,642/MT   +23.3%  ✅
+2026-07-21 07:46:43.588 | INFO     | __main__:run_validation:618 -   ──────────────────────────────────────────────────
+2026-07-21 07:46:43.591 | INFO     | __main__:run_validation:618 -   ✅ = within 5% of market  ⚠️ = 5-15% variance  ❌ = >15% variance
+2026-07-21 07:46:43.596 | INFO     | __main__:run_validation:618 -   Source: Agrolinking Intelligence Platform
+2026-07-21 07:46:43.601 | INFO     | __main__:run_validation:618 -   Next update: 22 Jul 2026
+2026-07-21 07:46:45.621 | INFO     | __main__:update_master_with_validated:468 -   Master updated: +17 validated forecast rows appended
+2026-07-21 07:46:45.659 | INFO     | __main__:run_validation:639 - =================================================================
+2026-07-21 07:46:45.665 | SUCCESS  | __main__:run_validation:640 - VALIDATION COMPLETE — 17/17 within <3% target | avg error 1.2%
+2026-07-21 07:46:45.667 | INFO     | __main__:run_validation:645 - =================================================================
