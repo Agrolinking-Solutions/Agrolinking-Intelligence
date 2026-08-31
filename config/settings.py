@@ -7,7 +7,14 @@ All paths, commodities, model settings, and constants live here.
 import os
 
 # ─── ROOT ────────────────────────────────────────────────────────────────────
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Locally, ROOT is the project folder (unchanged behavior).
+# On Railway, set the AGROLINKING_DATA_ROOT environment variable to your
+# Volume's mount path (e.g. "/data") so data/, outputs/, and models/ persist
+# across deploys and restarts instead of living in the ephemeral container
+# filesystem. Code (pipeline/, config/) still ships via git as normal —
+# only the DATA root moves onto the Volume.
+_CODE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.environ.get("AGROLINKING_DATA_ROOT", _CODE_ROOT)
 
 # ─── PATHS ───────────────────────────────────────────────────────────────────
 PATHS = {

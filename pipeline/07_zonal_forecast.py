@@ -56,140 +56,56 @@ def fmt(n):
 
 def get_daily_price(fc_item, run_date):
     """
-    Interpolate today's national price from the forecast horizon curve.
-    
-    KEY FIX: Day 0 = last_known_date (when we last had real market data).
-    Days elapsed = run_date - last_known_date.
-    
-    Example: last_known = Apr 13, run_date = May 21 = 38 days elapsed.
-    This falls between monthly (28d) and 3_months (91d) horizons,
-    so price interpolates between those two points. Different every day.
-    """
-    vld       = fc_item.get("validation", {})
-    ref_price = float(vld.get("reference_price") or
-                      vld.get("validated_price") or
-                      fc_item.get("last_known_price", 0))
+    Look up today's national price directly from the real daily_series
+    now produced by 05_forecast.py (build_daily_curve), instead of
+    reconstructing an approximate curve from horizon endpoints.
 
-    # Use last_known_date as day-0 anchor (NOT run_date or forecast_start)
+    Day 0 = last_known_date (last real observed price). daily_series
+    holds one genuinely distinct interpolated value per calendar day
+    from last_known_date+1 out to +182 days, so days_elapsed maps
+    directly onto an index — no more re-interpolating a sparse,
+    duplicate-collapsed set of horizon points.
+    """
+    ref_price = float(fc_item.get("last_known_price", 0))
+
     last_known_str = fc_item.get("last_known_date", "")
     try:
         day0 = datetime.strptime(last_known_str[:10], "%Y-%m-%d")
-
-        # CRITICAL FIX: last_known_date must NEVER be in the future.
-        # Features.py sometimes writes a future row date as last_known_date.
-        # If last_known_date > today, cap it to (today - 7 days) as anchor.
         if day0 > run_date:
             logger.debug(f"  last_known_date {last_known_str[:10]} is in future. "
                          f"Capping to 7 days ago.")
             day0 = run_date - timedelta(days=7)
-
-        # Also guard against stale dates (> 2 years old = synthetic bridge anchor)
         elif (run_date - day0).days > 730:
             logger.debug(f"  last_known_date {last_known_str[:10]} is stale (>2yr). "
                          f"Using forecast_start as anchor.")
             try:
                 day0 = datetime.strptime(
-                    fc_item.get("forecast_start","")[:10], "%Y-%m-%d")
-                # Apply same future cap to forecast_start too
+                    fc_item.get("forecast_start", "")[:10], "%Y-%m-%d")
                 if day0 > run_date:
                     day0 = run_date - timedelta(days=7)
             except Exception:
                 day0 = run_date - timedelta(days=41)
-
     except Exception:
-        try:
-            day0 = datetime.strptime(
-                fc_item.get("forecast_start","")[:10], "%Y-%m-%d")
-            if day0 > run_date:
-                day0 = run_date - timedelta(days=7)
-        except Exception:
-            day0 = run_date - timedelta(days=7)
-
-    days_elapsed = (run_date - day0).days
-
-    # Hard floor: if still negative or zero after all caps above,
-    # force 7 days elapsed so we always interpolate meaningfully
-    if days_elapsed < 1:
-        days_elapsed = 7
         day0 = run_date - timedelta(days=7)
 
-    logger.debug(f"  last_known={last_known_str[:10]}, run={run_date.date()}, "
-                 f"elapsed={days_elapsed}d")
-
-    # Build a DENSE daily curve from weekly_series across all horizons.
-    # This is the key fix: use the actual weekly data points, not just
-    # the horizon endpoint (vals[-1]), so prices differ by day.
-    #
-    # We collect every (days_from_day0, price) pair from every horizon's
-    # weekly_series, then interpolate to today's exact day position.
-    # This gives a unique price every single day.
-
-    dense_points = [(0, ref_price)]
-
-    # Use forecast_start date to calculate days offset for each weekly step
-    try:
-        fc_start = datetime.strptime(
-            fc_item.get("forecast_start", "")[:10], "%Y-%m-%d")
-    except Exception:
-        fc_start = day0
-
-    for h_name in HORIZON_DAYS:
-        h_data = fc_item.get("horizons", {}).get(h_name, {})
-        if not h_data:
-            continue
-        dates  = h_data.get("dates", [])
-        vals   = h_data.get("ensemble", {}).get("values", [])
-        if not dates or not vals:
-            # Fallback: use endpoint with horizon day offset
-            v = h_data.get("ensemble", {}).get("values", [])
-            if v:
-                days_from_day0 = HORIZON_DAYS[h_name] + (fc_start - day0).days
-                dense_points.append((days_from_day0, float(v[-1])))
-            continue
-        for d_str, price_val in zip(dates, vals):
-            try:
-                d_date       = datetime.strptime(d_str[:10], "%Y-%m-%d")
-                days_from_d0 = (d_date - day0).days
-                if days_from_d0 > 0:
-                    dense_points.append((days_from_d0, float(price_val)))
-            except Exception:
-                continue
-
-    # Sort and deduplicate by day
-    dense_points.sort(key=lambda x: x[0])
-    seen = set()
-    unique_points = []
-    for dp, pp in dense_points:
-        if dp not in seen:
-            seen.add(dp)
-            unique_points.append((dp, pp))
-    dense_points = unique_points
+    days_elapsed = (run_date - day0).days
 
     if days_elapsed <= 0:
         return ref_price, f"ref_price (day 0, last_known={last_known_str[:10]})"
 
-    if len(dense_points) < 2:
-        # Not enough points - use ref_price with tiny daily drift
-        drift = ref_price * (1 + 0.0003 * days_elapsed)
-        pct   = round((drift - ref_price) / ref_price * 100, 2)
-        return round(drift, 2), f"drift d{days_elapsed} ({pct:+.2f}% vs ref)"
+    daily = fc_item.get("daily_series", {})
+    vals  = daily.get("values", [])
 
-    # Interpolate today's price from the dense curve
-    for i in range(len(dense_points) - 1):
-        d0_i, p0_i = dense_points[i]
-        d1_i, p1_i = dense_points[i + 1]
-        if d0_i <= days_elapsed <= d1_i:
-            t     = (days_elapsed - d0_i) / (d1_i - d0_i) if d1_i != d0_i else 0
-            price = round(p0_i + t * (p1_i - p0_i), 2)
-            pct   = round((price - ref_price) / ref_price * 100, 2) if ref_price > 0 else 0
-            return price, f"interp d{days_elapsed} (weekly series | {pct:+.2f}% vs ref)"
+    if not vals:
+        # Old forecast file without daily_series (pre-fix) — fall back
+        # to ref_price rather than fabricating a drift number.
+        return ref_price, "no_daily_series (forecast file predates daily-curve fix)"
 
-    # Beyond all forecast points: gentle decay from last point
-    last_d2, last_p2 = dense_points[-1]
-    extra = days_elapsed - last_d2
-    price = round(last_p2 * (1 - 0.0001 * extra), 2)
+    idx = min(days_elapsed - 1, len(vals) - 1)  # daily_series[0] = day 1
+    price = vals[idx]
     pct   = round((price - ref_price) / ref_price * 100, 2) if ref_price > 0 else 0
-    return price, f"beyond series d{days_elapsed} ({pct:+.2f}% vs ref)"
+    tag   = "daily_series" if idx == days_elapsed - 1 else "daily_series (clamped, beyond 182d)"
+    return price, f"{tag} d{days_elapsed} ({pct:+.2f}% vs ref)"
 
 
 def h_names_str(d0, d1):
@@ -314,9 +230,8 @@ def build_zonal_output(forecast, diff, zones, run_date):
             "day_change":     day_chg,
             "source":         src,
         }
-        ar = "+" if pct_vs_ref >= 0 else ""
         logger.info(f"  {commodity:<22} N{today_price:>12,.0f}  {day_chg:>+7.2f}%  "
-                    f"{ar}{pct_vs_ref:>+6.2f}%  {src[:35]}")
+                    f"{pct_vs_ref:>+6.2f}%  {src[:35]}")
 
     logger.info("")
 
@@ -420,8 +335,8 @@ def generate_alert(zonal_out, best_market, national_anchors, run_date, zones):
                 price  = cd["state_price"]
                 d_chg  = cd.get("day_change_pct", 0)
                 star   = "* " if cd.get("is_primary") else "  "
-                chg    = f"({d_chg:+.1f}%)" if abs(d_chg) >= 0.01 else ""
-                row   += f"  {star}{fmt(price):<10} {chg:<7}"
+                chg    = f"({d_chg:+.2f}%)" if abs(d_chg) >= 0.01 else ""
+                row   += f"  {star}{fmt(price):<10} {chg:<9}"
             lines.append(row)
 
     lines += ["", "=" * 58,

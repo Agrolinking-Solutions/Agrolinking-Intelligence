@@ -72,7 +72,10 @@ MANUAL_PRICES = {
     # ── Livestock — market research Aug 2026 ─────────────────────────────
     "Meat (beef)":   4_536_000,   # Market research Jul 2026
     "Meat (goat)":   7_000_000,   # Confirmed Kaduna market Aug 2026 (N7,000/kg)
-    "Fish (dried)":  10_000_000,   # WFP NE Nigeria retail dried fish (N1,000-1,200/kg Mar 2026, bridged to Aug)
+    "Fish (dried)":  1_550_000,   # CORRECTED (was 10,000,000 - 10x unit error; comment
+                                   # itself said N1,000-1,200/kg = N1.0-1.2M/MT). Set to
+                                   # match verified WFP anchor (N1,508,531 @ 2026-03-09,
+                                   # bridged via World Bank RTP to N1,547,894 @ Jul 2026)
     "Eggs":              7_920,   # Market research Jul 2026 (NGN/crate)
 }
 
@@ -122,19 +125,64 @@ EXTREME_BLEND_RATIO = 0.96  # >50% error:   92% reference (model just sets direc
 # GET BEST REFERENCE PRICE
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# SANITY BOUNDS — gate for live-fetched prices
+# ─────────────────────────────────────────────────────────────────────────────
+# A scraped price outside this band is almost certainly a parsing error
+# (wrong number picked up from the page), not a real market move.
+# Built from the existing manual/web-anchor values as a generous band
+# (0.4x - 2.5x) rather than hand-typing a second set of numbers that
+# could drift out of sync with them.
+def _build_sanity_ranges():
+    ranges = {}
+    for commodity in set(list(MANUAL_PRICES.keys()) + list(WEB_REFERENCE_PRICES.keys())):
+        candidates = [v for v in (MANUAL_PRICES.get(commodity), WEB_REFERENCE_PRICES.get(commodity))
+                      if v is not None]
+        if candidates:
+            ranges[commodity] = (min(candidates) * 0.4, max(candidates) * 2.5)
+    return ranges
+
+SANITY_RANGES = _build_sanity_ranges()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET BEST REFERENCE PRICE
+# ─────────────────────────────────────────────────────────────────────────────
+
 def get_reference_price(commodity: str) -> tuple[float, str]:
     """
     Get the best available reference price for a commodity.
-    Priority: Manual (fresh Agricom post) > Web research anchors
-    Returns (price, source_description)
-    """
-    # 1. Manual price (freshest — from latest Agricom post you entered)
-    if commodity in MANUAL_PRICES and MANUAL_PRICES[commodity] is not None:
-        return float(MANUAL_PRICES[commodity]), "Agricom manual entry"
+    Priority: LIVE web fetch (if it succeeds and passes a sanity check)
+              > Manual (fresh Agricom post) > Web research anchors.
 
-    # 2. Web research anchor
+    Previously this function never called try_fetch_live_price() at
+    all, despite that function existing and working — every "live
+    cross-reference" was actually a static hand-typed number. This is
+    the fix: genuinely attempt live first, log clearly which source
+    won, and only fall back to the static anchors when the live fetch
+    fails or returns something implausible.
+    """
+    # 1. Live web fetch — the real thing, attempted first
+    live_price, live_source = try_fetch_live_price(commodity)
+    if live_price is not None:
+        lo, hi = SANITY_RANGES.get(commodity, (0, float("inf")))
+        if lo <= live_price <= hi:
+            logger.debug(f"    [{commodity}] live fetch OK: ₦{live_price:,.0f} ({live_source})")
+            return float(live_price), live_source
+        else:
+            logger.warning(
+                f"    [{commodity}] live fetch returned ₦{live_price:,.0f} — "
+                f"outside sanity range (₦{lo:,.0f}-₦{hi:,.0f}), discarding and "
+                f"falling back to static reference"
+            )
+
+    # 2. Manual price (freshest — from latest Agricom post you entered)
+    if commodity in MANUAL_PRICES and MANUAL_PRICES[commodity] is not None:
+        return float(MANUAL_PRICES[commodity]), "Agricom manual entry (static fallback)"
+
+    # 3. Web research anchor
     if commodity in WEB_REFERENCE_PRICES:
-        return float(WEB_REFERENCE_PRICES[commodity]), "Web research (NGX/WFP/Market data)"
+        return float(WEB_REFERENCE_PRICES[commodity]), "Web research anchor (static fallback)"
 
     return None, "No reference available"
 
@@ -142,58 +190,60 @@ def get_reference_price(commodity: str) -> tuple[float, str]:
 # ─────────────────────────────────────────────────────────────────────────────
 # LIVE WEB FETCH (runs on your machine — internet connected)
 # ─────────────────────────────────────────────────────────────────────────────
+# NOTE on coverage: NEPC tracks EXPORT commodity indicative prices, so
+# this realistically only has a chance of returning something for
+# Cocoa, Ginger, Sesame, Hibiscus, Cashew Nuts, and Soybeans. For
+# domestic staples (Maize, Beans, Rice, Sorghum, Wheat) and livestock/
+# protein (Meat, Fish, Eggs), NEPC's page won't mention them — this
+# will correctly fall through to the static fallback for those, and
+# that's expected, not a bug. Closing that gap needs either a paid
+# search API (SerpAPI/Bing/Google Custom Search) or a source that
+# actually tracks domestic staple prices, which is a separate,
+# bigger decision (budget + which API) rather than a code fix.
 
 def try_fetch_live_price(commodity: str) -> tuple[float | None, str]:
     """
     Attempt to fetch a live price from the web.
     Returns (price_ngn_mt, source) or (None, error_message).
-    This runs silently — failures fall back to reference anchors.
+    Failures are logged at DEBUG level (not silent) and fall back to
+    reference anchors via get_reference_price() above.
     """
     try:
         import requests
         from bs4 import BeautifulSoup
+        import re
 
-        # Map commodities to search queries
-        search_map = {
-            "Cocoa":         "Nigeria cocoa price per ton NGN today",
-            "Ginger":        "Nigeria ginger price per ton NGN today",
-            "Sesame":        "Nigeria sesame seed price per ton NGN today",
-            "Hibiscus":      "Nigeria hibiscus zobo price per ton NGN today",
-            "Cashew Nuts":   "Nigeria cashew nut price per ton NGN today",
-            "Soybeans":      "Nigeria soybean price per ton NGN today",
-            "Sorghum":       "Nigeria sorghum price per ton NGN today",
-            "Maize (white)": "Nigeria maize white price per ton NGN today",
-            "Maize (yellow)":"Nigeria maize yellow price per ton NGN today",
-            "Beans (white)": "Nigeria beans white price per ton NGN today",
-            "Beans (red)":   "Nigeria beans red price per ton NGN today",
-        }
-
-        # Try NEPC price page directly
         nepc_url = "https://nepc.gov.ng/indicative-market-prices/"
         r = requests.get(nepc_url, timeout=10,
                         headers={"User-Agent": "Mozilla/5.0"})
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.text, "html.parser")
-            text = soup.get_text(separator=" ").lower()
-            # Look for commodity name near a price pattern
-            import re
-            comm_lower = commodity.lower().replace(" (white)","").replace(" (yellow)","")
-            idx = text.find(comm_lower)
-            if idx > 0:
-                snippet = text[idx:idx+200]
-                prices = re.findall(r'[\d,]+(?:\.\d+)?', snippet.replace(",",""))
-                prices_clean = [float(p) for p in prices if 100 < float(p) < 100_000_000]
-                if prices_clean:
-                    # Convert to NGN/MT if needed (assume per ton if > 100,000)
-                    price = max(prices_clean)
-                    if price < 100_000:
-                        price *= 1000  # per kg → per MT
-                    return price, "NEPC live"
+        if r.status_code != 200:
+            logger.debug(f"    [{commodity}] NEPC returned HTTP {r.status_code}")
+            return None, "Live fetch unavailable"
 
-    except Exception:
-        pass
+        soup = BeautifulSoup(r.text, "html.parser")
+        text = soup.get_text(separator=" ").lower()
+        comm_lower = commodity.lower().replace(" (white)", "").replace(" (yellow)", "")
+        idx = text.find(comm_lower)
+        if idx <= 0:
+            logger.debug(f"    [{commodity}] not found on NEPC page (expected for "
+                         f"non-export commodities)")
+            return None, "Commodity not listed on NEPC"
 
-    return None, "Live fetch unavailable"
+        snippet = text[idx:idx + 200]
+        prices = re.findall(r'[\d,]+(?:\.\d+)?', snippet.replace(",", ""))
+        prices_clean = [float(p) for p in prices if 100 < float(p) < 100_000_000]
+        if not prices_clean:
+            logger.debug(f"    [{commodity}] found on NEPC page but no parseable price nearby")
+            return None, "No price found near commodity name"
+
+        price = max(prices_clean)
+        if price < 100_000:
+            price *= 1000  # per kg -> per MT
+        return price, "NEPC live"
+
+    except Exception as e:
+        logger.debug(f"    [{commodity}] live fetch failed: {type(e).__name__}: {e}")
+        return None, "Live fetch unavailable"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -360,6 +410,35 @@ def validate_commodity(
 
         validated_horizons[h_name] = h_copy
 
+    # Scale weekly_series and daily_series by the same correction ratio.
+    # These are the fields append_to_master()/update_master_with_validated()
+    # and 07_zonal_forecast.py actually read — they must carry the same
+    # correction as the horizons above, or the "validated" price and the
+    # master-CSV/zonal price will silently disagree.
+    correction_ratio = corrected_daily / daily_fc if daily_fc > 0 else 1.0
+
+    weekly_series = fc_data.get("weekly_series")
+    if weekly_series and weekly_series.get("values"):
+        weekly_series = json.loads(json.dumps(weekly_series))  # deep copy
+        weekly_series["values_original"] = weekly_series["values"]
+        weekly_series["values"] = [
+            round(v * correction_ratio, 2) for v in weekly_series["values"]
+        ]
+        weekly_series["lower_ci"] = [
+            round(v * correction_ratio, 2) for v in weekly_series.get("lower_ci", weekly_series["values"])
+        ]
+        weekly_series["upper_ci"] = [
+            round(v * correction_ratio, 2) for v in weekly_series.get("upper_ci", weekly_series["values"])
+        ]
+
+    daily_series = fc_data.get("daily_series")
+    if daily_series and daily_series.get("values"):
+        daily_series = json.loads(json.dumps(daily_series))  # deep copy
+        daily_series["values_original"] = daily_series["values"]
+        daily_series["values"] = [
+            round(v * correction_ratio, 2) for v in daily_series["values"]
+        ]
+
     # Build validation metadata
     validation_meta = {
         "status":             "validated",
@@ -379,6 +458,10 @@ def validate_commodity(
     result = dict(fc_data)
     result["horizons"]   = validated_horizons
     result["validation"] = validation_meta
+    if weekly_series is not None:
+        result["weekly_series"] = weekly_series
+    if daily_series is not None:
+        result["daily_series"] = daily_series
 
     # Ensure last_known_date is never in the future in the output JSON
     _today = datetime.now().strftime("%Y-%m-%d")
@@ -422,14 +505,16 @@ def update_master_with_validated(validated: dict, run_date: datetime):
     new_rows = []
 
     for commodity, fc in validated.items():
-        # Append weekly horizon rows (one per future week)
-        weekly = fc.get("horizons", {}).get("weekly", {})
-        if not weekly or not weekly.get("ensemble"):
+        # Use weekly_series (not horizons["weekly"], which is now 7 daily
+        # points) so master keeps its native weekly grain — same fix as
+        # 05_forecast.py's append_to_master(). This also carries the
+        # validation correction applied above.
+        weekly = fc.get("weekly_series", {})
+        if not weekly or not weekly.get("values"):
             continue
 
-        ensemble = weekly["ensemble"]
         dates    = weekly.get("dates", [])
-        values   = ensemble.get("values", [])
+        values   = weekly.get("values", [])
         vld      = fc.get("validation", {})
 
         for date_str, price in zip(dates, values):

@@ -361,6 +361,46 @@ def blend_forecasts(model_forecasts, weights, n_weeks):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# DAILY-RESOLUTION CURVE
+# ─────────────────────────────────────────────────────────────────────────────
+
+MAX_DAILY_DAYS = 182  # covers the 6_months horizon
+
+def build_daily_curve(last_date, last_price, future_dates, series):
+    """
+    Interpolate a genuine day-by-day price curve from the weekly ensemble.
+
+    Anchor point = (last_date, last_price) — the last REAL observed price.
+    Known points = the 26 weekly forecast dates/values.
+    We linearly interpolate between these to get a distinct value for
+    EVERY calendar day (not just the 6 horizon endpoints), so "daily",
+    "weekly", "2_weeks" etc. each land on a genuinely different point
+    on the curve instead of collapsing onto the same weekly value.
+
+    Returns dict with "dates" (ISO strings, day 1..MAX_DAILY_DAYS after
+    last_date) and "values" (interpolated price for each of those days).
+    """
+    last_date = pd.Timestamp(last_date)
+
+    x_known = [0] + [(pd.Timestamp(d) - last_date).days for d in future_dates]
+    y_known = [last_price] + list(series)
+
+    # Guard against non-increasing x (e.g. bad dates) — np.interp requires
+    # a strictly increasing x array.
+    cleaned_x, cleaned_y = [x_known[0]], [y_known[0]]
+    for x, y in zip(x_known[1:], y_known[1:]):
+        if x > cleaned_x[-1]:
+            cleaned_x.append(x)
+            cleaned_y.append(y)
+
+    day_offsets = list(range(1, MAX_DAILY_DAYS + 1))
+    daily_values = np.interp(day_offsets, cleaned_x, cleaned_y)
+    daily_dates  = [str((last_date + timedelta(days=d)).date()) for d in day_offsets]
+
+    return {"dates": daily_dates, "values": [round(float(v), 2) for v in daily_values]}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # DAILY % CHANGE REPORT
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -422,12 +462,11 @@ def generate_daily_alert(all_forecasts, run_date):
         last_p    = fc.get("last_known_price", price)
         pct       = (price - last_p) / last_p * 100 if last_p > 0 else 0
         direction = "▲" if pct > 0.5 else ("▼" if pct < -0.5 else "→")
-        color_tag = "+" if pct > 0 else ""
 
         lines.append(
             f"{direction} {commodity:<18} "
             f"₦{price:>13,.0f}/MT  "
-            f"{color_tag}{pct:+.1f}%"
+            f"{pct:+.2f}%"
         )
 
     lines.append(f"{'─' * 45}")
@@ -451,13 +490,14 @@ def append_to_master(all_forecasts, run_date):
     new_rows = []
 
     for commodity, fc in all_forecasts.items():
-        weekly = fc.get("horizons", {}).get("weekly", {})
-        if not weekly or not weekly.get("ensemble"):
+        # Use the raw weekly_series (not horizons["weekly"], which is now
+        # 7 daily points) so master keeps its native weekly grain.
+        weekly = fc.get("weekly_series", {})
+        if not weekly or not weekly.get("values"):
             continue
 
-        ensemble = weekly["ensemble"]
         dates    = weekly.get("dates", [])
-        values   = ensemble.get("values", [])
+        values   = weekly.get("values", [])
 
         for date_str, price in zip(dates, values):
             date = pd.Timestamp(date_str)
@@ -570,54 +610,65 @@ def forecast_commodity(commodity, run_date):
         logger.warning(f"  [{commodity}] No forecasts available — skipping")
         return None
 
-    # Build per-horizon outputs
+    # ── Build ONE real daily-resolution curve, anchored on the last known
+    #    real price. Every horizon below is sliced directly out of this
+    #    curve by actual day-offset, so "daily" and "weekly" can no longer
+    #    collapse onto the same point. ──────────────────────────────────
     future_dates = list(future_df["date"])
-    horizons     = {}
 
+    daily_curve = build_daily_curve(
+        last_date, last_price, future_dates, ensemble["values"])
+    daily_lower = build_daily_curve(
+        last_date, last_price, future_dates, ensemble["lower_ci"])
+    daily_upper = build_daily_curve(
+        last_date, last_price, future_dates, ensemble["upper_ci"])
+
+    # Per-model daily curves, for the "which model said what" comparison.
+    per_model_daily = {}
+    for m, fc in model_forecasts.items():
+        if fc is not None and len(fc.get("values", [])) >= len(future_dates):
+            per_model_daily[m] = build_daily_curve(
+                last_date, last_price, future_dates, fc["values"])
+
+    horizons = {}
     for horizon_name, horizon_days in HORIZONS.items():
-        n_h = max(1, round(horizon_days / 7))  # convert days to weeks
+        # Slice day 1..horizon_days straight out of the daily curve —
+        # each horizon now ends on a distinct, real day-offset value.
+        h_dates = daily_curve["dates"][:horizon_days]
+        h_vals  = daily_curve["values"][:horizon_days]
+        h_lower = daily_lower["values"][:horizon_days]
+        h_upper = daily_upper["values"][:horizon_days]
 
-        h_dates  = [str(d.date()) if hasattr(d,"date") else str(d)
-                    for d in future_dates[:n_h]]
-        h_vals   = ensemble["values"][:n_h]
-        h_lower  = ensemble["lower_ci"][:n_h]
-        h_upper  = ensemble["upper_ci"][:n_h]
-
-        # Per-model values for this horizon
         per_model = {}
-        for m, fc in model_forecasts.items():
-            if fc is not None and len(fc.get("values",[])) >= n_h:
-                per_model[m] = {
-                    "values":   [round(v,2) for v in fc["values"][:n_h]],
-                    "lower_ci": [round(v,2) for v in fc.get("lower_ci",fc["values"])[:n_h]],
-                    "upper_ci": [round(v,2) for v in fc.get("upper_ci",fc["values"])[:n_h]],
-                }
+        for m, dc in per_model_daily.items():
+            per_model[m] = {
+                "values":   dc["values"][:horizon_days],
+                "end_price": dc["values"][horizon_days - 1] if dc["values"] else None,
+            }
 
-        # Price change report for this horizon
+        # Price change report — now genuinely day-by-day, not week-by-week
         price_changes = compute_price_changes(
-            commodity, last_price,
-            h_vals,
-            future_dates[:n_h]
+            commodity, last_price, h_vals, h_dates
         )
 
         horizons[horizon_name] = {
-            "n_weeks":       n_h,
+            "n_days":        horizon_days,
             "dates":         h_dates,
             "ensemble": {
-                "values":   [round(v,2) for v in h_vals],
-                "lower_ci": [round(v,2) for v in h_lower],
-                "upper_ci": [round(v,2) for v in h_upper],
-                "models_used":  ensemble.get("models_used",[]),
-                "weights_used": ensemble.get("weights_used",{}),
+                "values":   h_vals,
+                "lower_ci": h_lower,
+                "upper_ci": h_upper,
+                "models_used":  ensemble.get("models_used", []),
+                "weights_used": ensemble.get("weights_used", {}),
             },
             "per_model":     per_model,
             "price_changes": price_changes,
-            # Summary: last point of horizon
+            # Summary: last point of horizon (real day-offset endpoint now)
             "forecast_end": {
                 "date":  h_dates[-1] if h_dates else None,
-                "price": round(h_vals[-1],2) if h_vals else None,
+                "price": h_vals[-1] if h_vals else None,
                 "pct_change_from_today": round(
-                    (h_vals[-1]-last_price)/last_price*100, 2
+                    (h_vals[-1] - last_price) / last_price * 100, 2
                 ) if h_vals and last_price > 0 else None,
             }
         }
@@ -631,6 +682,22 @@ def forecast_commodity(commodity, run_date):
         "currency":          "NGN",
         "unit":              "NGN/MT",
         "horizons":          horizons,
+        # Raw weekly ensemble kept intact — this is what 06_validate.py
+        # cross-references and what append_to_master() uses to keep the
+        # master CSV at its native weekly grain. The daily interpolation
+        # above is a presentation/reporting layer on top of this, not a
+        # replacement for it.
+        "weekly_series": {
+            "dates":  [str(d.date()) if hasattr(d, "date") else str(d)
+                       for d in future_dates],
+            "values": [round(v, 2) for v in ensemble["values"]],
+            "lower_ci": [round(v, 2) for v in ensemble["lower_ci"]],
+            "upper_ci": [round(v, 2) for v in ensemble["upper_ci"]],
+        },
+        # Full 182-day daily curve — single source of truth for anything
+        # that needs true daily resolution (dashboard charts, /history,
+        # 07_zonal_forecast.py). No more ad-hoc interpolation downstream.
+        "daily_series": daily_curve,
     }
 
     return result
