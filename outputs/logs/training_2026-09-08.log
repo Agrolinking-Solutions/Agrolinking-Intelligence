@@ -1,0 +1,31 @@
+2026-09-08 09:00:13.990 | INFO     | __main__:run_training:305 - ============================================================
+2026-09-08 09:00:14.012 | INFO     | __main__:run_training:306 - STEP 4 — MODEL TRAINING
+2026-09-08 09:00:14.022 | INFO     | __main__:run_training:307 -   Commodities : 17
+2026-09-08 09:00:14.038 | INFO     | __main__:run_training:308 -   Models      : ARIMA + Prophet + XGBoost
+2026-09-08 09:00:14.055 | INFO     | __main__:run_training:309 - ============================================================
+2026-09-08 09:00:14.069 | INFO     | __main__:run_training:313 - 
+[1/17] Starting Hibiscus...
+2026-09-08 09:00:14.940 | DEBUG    | __main__:train_commodity:260 -   [Hibiscus] Real-data-only mode: 45 rows
+2026-09-08 09:00:14.940 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-09-08 09:00:14.970 | INFO     | __main__:train_commodity:264 -   Hibiscus  (45 rows | last: 2026-04-13)
+2026-09-08 09:00:14.973 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-09-08 09:00:14.986 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-09-08 09:01:12.785 | DEBUG    | __main__:train_arima:109 -   [Hibiscus] ARIMA order=(0, 1, 0) MAPE=21.0%
+2026-09-08 09:01:12.785 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-09-08 09:01:20.164 | DEBUG    | __main__:train_prophet:159 -   [Hibiscus] Prophet MAPE=36.7%
+2026-09-08 09:01:20.165 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-09-08 09:01:38.036 | DEBUG    | __main__:train_xgboost:215 -   [Hibiscus] XGBoost MAPE=23.8% | top: pct_change_52w
+2026-09-08 09:01:38.046 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.408 | prophet: 0.233 | xgboost: 0.359
+2026-09-08 09:01:38.048 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-09-08 09:01:38.050 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-09-08 09:01:38.053 | INFO     | __main__:train_commodity:291 -   arima         21.0%  ₦     525,000     0.408
+2026-09-08 09:01:38.054 | INFO     | __main__:train_commodity:291 -   prophet       36.7%  ₦     908,482     0.233
+2026-09-08 09:01:38.061 | INFO     | __main__:train_commodity:291 -   xgboost       23.8%  ₦     595,832     0.359
+2026-09-08 09:01:38.096 | INFO     | __main__:run_training:313 - 
+[2/17] Starting Sesame...
+2026-09-08 09:01:38.352 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-09-08 09:01:38.354 | INFO     | __main__:train_commodity:264 -   Sesame  (828 rows | last: 2026-04-13)
+2026-09-08 09:01:38.354 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-09-08 09:01:38.355 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
