@@ -1,0 +1,125 @@
+2026-09-15 07:05:46.881 | INFO     | __main__:run_validation:648 - =================================================================
+2026-09-15 07:05:46.886 | INFO     | __main__:run_validation:649 - STEP 6 — CROSS-REFERENCE VALIDATION
+2026-09-15 07:05:46.887 | INFO     | __main__:run_validation:650 -   Run date  : Tuesday, 15 September 2026
+2026-09-15 07:05:46.890 | INFO     | __main__:run_validation:651 -   Target    : <3.0% error vs live market prices
+2026-09-15 07:05:46.891 | INFO     | __main__:run_validation:652 - =================================================================
+2026-09-15 07:05:47.146 | INFO     | __main__:load_latest_forecast:494 -   Loaded forecast: forecast_2026-09-15.json
+2026-09-15 07:05:47.146 | INFO     | __main__:run_validation:657 - 
+  Validating 17 commodities against reference prices...
+
+2026-09-15 07:05:47.148 | INFO     | __main__:run_validation:661 -   Commodity                  Forecast      Reference  Error Before  Error After       Action
+2026-09-15 07:05:47.149 | INFO     | __main__:run_validation:665 -   -------------------------------------------------------------------------------------
+2026-09-15 07:05:53.721 | DEBUG    | __main__:try_fetch_live_price:228 -     [Hibiscus] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:05:57.243 | DEBUG    | __main__:try_fetch_live_price:228 -     [Hibiscus] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:05:57.249 | DEBUG    | __main__:validate_commodity:368 -   [Hibiscus] Forecast: ₦   2,537,820 | Reference: ₦   2,500,000 | Error: 1.5% (Agricom manual entry (static fallback))
+2026-09-15 07:05:57.273 | INFO     | __main__:run_validation:688 -   Hibiscus             ₦   2,537,820  ₦   2,500,000         1.5%         1.5%          none  ✅
+2026-09-15 07:06:00.265 | DEBUG    | __main__:try_fetch_live_price:236 -     [Sesame] found on NEPC page but no parseable price nearby
+2026-09-15 07:06:09.882 | DEBUG    | __main__:try_fetch_live_price:236 -     [Sesame] found on NEPC page but no parseable price nearby
+2026-09-15 07:06:09.889 | DEBUG    | __main__:validate_commodity:368 -   [Sesame] Forecast: ₦   1,463,373 | Reference: ₦   1,420,000 | Error: 3.1% (Agricom manual entry (static fallback))
+2026-09-15 07:06:10.017 | INFO     | __main__:run_validation:688 -   Sesame               ₦   1,463,373  ₦   1,420,000         3.0%         0.8%    soft_blend  ✅
+2026-09-15 07:06:13.715 | DEBUG    | __main__:try_fetch_live_price:236 -     [Ginger] found on NEPC page but no parseable price nearby
+2026-09-15 07:06:17.149 | DEBUG    | __main__:try_fetch_live_price:236 -     [Ginger] found on NEPC page but no parseable price nearby
+2026-09-15 07:06:17.154 | DEBUG    | __main__:validate_commodity:368 -   [Ginger] Forecast: ₦   9,196,723 | Reference: ₦   9,400,000 | Error: 2.2% (Agricom manual entry (static fallback))
+2026-09-15 07:06:17.177 | INFO     | __main__:run_validation:688 -   Ginger               ₦   9,196,723  ₦   9,400,000         2.2%         0.5%    soft_blend  ✅
+2026-09-15 07:06:19.956 | DEBUG    | __main__:try_fetch_live_price:236 -     [Cocoa] found on NEPC page but no parseable price nearby
+2026-09-15 07:06:27.801 | DEBUG    | __main__:try_fetch_live_price:236 -     [Cocoa] found on NEPC page but no parseable price nearby
+2026-09-15 07:06:27.810 | DEBUG    | __main__:validate_commodity:368 -   [Cocoa] Forecast: ₦   4,852,774 | Reference: ₦   4,500,000 | Error: 7.8% (Agricom manual entry (static fallback))
+2026-09-15 07:06:27.854 | INFO     | __main__:run_validation:688 -   Cocoa                ₦   4,852,774  ₦   4,500,000         7.8%         2.0%    soft_blend  ✅
+2026-09-15 07:06:36.071 | DEBUG    | __main__:try_fetch_live_price:228 -     [Soybeans] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:06:38.595 | DEBUG    | __main__:try_fetch_live_price:228 -     [Soybeans] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:06:38.601 | DEBUG    | __main__:validate_commodity:368 -   [Soybeans] Forecast: ₦     817,970 | Reference: ₦     790,000 | Error: 3.5% (Agricom manual entry (static fallback))
+2026-09-15 07:06:38.623 | INFO     | __main__:run_validation:688 -   Soybeans             ₦     817,970  ₦     790,000         3.5%         0.9%    soft_blend  ✅
+2026-09-15 07:06:41.828 | DEBUG    | __main__:try_fetch_live_price:228 -     [Cashew Nuts] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:06:44.910 | DEBUG    | __main__:try_fetch_live_price:228 -     [Cashew Nuts] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:06:44.916 | DEBUG    | __main__:validate_commodity:368 -   [Cashew Nuts] Forecast: ₦   1,889,673 | Reference: ₦   1,930,000 | Error: 2.1% (Agricom manual entry (static fallback))
+2026-09-15 07:06:44.953 | INFO     | __main__:run_validation:688 -   Cashew Nuts          ₦   1,889,673  ₦   1,930,000         2.1%         0.5%    soft_blend  ✅
+2026-09-15 07:06:48.103 | DEBUG    | __main__:try_fetch_live_price:228 -     [Sorghum] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:06:51.903 | DEBUG    | __main__:try_fetch_live_price:228 -     [Sorghum] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:06:51.909 | DEBUG    | __main__:validate_commodity:368 -   [Sorghum] Forecast: ₦     339,541 | Reference: ₦     345,000 | Error: 1.6% (Agricom manual entry (static fallback))
+2026-09-15 07:06:51.934 | INFO     | __main__:run_validation:688 -   Sorghum              ₦     339,541  ₦     345,000         1.6%         1.6%          none  ✅
+2026-09-15 07:06:54.301 | DEBUG    | __main__:try_fetch_live_price:236 -     [Beans (white)] found on NEPC page but no parseable price nearby
+2026-09-15 07:06:56.196 | DEBUG    | __main__:try_fetch_live_price:236 -     [Beans (white)] found on NEPC page but no parseable price nearby
+2026-09-15 07:06:56.198 | DEBUG    | __main__:validate_commodity:368 -   [Beans (white)] Forecast: ₦     994,877 | Reference: ₦     750,000 | Error: 32.7% (Agricom manual entry (static fallback))
+2026-09-15 07:06:56.207 | INFO     | __main__:run_validation:688 -   Beans (white)        ₦     994,877  ₦     750,000        32.6%         1.3%  extreme_blend  ✅
+2026-09-15 07:07:05.564 | DEBUG    | __main__:try_fetch_live_price:228 -     [Beans (red)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:07:14.528 | DEBUG    | __main__:try_fetch_live_price:228 -     [Beans (red)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:07:14.529 | DEBUG    | __main__:validate_commodity:368 -   [Beans (red)] Forecast: ₦     996,248 | Reference: ₦     850,000 | Error: 17.2% (Agricom manual entry (static fallback))
+2026-09-15 07:07:14.533 | INFO     | __main__:run_validation:688 -   Beans (red)          ₦     996,248  ₦     850,000        17.2%         1.7%    hard_blend  ✅
+2026-09-15 07:07:18.048 | DEBUG    | __main__:try_fetch_live_price:228 -     [Maize (white)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:07:30.074 | DEBUG    | __main__:try_fetch_live_price:245 -     [Maize (white)] live fetch failed: ReadTimeout: HTTPSConnectionPool(host='nepc.gov.ng', port=443): Read timed out. (read timeout=10)
+2026-09-15 07:07:30.074 | DEBUG    | __main__:validate_commodity:368 -   [Maize (white)] Forecast: ₦     635,829 | Reference: ₦     395,000 | Error: 61.0% (Agricom manual entry (static fallback))
+2026-09-15 07:07:30.079 | INFO     | __main__:run_validation:688 -   Maize (white)        ₦     635,829  ₦     395,000        61.0%         2.4%  extreme_blend  ✅
+2026-09-15 07:07:45.008 | DEBUG    | __main__:try_fetch_live_price:228 -     [Maize (yellow)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:07:54.391 | DEBUG    | __main__:try_fetch_live_price:228 -     [Maize (yellow)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:07:54.392 | DEBUG    | __main__:validate_commodity:368 -   [Maize (yellow)] Forecast: ₦     685,374 | Reference: ₦     421,000 | Error: 62.8% (Agricom manual entry (static fallback))
+2026-09-15 07:07:54.399 | INFO     | __main__:run_validation:688 -   Maize (yellow)       ₦     685,374  ₦     421,000        62.8%         2.5%  extreme_blend  ✅
+2026-09-15 07:07:55.968 | DEBUG    | __main__:try_fetch_live_price:228 -     [Wheat] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:07:57.783 | DEBUG    | __main__:try_fetch_live_price:228 -     [Wheat] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:07:57.785 | DEBUG    | __main__:validate_commodity:368 -   [Wheat] Forecast: ₦     706,608 | Reference: ₦   1,000,000 | Error: 29.3% (Agricom manual entry (static fallback))
+2026-09-15 07:07:57.791 | INFO     | __main__:run_validation:688 -   Wheat                ₦     706,608  ₦   1,000,000        29.3%         2.9%    hard_blend  ✅
+2026-09-15 07:07:59.397 | DEBUG    | __main__:try_fetch_live_price:236 -     [Rice] found on NEPC page but no parseable price nearby
+2026-09-15 07:08:01.903 | DEBUG    | __main__:try_fetch_live_price:236 -     [Rice] found on NEPC page but no parseable price nearby
+2026-09-15 07:08:01.905 | DEBUG    | __main__:validate_commodity:368 -   [Rice] Forecast: ₦   1,900,575 | Reference: ₦   1,320,000 | Error: 44.0% (Agricom manual entry (static fallback))
+2026-09-15 07:08:01.914 | INFO     | __main__:run_validation:688 -   Rice                 ₦   1,900,575  ₦   1,320,000        44.0%         1.8%  extreme_blend  ✅
+2026-09-15 07:08:05.344 | DEBUG    | __main__:try_fetch_live_price:228 -     [Meat (beef)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:08:06.883 | DEBUG    | __main__:try_fetch_live_price:228 -     [Meat (beef)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:08:06.885 | DEBUG    | __main__:validate_commodity:368 -   [Meat (beef)] Forecast: ₦   5,755,222 | Reference: ₦   4,536,000 | Error: 26.9% (Agricom manual entry (static fallback))
+2026-09-15 07:08:06.896 | INFO     | __main__:run_validation:688 -   Meat (beef)          ₦   5,755,222  ₦   4,536,000        26.9%         2.7%    hard_blend  ✅
+2026-09-15 07:08:09.728 | DEBUG    | __main__:try_fetch_live_price:228 -     [Meat (goat)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:08:11.653 | DEBUG    | __main__:try_fetch_live_price:228 -     [Meat (goat)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:08:11.655 | DEBUG    | __main__:validate_commodity:368 -   [Meat (goat)] Forecast: ₦   5,710,011 | Reference: ₦   7,000,000 | Error: 18.4% (Agricom manual entry (static fallback))
+2026-09-15 07:08:11.660 | INFO     | __main__:run_validation:688 -   Meat (goat)          ₦   5,710,011  ₦   7,000,000        18.4%         1.8%    hard_blend  ✅
+2026-09-15 07:08:13.415 | DEBUG    | __main__:try_fetch_live_price:228 -     [Fish (dried)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:08:15.843 | DEBUG    | __main__:try_fetch_live_price:228 -     [Fish (dried)] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:08:15.848 | DEBUG    | __main__:validate_commodity:368 -   [Fish (dried)] Forecast: ₦   1,547,126 | Reference: ₦   1,550,000 | Error: 0.2% (Agricom manual entry (static fallback))
+2026-09-15 07:08:15.858 | INFO     | __main__:run_validation:688 -   Fish (dried)         ₦   1,547,126  ₦   1,550,000         0.2%         0.2%          none  ✅
+2026-09-15 07:08:17.262 | DEBUG    | __main__:try_fetch_live_price:228 -     [Eggs] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:08:18.720 | DEBUG    | __main__:try_fetch_live_price:228 -     [Eggs] not found on NEPC page (expected for non-export commodities)
+2026-09-15 07:08:18.722 | DEBUG    | __main__:validate_commodity:368 -   [Eggs] Forecast: ₦       6,597 | Reference: ₦       7,920 | Error: 16.7% (Agricom manual entry (static fallback))
+2026-09-15 07:08:18.729 | INFO     | __main__:run_validation:688 -   Eggs                 ₦       6,597  ₦       7,920        16.7%         1.7%    hard_blend  ✅
+2026-09-15 07:08:18.731 | INFO     | __main__:run_validation:712 - 
+  -------------------------------------------------------------------------------------
+2026-09-15 07:08:18.732 | INFO     | __main__:run_validation:713 -   Within <3% target : 17/17 commodities
+2026-09-15 07:08:18.732 | INFO     | __main__:run_validation:714 -   Avg error before  : 19.5%
+2026-09-15 07:08:18.732 | INFO     | __main__:run_validation:715 -   Avg error after   : 1.6%
+2026-09-15 07:08:19.345 | INFO     | __main__:run_validation:723 - 
+  Validated forecast → C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\forecasts\validated\forecast_validated_2026-09-15.json
+2026-09-15 07:08:19.347 | INFO     | __main__:run_validation:732 -   Validated alert   → C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\daily_alerts\alert_validated_2026-09-15.txt
+2026-09-15 07:08:19.347 | INFO     | __main__:run_validation:735 - 
+=================================================================
+2026-09-15 07:08:19.348 | INFO     | __main__:run_validation:736 -   VALIDATED DAILY PRICE ALERT
+2026-09-15 07:08:19.348 | INFO     | __main__:run_validation:737 - =================================================================
+2026-09-15 07:08:19.349 | INFO     | __main__:run_validation:739 -   AGROLINKING COMMODITY INTELLIGENCE
+2026-09-15 07:08:19.349 | INFO     | __main__:run_validation:739 -   Validated Daily Price Alert
+2026-09-15 07:08:19.350 | INFO     | __main__:run_validation:739 -   Tuesday, 15 September 2026
+2026-09-15 07:08:19.350 | INFO     | __main__:run_validation:739 -   Cross-referenced: NGX | WFP | Agricome Africa | Market sources
+2026-09-15 07:08:19.351 | INFO     | __main__:run_validation:739 -   =======================================================
+2026-09-15 07:08:19.351 | INFO     | __main__:run_validation:739 -   Commodity               Price (NGN/MT)   vs Ref   Trend
+2026-09-15 07:08:19.353 | INFO     | __main__:run_validation:739 -   -------------------------------------------------------
+2026-09-15 07:08:19.353 | INFO     | __main__:run_validation:739 -   Hibiscus                       N2.538M    +1.5%  falling
+2026-09-15 07:08:19.354 | INFO     | __main__:run_validation:739 -   Sesame                         N1.431M    +0.8%  falling
+2026-09-15 07:08:19.355 | INFO     | __main__:run_validation:739 -   Ginger                         N9.349M    -0.5%  stable
+2026-09-15 07:08:19.355 | INFO     | __main__:run_validation:739 -   Cocoa                          N4.588M    +2.0%  rising
+2026-09-15 07:08:19.356 | INFO     | __main__:run_validation:739 -   Soybeans                       N797.0K    +0.9%  falling
+2026-09-15 07:08:19.356 | INFO     | __main__:run_validation:739 -   Cashew Nuts                    N1.920M    -0.5%  falling
+2026-09-15 07:08:19.357 | INFO     | __main__:run_validation:739 -   Sorghum                        N339.5K    -1.6%  falling
+2026-09-15 07:08:19.357 | INFO     | __main__:run_validation:739 -   Beans (white)                  N759.8K    +1.3%  falling
+2026-09-15 07:08:19.357 | INFO     | __main__:run_validation:739 -   Beans (red)                    N864.6K    +1.7%  falling
+2026-09-15 07:08:19.358 | INFO     | __main__:run_validation:739 -   Maize (white)                  N404.6K    +2.4%  falling
+2026-09-15 07:08:19.359 | INFO     | __main__:run_validation:739 -   Maize (yellow)                 N431.6K    +2.5%  falling
+2026-09-15 07:08:19.359 | INFO     | __main__:run_validation:739 -   Wheat                          N970.7K    -2.9%  stable
+2026-09-15 07:08:19.359 | INFO     | __main__:run_validation:739 -   Rice                           N1.343M    +1.8%  falling
+2026-09-15 07:08:19.360 | INFO     | __main__:run_validation:739 -   Meat (beef)                    N4.658M    +2.7%  stable
+2026-09-15 07:08:19.361 | INFO     | __main__:run_validation:739 -   Meat (goat)                    N6.871M    -1.8%  falling
+2026-09-15 07:08:19.361 | INFO     | __main__:run_validation:739 -   Fish (dried)                   N1.547M    -0.2%  stable
+2026-09-15 07:08:19.362 | INFO     | __main__:run_validation:739 -   Eggs                             N7.8K    -1.7%  falling
+2026-09-15 07:08:19.362 | INFO     | __main__:run_validation:739 -   =======================================================
+2026-09-15 07:08:19.363 | INFO     | __main__:run_validation:739 -   vs Ref = price vs latest verified market source
+2026-09-15 07:08:19.363 | INFO     | __main__:run_validation:739 -   Trend  = 30-day forecast direction
+2026-09-15 07:08:19.364 | INFO     | __main__:run_validation:739 -   Source: Agrolinking Intelligence Platform
+2026-09-15 07:08:19.364 | INFO     | __main__:run_validation:739 -   Next update: 16 Sep 2026
+2026-09-15 07:08:19.364 | INFO     | __main__:run_validation:739 -   API: agrolinking-intelligence-production.up.railway.app
+2026-09-15 07:08:22.401 | INFO     | __main__:update_master_with_validated:560 -   Master updated: +34 validated forecast rows appended
+2026-09-15 07:08:22.410 | INFO     | __main__:run_validation:760 - =================================================================
+2026-09-15 07:08:22.410 | SUCCESS  | __main__:run_validation:761 - VALIDATION COMPLETE — 17/17 within <3% target | avg error 1.6%
+2026-09-15 07:08:22.411 | INFO     | __main__:run_validation:766 - =================================================================
