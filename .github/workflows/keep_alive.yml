@@ -15,7 +15,7 @@ jobs:
       - name: Ping Railway (primary)
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
-            https://agrolinking-intelligence-production.up.railway.app/health)
+            https://agrolinking-intelligence.onrender.com/health)
           echo "Railway response: $response"
 
       - name: Ping Render (backup)
