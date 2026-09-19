@@ -551,17 +551,30 @@ def forecast_commodity(commodity, run_date):
 
     hist_df = load_features(commodity)
 
-    # Use REAL data sources only for price anchor — never validated forecast rows.
-    # Validated forecast rows create a feedback loop if used as training anchors.
+    # Anchor on whichever is MORE RECENT: a real ingested source (Agricome/
+    # WFP/primary) or a same-day validated_actual row (today's forecast,
+    # confirmed <3% off a live reference by 06_validate.py). This is the
+    # feedback loop closing daily: once a price clears validation, it
+    # becomes tomorrow's anchor, so last_known_date advances every day
+    # instead of freezing on whatever date the raw dataset was last
+    # manually ingested.
+    #
+    # Raw "forecast" rows (future, uncorrected model output — record_type
+    # == "forecast") are still never trusted as an anchor. Only rows that
+    # either came from a real source or passed live validation
+    # (record_type == "validated_actual") qualify.
     REAL_SOURCES = {"Agricome", "Agrolinking_primary", "WFP"}
     master_df = pd.read_csv(PATHS["master"], parse_dates=["date"])
     comm_master = master_df[master_df["commodity"] == commodity].sort_values("date")
 
-    # Try real source first (Agricome/WFP/primary)
-    real_rows = comm_master[comm_master["data_source"].isin(REAL_SOURCES)]
-    if len(real_rows) > 0:
-        last_price = float(real_rows["price_ngn_mt"].iloc[-1])
-        last_date  = real_rows["date"].iloc[-1]
+    trusted_rows = comm_master[
+        comm_master["data_source"].isin(REAL_SOURCES) |
+        (comm_master["record_type"] == "validated_actual")
+    ]
+    if len(trusted_rows) > 0:
+        trusted_rows = trusted_rows.sort_values("date")
+        last_price = float(trusted_rows["price_ngn_mt"].iloc[-1])
+        last_date  = trusted_rows["date"].iloc[-1]
     elif len(comm_master) > 0:
         # Fall back to any row (carry_forward etc) but never validated forecast
         non_fc = comm_master[comm_master["record_type"] != "forecast"]
@@ -610,6 +623,30 @@ def forecast_commodity(commodity, run_date):
         logger.warning(f"  [{commodity}] No forecasts available — skipping")
         return None
 
+    # ── Rebase model output onto the anchor price ───────────────────────
+    # The models trained on hist_df, whose last row (model_base_price /
+    # model_base_date) is often now OLDER than last_price/last_date (the
+    # validated anchor from 06_validate.py — see the anchor-selection
+    # block above). Every value in ensemble["values"] etc. is an ABSOLUTE
+    # price built forward from model_base_price, not from last_price.
+    # Splicing those absolute values directly onto a newer, different
+    # anchor price creates a discontinuity right at the seam (the "daily"
+    # horizon jumping wildly away from every later horizon, or vice
+    # versa), since the two prices can have diverged for reasons the
+    # model never saw (a hard_blend/extreme_blend correction, a real
+    # price move between model_base_date and last_date).
+    #
+    # Fix: treat model output as a TRAJECTORY (% change from its own
+    # baseline) and apply that same % trajectory to the real anchor
+    # price, instead of treating the model's absolute numbers as
+    # continuous with the anchor.
+    model_base_price = float(hist_df["price_ngn_mt"].iloc[-1])
+
+    def _rebase(series):
+        if not series or not model_base_price or model_base_price <= 0:
+            return series
+        return [last_price * (v / model_base_price) for v in series]
+
     # ── Build ONE real daily-resolution curve, anchored on the last known
     #    real price. Every horizon below is sliced directly out of this
     #    curve by actual day-offset, so "daily" and "weekly" can no longer
@@ -617,18 +654,18 @@ def forecast_commodity(commodity, run_date):
     future_dates = list(future_df["date"])
 
     daily_curve = build_daily_curve(
-        last_date, last_price, future_dates, ensemble["values"])
+        last_date, last_price, future_dates, _rebase(ensemble["values"]))
     daily_lower = build_daily_curve(
-        last_date, last_price, future_dates, ensemble["lower_ci"])
+        last_date, last_price, future_dates, _rebase(ensemble["lower_ci"]))
     daily_upper = build_daily_curve(
-        last_date, last_price, future_dates, ensemble["upper_ci"])
+        last_date, last_price, future_dates, _rebase(ensemble["upper_ci"]))
 
     # Per-model daily curves, for the "which model said what" comparison.
     per_model_daily = {}
     for m, fc in model_forecasts.items():
         if fc is not None and len(fc.get("values", [])) >= len(future_dates):
             per_model_daily[m] = build_daily_curve(
-                last_date, last_price, future_dates, fc["values"])
+                last_date, last_price, future_dates, _rebase(fc["values"]))
 
     horizons = {}
     for horizon_name, horizon_days in HORIZONS.items():

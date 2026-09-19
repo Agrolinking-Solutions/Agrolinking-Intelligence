@@ -304,10 +304,17 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         existing = pd.read_csv(master_path, parse_dates=["date"])
         existing_historical = existing[existing["record_type"] == "historical"]
         forecast_rows = existing[existing["record_type"] == "forecast"]
+        # Validated_actual rows — today's forecast, confirmed accurate by
+        # 06_validate.py, appended so last_known_date advances daily.
+        # Without preserving these here too, every re-ingest silently
+        # erases the validated-anchor fix in 05_forecast.py, since these
+        # rows match neither "historical" nor "forecast".
+        validated_rows = existing[existing["record_type"] == "validated_actual"]
 
         logger.info(
             f"  Existing master found: {len(existing):,} rows "
-            f"({len(existing_historical):,} historical + {len(forecast_rows):,} forecast)"
+            f"({len(existing_historical):,} historical + {len(forecast_rows):,} forecast "
+            f"+ {len(validated_rows):,} validated_actual)"
         )
 
         # Merge strategy: preserve all existing data, layer fresh ingest on top.
@@ -318,16 +325,69 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         # Tag existing rows by source priority
         existing_historical["_priority"] = existing_historical["data_source"].map({
             "Agricome": 0, "Agrolinking_primary": 0, "WFP": 1,
-            "Synthetic (World Bank/FAO × FX)": 2,
-            "Interpolated": 3, "Agrolinking_old": 4,
-        }).fillna(5)
+            "Synthetic (World Bank/FAO × FX)": 3,
+            "Interpolated": 4, "Agrolinking_old": 5,
+        }).fillna(6)
 
-        # Combine: new ingest + ALL existing (including Wheat, synthetic, screenshots)
-        combined = pd.concat([master_df, existing_historical, forecast_rows], ignore_index=True)
+        # forecast_rows and validated_rows previously got NO explicit
+        # _priority — meaning pandas assigned them NaN after concat, and
+        # NaN always sorts LAST regardless of value. That made them lose
+        # a same-date tie-break to ANY row with an explicit priority,
+        # including low-priority placeholders like "Interpolated" —
+        # exactly backwards, since a validated_actual row (a live price
+        # confirmed <3% off a real reference) should outrank a synthetic
+        # gap-fill row, not lose to it. Assign explicit priorities so the
+        # ordering is real (0-1) > validated_actual (2) > synthetic/
+        # interpolated/old (3-5) > raw uncorrected forecast (6, lowest —
+        # never trust an unvalidated future projection over anything).
+        if len(forecast_rows) > 0:
+            forecast_rows = forecast_rows.copy()
+            forecast_rows["_priority"] = 6
+        if len(validated_rows) > 0:
+            validated_rows = validated_rows.copy()
+            validated_rows["_priority"] = 2
+
+        # Combine: new ingest + ALL existing (including Wheat, synthetic,
+        # screenshots, and validated_actual rows from 06_validate.py)
+        combined = pd.concat(
+            [master_df, existing_historical, forecast_rows, validated_rows],
+            ignore_index=True,
+        )
         combined["date"] = pd.to_datetime(combined["date"])
         combined["date"] = combined["date"] - pd.to_timedelta(combined["date"].dt.dayofweek, unit="D")
         combined = combined.sort_values(["commodity", "date", "_priority"])
+        # DIAGNOSTIC — how many validated_actual rows survive the dedup,
+        # and if any are lost, exactly which (commodity, week) they lost
+        # the tie-break on. Temporary — remove once the count is stable.
+        pre_dedup_validated = combined[combined["record_type"] == "validated_actual"].copy()
         combined = combined.drop_duplicates(subset=["commodity", "date"], keep="first")
+        post_dedup_validated = combined[combined["record_type"] == "validated_actual"]
+        lost = pre_dedup_validated[
+            ~pre_dedup_validated.set_index(["commodity", "date"]).index.isin(
+                post_dedup_validated.set_index(["commodity", "date"]).index
+            )
+        ]
+        logger.info(
+            f"  [DIAG] validated_actual: {len(pre_dedup_validated)} entered dedup, "
+            f"{len(post_dedup_validated)} survived, {len(lost)} lost"
+        )
+        if len(lost) > 0:
+            beaten_by = combined[
+                combined.set_index(["commodity", "date"]).index.isin(
+                    lost.set_index(["commodity", "date"]).index
+                )
+            ]
+            for _, row in lost.head(10).iterrows():
+                winner = beaten_by[
+                    (beaten_by["commodity"] == row["commodity"]) &
+                    (beaten_by["date"] == row["date"])
+                ]
+                w_source = winner["data_source"].iloc[0] if len(winner) else "NONE FOUND"
+                w_priority = winner["_priority"].iloc[0] if len(winner) else "n/a"
+                logger.info(
+                    f"    [DIAG]   {row['commodity']:<20} week-of {row['date'].date()} "
+                    f"lost to data_source={w_source} (_priority={w_priority})"
+                )
         combined = combined.drop(columns=["_priority"], errors="ignore")
         combined = combined.sort_values(["commodity", "date"]).reset_index(drop=True)
         combined.to_csv(master_path, index=False)

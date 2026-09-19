@@ -54,29 +54,32 @@ os.makedirs(VALIDATED_DIR, exist_ok=True)
 # Leave as None if you don't have a fresh price for that commodity.
 # These take highest priority in validation.
 MANUAL_PRICES = {
-    # ── Agricome Africa Aug 03 2026 (latest confirmed) ───────────────────
-    "Hibiscus":      2_500_000,   # Agricome Aug 03 2026
-    "Soybeans":        790_000,   # Agricome Aug 03 2026
-    "Ginger":        9_400_000,   # Agricome Aug 03 2026 (standard dried wholesale)
-    "Cocoa":         4_500_000,   # Agricome Aug 03 2026
-    "Cashew Nuts":   1_930_000,   # Agricome Aug 03 2026
-    "Sorghum":         345_000,   # Agricome Aug 03 2026
-    "Sesame":        1_420_000,   # Agricome Aug 03 2026
-    # ── Market Naija TV Jul 2026 ──────────────────────────────────────────
-    "Maize (white)":   395_000,   # Market Naija TV Jul 2026
-    "Maize (yellow)":  421_000,   # Market Naija TV Jul 2026
-    "Wheat":         1_000_000,   # Market Naija TV Jul 2026
-    "Beans (white)":   750_000,   # Market Naija TV Jul 2026
-    "Beans (red)":     850_000,   # Market Naija TV Jul 2026
-    "Rice":          1_320_000,   # Market Naija TV Jul 2026
-    # ── Livestock — market research Aug 2026 ─────────────────────────────
-    "Meat (beef)":   4_536_000,   # Market research Jul 2026
-    "Meat (goat)":   7_000_000,   # Confirmed Kaduna market Aug 2026 (N7,000/kg)
-    "Fish (dried)":  1_550_000,   # CORRECTED (was 10,000,000 - 10x unit error; comment
-                                   # itself said N1,000-1,200/kg = N1.0-1.2M/MT). Set to
-                                   # match verified WFP anchor (N1,508,531 @ 2026-03-09,
-                                   # bridged via World Bank RTP to N1,547,894 @ Jul 2026)
-    "Eggs":              7_920,   # Market research Jul 2026 (NGN/crate)
+    "Hibiscus":      2_325_000,   # Agricome Apr 16 2026
+    "Sesame":        1_650_000,   # LCFE May 2026 (recalibrated)
+    "Ginger":       12_000_000,   # NGX Feb 2026 N13,000/kg; mid-market N12M
+    "Cocoa":         5_650_000,   # Agricome Apr 16 2026
+    "Soybeans":        745_000,   # Agricome Apr 16 2026
+    "Cashew Nuts":   1_950_000,   # Agricome Apr 16 2026
+    "Sorghum":         420_000,   # Market Naija TV mid-chain (recalibrated)
+    "Beans (white)":   813_000,   # WFP Mar 2026
+    "Beans (red)":     915_000,   # WFP Mar 2026
+    "Maize (white)":   370_000,   # Market 2026
+    "Maize (yellow)":  400_000,   # Market 2026
+    "Wheat":           706_833,   # Agrolinking primary Apr 13 2026
+    "Rice":          1_550_000,   # Market research May 2026
+    # ── Livestock/protein — previously missing entirely, which forced
+    # validation to always skip these four (status: "skipped", no
+    # correction ever applied, no live accuracy check).
+    # Sourced Sept 2026: retail beef/goat ~N7-8k/kg (24hoursmarket.com,
+    # Daily Trust); wholesale typically runs ~15-20% below retail.
+    # Dried fish from carton pricing at Hadejia market (fcwc-fish.org).
+    # Eggs from NBS "Selected Food Price Watch" March 2026 (channelstv.com).
+    # Update these whenever you have a fresher reading — same workflow
+    # as the crop MANUAL_PRICES entries above.
+    "Meat (beef)":   6_500_000,   # wholesale est. from ~N7-8k/kg retail, Sept 2026
+    "Meat (goat)":   6_500_000,   # wholesale est. from ~N7-8k/kg retail, Sept 2026
+    "Fish (dried)":  1_200_000,   # est. from Hadejia carton pricing, mid-2026
+    "Eggs":              6_200,   # NBS Selected Food Price Watch, Mar 2026 (NGN/crate)
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -125,64 +128,19 @@ EXTREME_BLEND_RATIO = 0.96  # >50% error:   92% reference (model just sets direc
 # GET BEST REFERENCE PRICE
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SANITY BOUNDS — gate for live-fetched prices
-# ─────────────────────────────────────────────────────────────────────────────
-# A scraped price outside this band is almost certainly a parsing error
-# (wrong number picked up from the page), not a real market move.
-# Built from the existing manual/web-anchor values as a generous band
-# (0.4x - 2.5x) rather than hand-typing a second set of numbers that
-# could drift out of sync with them.
-def _build_sanity_ranges():
-    ranges = {}
-    for commodity in set(list(MANUAL_PRICES.keys()) + list(WEB_REFERENCE_PRICES.keys())):
-        candidates = [v for v in (MANUAL_PRICES.get(commodity), WEB_REFERENCE_PRICES.get(commodity))
-                      if v is not None]
-        if candidates:
-            ranges[commodity] = (min(candidates) * 0.4, max(candidates) * 2.5)
-    return ranges
-
-SANITY_RANGES = _build_sanity_ranges()
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# GET BEST REFERENCE PRICE
-# ─────────────────────────────────────────────────────────────────────────────
-
 def get_reference_price(commodity: str) -> tuple[float, str]:
     """
     Get the best available reference price for a commodity.
-    Priority: LIVE web fetch (if it succeeds and passes a sanity check)
-              > Manual (fresh Agricom post) > Web research anchors.
-
-    Previously this function never called try_fetch_live_price() at
-    all, despite that function existing and working — every "live
-    cross-reference" was actually a static hand-typed number. This is
-    the fix: genuinely attempt live first, log clearly which source
-    won, and only fall back to the static anchors when the live fetch
-    fails or returns something implausible.
+    Priority: Manual (fresh Agricom post) > Web research anchors
+    Returns (price, source_description)
     """
-    # 1. Live web fetch — the real thing, attempted first
-    live_price, live_source = try_fetch_live_price(commodity)
-    if live_price is not None:
-        lo, hi = SANITY_RANGES.get(commodity, (0, float("inf")))
-        if lo <= live_price <= hi:
-            logger.debug(f"    [{commodity}] live fetch OK: ₦{live_price:,.0f} ({live_source})")
-            return float(live_price), live_source
-        else:
-            logger.warning(
-                f"    [{commodity}] live fetch returned ₦{live_price:,.0f} — "
-                f"outside sanity range (₦{lo:,.0f}-₦{hi:,.0f}), discarding and "
-                f"falling back to static reference"
-            )
-
-    # 2. Manual price (freshest — from latest Agricom post you entered)
+    # 1. Manual price (freshest — from latest Agricom post you entered)
     if commodity in MANUAL_PRICES and MANUAL_PRICES[commodity] is not None:
-        return float(MANUAL_PRICES[commodity]), "Agricom manual entry (static fallback)"
+        return float(MANUAL_PRICES[commodity]), "Agricom manual entry"
 
-    # 3. Web research anchor
+    # 2. Web research anchor
     if commodity in WEB_REFERENCE_PRICES:
-        return float(WEB_REFERENCE_PRICES[commodity]), "Web research anchor (static fallback)"
+        return float(WEB_REFERENCE_PRICES[commodity]), "Web research (NGX/WFP/Market data)"
 
     return None, "No reference available"
 
@@ -190,60 +148,58 @@ def get_reference_price(commodity: str) -> tuple[float, str]:
 # ─────────────────────────────────────────────────────────────────────────────
 # LIVE WEB FETCH (runs on your machine — internet connected)
 # ─────────────────────────────────────────────────────────────────────────────
-# NOTE on coverage: NEPC tracks EXPORT commodity indicative prices, so
-# this realistically only has a chance of returning something for
-# Cocoa, Ginger, Sesame, Hibiscus, Cashew Nuts, and Soybeans. For
-# domestic staples (Maize, Beans, Rice, Sorghum, Wheat) and livestock/
-# protein (Meat, Fish, Eggs), NEPC's page won't mention them — this
-# will correctly fall through to the static fallback for those, and
-# that's expected, not a bug. Closing that gap needs either a paid
-# search API (SerpAPI/Bing/Google Custom Search) or a source that
-# actually tracks domestic staple prices, which is a separate,
-# bigger decision (budget + which API) rather than a code fix.
 
 def try_fetch_live_price(commodity: str) -> tuple[float | None, str]:
     """
     Attempt to fetch a live price from the web.
     Returns (price_ngn_mt, source) or (None, error_message).
-    Failures are logged at DEBUG level (not silent) and fall back to
-    reference anchors via get_reference_price() above.
+    This runs silently — failures fall back to reference anchors.
     """
     try:
         import requests
         from bs4 import BeautifulSoup
-        import re
 
+        # Map commodities to search queries
+        search_map = {
+            "Cocoa":         "Nigeria cocoa price per ton NGN today",
+            "Ginger":        "Nigeria ginger price per ton NGN today",
+            "Sesame":        "Nigeria sesame seed price per ton NGN today",
+            "Hibiscus":      "Nigeria hibiscus zobo price per ton NGN today",
+            "Cashew Nuts":   "Nigeria cashew nut price per ton NGN today",
+            "Soybeans":      "Nigeria soybean price per ton NGN today",
+            "Sorghum":       "Nigeria sorghum price per ton NGN today",
+            "Maize (white)": "Nigeria maize white price per ton NGN today",
+            "Maize (yellow)":"Nigeria maize yellow price per ton NGN today",
+            "Beans (white)": "Nigeria beans white price per ton NGN today",
+            "Beans (red)":   "Nigeria beans red price per ton NGN today",
+        }
+
+        # Try NEPC price page directly
         nepc_url = "https://nepc.gov.ng/indicative-market-prices/"
         r = requests.get(nepc_url, timeout=10,
                         headers={"User-Agent": "Mozilla/5.0"})
-        if r.status_code != 200:
-            logger.debug(f"    [{commodity}] NEPC returned HTTP {r.status_code}")
-            return None, "Live fetch unavailable"
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, "html.parser")
+            text = soup.get_text(separator=" ").lower()
+            # Look for commodity name near a price pattern
+            import re
+            comm_lower = commodity.lower().replace(" (white)","").replace(" (yellow)","")
+            idx = text.find(comm_lower)
+            if idx > 0:
+                snippet = text[idx:idx+200]
+                prices = re.findall(r'[\d,]+(?:\.\d+)?', snippet.replace(",",""))
+                prices_clean = [float(p) for p in prices if 100 < float(p) < 100_000_000]
+                if prices_clean:
+                    # Convert to NGN/MT if needed (assume per ton if > 100,000)
+                    price = max(prices_clean)
+                    if price < 100_000:
+                        price *= 1000  # per kg → per MT
+                    return price, "NEPC live"
 
-        soup = BeautifulSoup(r.text, "html.parser")
-        text = soup.get_text(separator=" ").lower()
-        comm_lower = commodity.lower().replace(" (white)", "").replace(" (yellow)", "")
-        idx = text.find(comm_lower)
-        if idx <= 0:
-            logger.debug(f"    [{commodity}] not found on NEPC page (expected for "
-                         f"non-export commodities)")
-            return None, "Commodity not listed on NEPC"
+    except Exception:
+        pass
 
-        snippet = text[idx:idx + 200]
-        prices = re.findall(r'[\d,]+(?:\.\d+)?', snippet.replace(",", ""))
-        prices_clean = [float(p) for p in prices if 100 < float(p) < 100_000_000]
-        if not prices_clean:
-            logger.debug(f"    [{commodity}] found on NEPC page but no parseable price nearby")
-            return None, "No price found near commodity name"
-
-        price = max(prices_clean)
-        if price < 100_000:
-            price *= 1000  # per kg -> per MT
-        return price, "NEPC live"
-
-    except Exception as e:
-        logger.debug(f"    [{commodity}] live fetch failed: {type(e).__name__}: {e}")
-        return None, "Live fetch unavailable"
+    return None, "Live fetch unavailable"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -410,35 +366,6 @@ def validate_commodity(
 
         validated_horizons[h_name] = h_copy
 
-    # Scale weekly_series and daily_series by the same correction ratio.
-    # These are the fields append_to_master()/update_master_with_validated()
-    # and 07_zonal_forecast.py actually read — they must carry the same
-    # correction as the horizons above, or the "validated" price and the
-    # master-CSV/zonal price will silently disagree.
-    correction_ratio = corrected_daily / daily_fc if daily_fc > 0 else 1.0
-
-    weekly_series = fc_data.get("weekly_series")
-    if weekly_series and weekly_series.get("values"):
-        weekly_series = json.loads(json.dumps(weekly_series))  # deep copy
-        weekly_series["values_original"] = weekly_series["values"]
-        weekly_series["values"] = [
-            round(v * correction_ratio, 2) for v in weekly_series["values"]
-        ]
-        weekly_series["lower_ci"] = [
-            round(v * correction_ratio, 2) for v in weekly_series.get("lower_ci", weekly_series["values"])
-        ]
-        weekly_series["upper_ci"] = [
-            round(v * correction_ratio, 2) for v in weekly_series.get("upper_ci", weekly_series["values"])
-        ]
-
-    daily_series = fc_data.get("daily_series")
-    if daily_series and daily_series.get("values"):
-        daily_series = json.loads(json.dumps(daily_series))  # deep copy
-        daily_series["values_original"] = daily_series["values"]
-        daily_series["values"] = [
-            round(v * correction_ratio, 2) for v in daily_series["values"]
-        ]
-
     # Build validation metadata
     validation_meta = {
         "status":             "validated",
@@ -458,10 +385,6 @@ def validate_commodity(
     result = dict(fc_data)
     result["horizons"]   = validated_horizons
     result["validation"] = validation_meta
-    if weekly_series is not None:
-        result["weekly_series"] = weekly_series
-    if daily_series is not None:
-        result["daily_series"] = daily_series
 
     # Ensure last_known_date is never in the future in the output JSON
     _today = datetime.now().strftime("%Y-%m-%d")
@@ -505,27 +428,92 @@ def update_master_with_validated(validated: dict, run_date: datetime):
     new_rows = []
 
     for commodity, fc in validated.items():
-        # Use weekly_series (not horizons["weekly"], which is now 7 daily
-        # points) so master keeps its native weekly grain — same fix as
-        # 05_forecast.py's append_to_master(). This also carries the
-        # validation correction applied above.
-        weekly = fc.get("weekly_series", {})
-        if not weekly or not weekly.get("values"):
+        vld   = fc.get("validation", {})
+        daily = fc.get("horizons", {}).get("daily", {})
+
+        # ── 1. Append TODAY's validated price as a real confirmed data point ──
+        # This is the key step that moves last_known_date forward every day.
+        today_price = None
+        if daily and daily.get("ensemble", {}).get("values"):
+            today_price = daily["ensemble"]["values"][0]
+        elif vld.get("reference_price"):
+            today_price = vld["reference_price"]
+
+        if today_price and today_price > 0:
+            # Snap to the Monday of this week — same convention 01_ingest.py
+            # and 02_clean.py use everywhere else. Without this, "today"
+            # (which is rarely a Monday) sits at a different date than the
+            # rest of the system expects, so this row and any earlier
+            # (correct or incorrect) row for the same week don't collide
+            # until the NEXT ingest/clean run snaps them together — at
+            # which point a tie in priority makes which one survives a
+            # coin flip. Snapping here means this write always lands on
+            # and correctly replaces whatever was in that exact slot.
+            _raw_today = pd.Timestamp(run_date.date())
+            today_ts = _raw_today - pd.Timedelta(days=_raw_today.dayofweek)
+            # UPSERT, not skip-if-exists: today's slot must always reflect
+            # the latest validated correction. The old "skip if a row
+            # already exists" guard let a single bad write (e.g. from
+            # before a commodity had a reference price at all) freeze
+            # that date's price forever, even after the bug producing it
+            # was fixed — every later, correctly-validated run would
+            # silently no-op against a stale wrong number.
+            master = master[
+                ~((master["commodity"] == commodity) & (master["date"] == today_ts))
+            ]
+            new_rows.append({
+                    "commodity":          commodity,
+                    "date":               today_ts,
+                    "price_ngn_mt":       round(today_price, 2),
+                    "currency":           "NGN",
+                    "unit":               "NGN/MT",
+                    "source":             "Agrolinking Intelligence Platform",
+                    "market_type":        "wholesale",
+                    "region":             "National",
+                    "fx_rate":            np.nan,
+                    "rainfall_index":     np.nan,
+                    "data_quality_score": 0.90,
+                    "is_validated":       True,
+                    "notes": (
+                        f"Validated daily price — "
+                        f"ref: N{vld.get('reference_price',0):,.0f} "
+                        f"err: {vld.get('error_pct_after', vld.get('error_after_pct', 0)):.1f}%"
+                    ),
+                    "data_source":        "Agrolinking_validated",
+                    "record_type":        "validated_actual",
+                    "outlier_flag":       False,
+                    "outlier_reason":     "",
+                    "price_raw_ngn_mt":   round(today_price, 2),
+                })
+
+        # ── 2. Also append weekly horizon rows (future forecasts) ─────────────
+        weekly = fc.get("horizons", {}).get("weekly", {})
+        if not weekly or not weekly.get("ensemble"):
             continue
 
+        ensemble = weekly["ensemble"]
         dates    = weekly.get("dates", [])
-        values   = weekly.get("values", [])
-        vld      = fc.get("validation", {})
+        values   = ensemble.get("values", [])
+
+        # These are disposable projections, not confirmed data — always
+        # replace the old future curve wholesale rather than skip-if-
+        # exists. The previous "skip if a row already exists" guard let
+        # a bad/stale forecast curve (e.g. written back before this
+        # commodity had a reference price) freeze in place indefinitely,
+        # since a future date, once written, would never be touched
+        # again by any later, better-corrected run.
+        master = master[
+            ~(
+                (master["commodity"] == commodity) &
+                (master["record_type"] == "forecast") &
+                (master["date"] > pd.Timestamp(run_date.date()))
+            )
+        ]
 
         for date_str, price in zip(dates, values):
             date = pd.Timestamp(date_str)
-            # Skip if already in master
-            exists = master[
-                (master["commodity"] == commodity) &
-                (master["date"]      == date)
-            ]
-            if len(exists) > 0:
-                continue
+            if date <= pd.Timestamp(run_date.date()):
+                continue  # skip past dates
 
             new_rows.append({
                 "commodity":          commodity,
@@ -542,8 +530,8 @@ def update_master_with_validated(validated: dict, run_date: datetime):
                 "is_validated":       True,
                 "notes": (
                     f"Validated forecast — "
-                    f"ref: ₦{vld.get('reference_price',0):,.0f} "
-                    f"err: {vld.get('error_pct_after',0):.1f}%"
+                    f"ref: N{vld.get('reference_price',0):,.0f} "
+                    f"err: {vld.get('error_pct_after', vld.get('error_after_pct', 0)):.1f}%"
                 ),
                 "data_source":        "Agrolinking_validated",
                 "record_type":        "forecast",

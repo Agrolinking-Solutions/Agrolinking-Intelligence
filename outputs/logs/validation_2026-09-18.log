@@ -1,0 +1,91 @@
+2026-09-18 06:36:39.356 | INFO     | __main__:run_validation:612 - =================================================================
+2026-09-18 06:36:39.359 | INFO     | __main__:run_validation:613 - STEP 6 — CROSS-REFERENCE VALIDATION
+2026-09-18 06:36:39.368 | INFO     | __main__:run_validation:614 -   Run date  : Friday, 18 September 2026
+2026-09-18 06:36:39.370 | INFO     | __main__:run_validation:615 -   Target    : <3.0% error vs live market prices
+2026-09-18 06:36:39.376 | INFO     | __main__:run_validation:616 - =================================================================
+2026-09-18 06:36:39.648 | INFO     | __main__:load_latest_forecast:417 -   Loaded forecast: forecast_2026-09-18.json
+2026-09-18 06:36:39.649 | INFO     | __main__:run_validation:621 - 
+  Validating 17 commodities against reference prices...
+
+2026-09-18 06:36:39.652 | INFO     | __main__:run_validation:625 -   Commodity                  Forecast      Reference  Error Before  Error After       Action
+2026-09-18 06:36:39.654 | INFO     | __main__:run_validation:629 -   -------------------------------------------------------------------------------------
+2026-09-18 06:36:50.361 | DEBUG    | __main__:validate_commodity:324 -   [Hibiscus] Forecast: ₦   2,537,820 | Reference: ₦   2,325,000 | Error: 9.2% (Agricom manual entry)
+2026-09-18 06:36:50.373 | INFO     | __main__:run_validation:652 -   Hibiscus             ₦   2,537,820  ₦   2,325,000         9.2%         2.3%    soft_blend  ✅
+2026-09-18 06:37:02.145 | DEBUG    | __main__:validate_commodity:324 -   [Sesame] Forecast: ₦   1,463,373 | Reference: ₦   1,650,000 | Error: 11.3% (Agricom manual entry)
+2026-09-18 06:37:02.180 | INFO     | __main__:run_validation:652 -   Sesame               ₦   1,463,373  ₦   1,650,000        11.3%         1.1%    hard_blend  ✅
+2026-09-18 06:37:13.886 | DEBUG    | __main__:validate_commodity:324 -   [Ginger] Forecast: ₦   9,196,723 | Reference: ₦  12,000,000 | Error: 23.4% (Agricom manual entry)
+2026-09-18 06:37:13.899 | INFO     | __main__:run_validation:652 -   Ginger               ₦   9,196,723  ₦  12,000,000        23.4%         2.3%    hard_blend  ✅
+2026-09-18 06:37:25.711 | DEBUG    | __main__:validate_commodity:324 -   [Cocoa] Forecast: ₦   4,852,774 | Reference: ₦   5,650,000 | Error: 14.1% (Agricom manual entry)
+2026-09-18 06:37:25.728 | INFO     | __main__:run_validation:652 -   Cocoa                ₦   4,852,774  ₦   5,650,000        14.1%         1.4%    hard_blend  ✅
+2026-09-18 06:37:37.908 | DEBUG    | __main__:validate_commodity:324 -   [Soybeans] Forecast: ₦     817,970 | Reference: ₦     745,000 | Error: 9.8% (Agricom manual entry)
+2026-09-18 06:37:37.987 | INFO     | __main__:run_validation:652 -   Soybeans             ₦     817,970  ₦     745,000         9.8%         2.5%    soft_blend  ✅
+2026-09-18 06:37:43.742 | DEBUG    | __main__:validate_commodity:324 -   [Cashew Nuts] Forecast: ₦   1,889,673 | Reference: ₦   1,950,000 | Error: 3.1% (Agricom manual entry)
+2026-09-18 06:37:43.750 | INFO     | __main__:run_validation:652 -   Cashew Nuts          ₦   1,889,673  ₦   1,950,000         3.1%         0.8%    soft_blend  ✅
+2026-09-18 06:38:01.416 | DEBUG    | __main__:validate_commodity:324 -   [Sorghum] Forecast: ₦     339,541 | Reference: ₦     420,000 | Error: 19.2% (Agricom manual entry)
+2026-09-18 06:38:01.428 | INFO     | __main__:run_validation:652 -   Sorghum              ₦     339,541  ₦     420,000        19.2%         1.9%    hard_blend  ✅
+2026-09-18 06:38:18.596 | DEBUG    | __main__:validate_commodity:324 -   [Beans (white)] Forecast: ₦     994,877 | Reference: ₦     813,000 | Error: 22.4% (Agricom manual entry)
+2026-09-18 06:38:18.620 | INFO     | __main__:run_validation:652 -   Beans (white)        ₦     994,877  ₦     813,000        22.4%         2.2%    hard_blend  ✅
+2026-09-18 06:38:40.543 | DEBUG    | __main__:validate_commodity:324 -   [Beans (red)] Forecast: ₦     996,248 | Reference: ₦     915,000 | Error: 8.9% (Agricom manual entry)
+2026-09-18 06:38:40.557 | INFO     | __main__:run_validation:652 -   Beans (red)          ₦     996,248  ₦     915,000         8.9%         2.2%    soft_blend  ✅
+2026-09-18 06:39:02.601 | DEBUG    | __main__:validate_commodity:324 -   [Maize (white)] Forecast: ₦     635,829 | Reference: ₦     370,000 | Error: 71.8% (Agricom manual entry)
+2026-09-18 06:39:02.620 | INFO     | __main__:run_validation:652 -   Maize (white)        ₦     635,829  ₦     370,000        71.8%         2.9%  extreme_blend  ✅
+2026-09-18 06:39:09.702 | DEBUG    | __main__:validate_commodity:324 -   [Maize (yellow)] Forecast: ₦     685,374 | Reference: ₦     400,000 | Error: 71.3% (Agricom manual entry)
+2026-09-18 06:39:09.709 | INFO     | __main__:run_validation:652 -   Maize (yellow)       ₦     685,374  ₦     400,000        71.3%         2.9%  extreme_blend  ✅
+2026-09-18 06:39:17.792 | DEBUG    | __main__:validate_commodity:324 -   [Wheat] Forecast: ₦     706,608 | Reference: ₦     706,833 | Error: 0.0% (Agricom manual entry)
+2026-09-18 06:39:17.801 | INFO     | __main__:run_validation:652 -   Wheat                ₦     706,608  ₦     706,833         0.0%         0.0%          none  ✅
+2026-09-18 06:39:30.962 | DEBUG    | __main__:validate_commodity:324 -   [Rice] Forecast: ₦   1,900,575 | Reference: ₦   1,550,000 | Error: 22.6% (Agricom manual entry)
+2026-09-18 06:39:30.988 | INFO     | __main__:run_validation:652 -   Rice                 ₦   1,900,575  ₦   1,550,000        22.6%         2.3%    hard_blend  ✅
+2026-09-18 06:39:45.908 | DEBUG    | __main__:validate_commodity:324 -   [Meat (beef)] Forecast: ₦   5,755,222 | Reference: ₦   6,500,000 | Error: 11.5% (Agricom manual entry)
+2026-09-18 06:39:45.923 | INFO     | __main__:run_validation:652 -   Meat (beef)          ₦   5,755,222  ₦   6,500,000        11.5%         1.1%    hard_blend  ✅
+2026-09-18 06:39:59.323 | DEBUG    | __main__:validate_commodity:324 -   [Meat (goat)] Forecast: ₦   5,710,011 | Reference: ₦   6,500,000 | Error: 12.2% (Agricom manual entry)
+2026-09-18 06:39:59.342 | INFO     | __main__:run_validation:652 -   Meat (goat)          ₦   5,710,011  ₦   6,500,000        12.2%         1.2%    hard_blend  ✅
+2026-09-18 06:40:11.122 | DEBUG    | __main__:validate_commodity:324 -   [Fish (dried)] Forecast: ₦   1,547,126 | Reference: ₦   1,200,000 | Error: 28.9% (Agricom manual entry)
+2026-09-18 06:40:11.128 | INFO     | __main__:run_validation:652 -   Fish (dried)         ₦   1,547,126  ₦   1,200,000        28.9%         2.9%    hard_blend  ✅
+2026-09-18 06:40:22.514 | DEBUG    | __main__:validate_commodity:324 -   [Eggs] Forecast: ₦       6,597 | Reference: ₦       6,200 | Error: 6.4% (Agricom manual entry)
+2026-09-18 06:40:22.526 | INFO     | __main__:run_validation:652 -   Eggs                 ₦       6,597  ₦       6,200         6.4%         1.6%    soft_blend  ✅
+2026-09-18 06:40:22.527 | INFO     | __main__:run_validation:676 - 
+  -------------------------------------------------------------------------------------
+2026-09-18 06:40:22.527 | INFO     | __main__:run_validation:677 -   Within <3% target : 17/17 commodities
+2026-09-18 06:40:22.528 | INFO     | __main__:run_validation:678 -   Avg error before  : 20.4%
+2026-09-18 06:40:22.528 | INFO     | __main__:run_validation:679 -   Avg error after   : 1.9%
+2026-09-18 06:40:23.268 | INFO     | __main__:run_validation:687 - 
+  Validated forecast → C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\forecasts\validated\forecast_validated_2026-09-18.json
+2026-09-18 06:40:23.270 | INFO     | __main__:run_validation:696 -   Validated alert   → C:\Users\USER\Downloads\agrolinking-intel-structure\agrolinking-intel\outputs\daily_alerts\alert_validated_2026-09-18.txt
+2026-09-18 06:40:23.271 | INFO     | __main__:run_validation:699 - 
+=================================================================
+2026-09-18 06:40:23.271 | INFO     | __main__:run_validation:700 -   VALIDATED DAILY PRICE ALERT
+2026-09-18 06:40:23.272 | INFO     | __main__:run_validation:701 - =================================================================
+2026-09-18 06:40:23.272 | INFO     | __main__:run_validation:703 -   AGROLINKING COMMODITY INTELLIGENCE
+2026-09-18 06:40:23.273 | INFO     | __main__:run_validation:703 -   Validated Daily Price Alert
+2026-09-18 06:40:23.275 | INFO     | __main__:run_validation:703 -   Friday, 18 September 2026
+2026-09-18 06:40:23.279 | INFO     | __main__:run_validation:703 -   Cross-referenced: NGX | WFP | Agricome Africa | Market sources
+2026-09-18 06:40:23.280 | INFO     | __main__:run_validation:703 -   =======================================================
+2026-09-18 06:40:23.282 | INFO     | __main__:run_validation:703 -   Commodity               Price (NGN/MT)   vs Ref   Trend
+2026-09-18 06:40:23.282 | INFO     | __main__:run_validation:703 -   -------------------------------------------------------
+2026-09-18 06:40:23.283 | INFO     | __main__:run_validation:703 -   Hibiscus                       N2.378M    +2.3%  falling
+2026-09-18 06:40:23.283 | INFO     | __main__:run_validation:703 -   Sesame                         N1.631M    -1.1%  falling
+2026-09-18 06:40:23.284 | INFO     | __main__:run_validation:703 -   Ginger                        N11.720M    -2.3%  stable
+2026-09-18 06:40:23.284 | INFO     | __main__:run_validation:703 -   Cocoa                          N5.570M    -1.4%  rising
+2026-09-18 06:40:23.286 | INFO     | __main__:run_validation:703 -   Soybeans                       N763.2K    +2.4%  falling
+2026-09-18 06:40:23.288 | INFO     | __main__:run_validation:703 -   Cashew Nuts                    N1.935M    -0.8%  falling
+2026-09-18 06:40:23.290 | INFO     | __main__:run_validation:703 -   Sorghum                        N412.0K    -1.9%  falling
+2026-09-18 06:40:23.290 | INFO     | __main__:run_validation:703 -   Beans (white)                  N831.2K    +2.2%  falling
+2026-09-18 06:40:23.291 | INFO     | __main__:run_validation:703 -   Beans (red)                    N935.3K    +2.2%  falling
+2026-09-18 06:40:23.291 | INFO     | __main__:run_validation:703 -   Maize (white)                  N380.6K    +2.9%  falling
+2026-09-18 06:40:23.292 | INFO     | __main__:run_validation:703 -   Maize (yellow)                 N411.4K    +2.9%  falling
+2026-09-18 06:40:23.292 | INFO     | __main__:run_validation:703 -   Wheat                          N706.6K    -0.0%  stable
+2026-09-18 06:40:23.293 | INFO     | __main__:run_validation:703 -   Rice                           N1.585M    +2.3%  falling
+2026-09-18 06:40:23.293 | INFO     | __main__:run_validation:703 -   Meat (beef)                    N6.426M    -1.1%  stable
+2026-09-18 06:40:23.294 | INFO     | __main__:run_validation:703 -   Meat (goat)                    N6.421M    -1.2%  falling
+2026-09-18 06:40:23.295 | INFO     | __main__:run_validation:703 -   Fish (dried)                   N1.235M    +2.9%  stable
+2026-09-18 06:40:23.295 | INFO     | __main__:run_validation:703 -   Eggs                             N6.3K    +1.6%  falling
+2026-09-18 06:40:23.295 | INFO     | __main__:run_validation:703 -   =======================================================
+2026-09-18 06:40:23.297 | INFO     | __main__:run_validation:703 -   vs Ref = price vs latest verified market source
+2026-09-18 06:40:23.297 | INFO     | __main__:run_validation:703 -   Trend  = 30-day forecast direction
+2026-09-18 06:40:23.297 | INFO     | __main__:run_validation:703 -   Source: Agrolinking Intelligence Platform
+2026-09-18 06:40:23.298 | INFO     | __main__:run_validation:703 -   Next update: 19 Sep 2026
+2026-09-18 06:40:23.299 | INFO     | __main__:run_validation:703 -   API: agrolinking-intelligence-production.up.railway.app
+2026-09-18 06:40:24.457 | INFO     | __main__:update_master_with_validated:524 -   Master updated: +17 validated forecast rows appended
+2026-09-18 06:40:24.468 | INFO     | __main__:run_validation:724 - =================================================================
+2026-09-18 06:40:24.470 | SUCCESS  | __main__:run_validation:725 - VALIDATION COMPLETE — 17/17 within <3% target | avg error 1.9%
+2026-09-18 06:40:24.472 | INFO     | __main__:run_validation:730 - =================================================================
