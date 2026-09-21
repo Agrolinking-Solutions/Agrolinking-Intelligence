@@ -1,49 +1,87 @@
-name: Daily Agrolinking Pipeline
+name: Daily Forecast Pipeline
+
+# Runs the full 01→08 pipeline every day, unattended, and commits the
+# results back to the repo. This replaces manually running each step
+# by hand — the anchor/validated-actual cycle only advances daily if
+# something actually runs the pipeline every day; this is that "something".
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 6am UTC = 7am WAT every day
-  workflow_dispatch:
+    # 05:00 UTC = 06:00 Lagos (WAT, UTC+1). Adjust if you want a
+    # different time of day — GitHub's cron can be a few minutes late
+    # during peak load, that's normal.
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
 
 permissions:
-  contents: write
+  contents: write   # required so the workflow can commit + push results
 
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    timeout-minutes: 180   # ARIMA order search + Prophet can be slow; generous ceiling
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.10"   # pin to match whatever version pmdarima/prophet were built against locally
 
-      - name: Install lightweight dependencies only
+      - name: Install dependencies
         run: |
-          pip install pandas numpy loguru
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run steps 7 and 8 only
-        run: |
-          python pipeline/07_zonal_forecast.py
-          python pipeline/08_intelligence.py
+      # ── Run the full pipeline in the correct order ──────────────────
+      # Same sequence as the manual runs this session established:
+      # 01 (ingest) → 02 (clean) → 03 (features) → 04 (train) →
+      # 05 (forecast) → 06 (validate) → 07 (zonal) → 08 (intelligence).
+      # Each step's failure stops the run rather than silently
+      # continuing on bad/partial data.
+      - name: 01 - Ingest
+        run: python pipeline/01_ingest.py
 
-      - name: Commit and push fresh outputs
+      - name: 02 - Clean
+        run: python pipeline/02_clean.py
+
+      - name: 03 - Features
+        run: python pipeline/03_features.py
+
+      - name: 04 - Train
+        run: python pipeline/04_train.py
+
+      - name: 05 - Forecast
+        run: python pipeline/05_forecast.py
+
+      - name: 06 - Validate
+        run: python pipeline/06_validate.py
+
+      - name: 07 - Zonal forecast
+        run: python pipeline/07_zonal_forecast.py
+
+      - name: 08 - Intelligence
+        run: python pipeline/08_intelligence.py
+
+      # ── Commit and push whatever changed ────────────────────────────
+      - name: Commit and push results
         run: |
-          git config user.name "Agrolinking Pipeline Bot"
-          git config user.email "pipeline@agrolinking.com"
-          git add outputs/forecasts/zonal/
-          git add outputs/daily_alerts/
-          git add outputs/intelligence/
+          git config user.name "agrolinking-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/
           if git diff --cached --quiet; then
-            echo "No changes to commit"
+            echo "No changes to commit."
           else
-            git pull --rebase origin main
-            git commit -m "Auto daily update $(date '+%Y-%m-%d') - zonal + intelligence"
-            git push origin main
+            git commit -m "Automated daily pipeline run - $(date -u +'%Y-%m-%d')"
+            git push
           fi
+
+      # ── Surface a failure clearly rather than a silent skipped day ──
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Daily pipeline run failed — Last Known date will not advance today. Check the failed step above."
