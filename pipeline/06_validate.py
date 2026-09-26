@@ -553,6 +553,129 @@ def update_master_with_validated(validated: dict, run_date: datetime):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# DUAL-WRITE TO POSTGRES (TimescaleDB) — migration verification period
+# ─────────────────────────────────────────────────────────────────────────────
+# Writes the same "today's confirmed price" + "forecast horizon curve"
+# that update_master_with_validated() just wrote to master.csv, into the
+# Postgres prices/forecasts tables. Runs alongside the CSV write, never
+# instead of it — this is the dual-write period from the migration plan,
+# meant to let the two sources be compared before cutting the API over.
+#
+# Deliberately non-fatal: if TSDB_URL isn't set, or the DB is briefly
+# unreachable, this logs a warning and the pipeline continues as normal.
+# The CSV/JSON files remain the source of truth until the cutover step.
+HORIZON_DAYS_MAP = {
+    "daily": 1, "weekly": 7, "2_weeks": 14,
+    "monthly": 30, "3_months": 90, "6_months": 180,
+}
+
+def write_to_postgres(validated: dict, run_date: datetime):
+    db_url = os.environ.get("TSDB_URL")
+    if not db_url:
+        logger.warning("  [Postgres] TSDB_URL not set — skipping dual-write (CSV write already done)")
+        return
+
+    try:
+        import psycopg2
+        from psycopg2.extras import execute_values
+    except ImportError:
+        logger.warning("  [Postgres] psycopg2 not installed — skipping dual-write")
+        return
+
+    try:
+        conn = psycopg2.connect(db_url)
+    except Exception as e:
+        logger.warning(f"  [Postgres] Could not connect — skipping dual-write this run: {e}")
+        return
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT commodity_id, name FROM commodities")
+            commodity_map = {name: cid for cid, name in cur.fetchall()}
+            cur.execute("SELECT location_id FROM locations WHERE state = 'National'")
+            row = cur.fetchone()
+            if row is None:
+                logger.warning("  [Postgres] No 'National' location row — skipping dual-write")
+                return
+            national_id = row[0]
+
+        today_ts = pd.Timestamp(run_date.date())
+        today_ts = today_ts - pd.Timedelta(days=today_ts.dayofweek)  # same Monday-snap as master.csv
+
+        price_rows, forecast_rows = [], []
+        for commodity, fc in validated.items():
+            cid = commodity_map.get(commodity)
+            if cid is None:
+                continue
+
+            vld = fc.get("validation", {})
+            today_price = None
+            daily = fc.get("horizons", {}).get("daily", {})
+            if daily and daily.get("ensemble", {}).get("values"):
+                today_price = daily["ensemble"]["values"][0]
+            elif vld.get("reference_price"):
+                today_price = vld["reference_price"]
+
+            if today_price and today_price > 0:
+                price_rows.append((
+                    today_ts, cid, national_id, float(today_price), "Agrolinking_validated",
+                ))
+
+            validated_flag = vld.get("status") == "validated"
+            error_pct = vld.get("error_after")
+            confidence = fc.get("model_confidence")
+            for h_name, h_days in HORIZON_DAYS_MAP.items():
+                h_data = fc.get("horizons", {}).get(h_name)
+                if not h_data:
+                    continue
+                vals = h_data.get("ensemble", {}).get("values", [])
+                price = vals[0] if vals else h_data.get("forecast_price")
+                if price is None:
+                    continue
+                forecast_rows.append((
+                    today_ts, cid, national_id, h_days,
+                    float(price), confidence, validated_flag, error_pct,
+                ))
+
+        with conn.cursor() as cur:
+            if price_rows:
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO prices (time, commodity_id, location_id, price, source)
+                    VALUES %s
+                    ON CONFLICT (time, commodity_id, location_id, source)
+                    DO UPDATE SET price = EXCLUDED.price
+                    """,
+                    price_rows,
+                )
+            if forecast_rows:
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO forecasts
+                        (time, commodity_id, location_id, horizon_days,
+                         predicted_price, model_confidence, validated, error_pct)
+                    VALUES %s
+                    ON CONFLICT (time, commodity_id, location_id, horizon_days)
+                    DO UPDATE SET
+                        predicted_price  = EXCLUDED.predicted_price,
+                        model_confidence = EXCLUDED.model_confidence,
+                        validated        = EXCLUDED.validated,
+                        error_pct        = EXCLUDED.error_pct
+                    """,
+                    forecast_rows,
+                )
+        conn.commit()
+        logger.info(f"  [Postgres] Dual-write OK: {len(price_rows)} price rows, {len(forecast_rows)} forecast rows")
+    except Exception as e:
+        logger.warning(f"  [Postgres] Dual-write failed this run (CSV write already succeeded): {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # GENERATE VALIDATED DAILY ALERT
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -728,6 +851,7 @@ def run_validation() -> dict:
 
     # Update master CSV
     update_master_with_validated(validated, run_date)
+    write_to_postgres(validated, run_date)
 
     # Save validation report
     report = {
