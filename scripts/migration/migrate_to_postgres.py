@@ -23,16 +23,36 @@ Populates:
 Idempotent — every insert uses ON CONFLICT DO NOTHING, so re-running this
 is always safe (it just skips rows that are already there).
 
+Connecting — two ways:
+
+  1. Discrete PG* variables (recommended — no URL-encoding pitfalls).
+     A password containing '@', ':', '/' etc. breaks a combined connection
+     URL unless every reserved character is percent-encoded by hand, which
+     is exactly the kind of thing that fails silently. These are read
+     automatically by libpq (both psql and psycopg2 use it), so there is
+     nothing to encode — the password is passed as a plain, un-parsed string:
+
+         $env:PGHOST     = "ji5ecism7r.m6f48luj98.tsdb.cloud.timescale.com"
+         $env:PGPORT     = "38941"
+         $env:PGUSER     = "tsdbadmin"
+         $env:PGPASSWORD = "<password, no encoding needed>"
+         $env:PGDATABASE = "tsdb"
+         $env:PGSSLMODE  = "require"
+         python scripts/migration/migrate_to_postgres.py
+
+  2. TSDB_URL as a single connection string (backward compatible — this is
+     what the GitHub Actions secret already uses). If your password has
+     no reserved URL characters this is fine as-is; if it does, percent-
+     encode them ('@' -> '%40', ':' -> '%3A', '/' -> '%2F', etc.):
+
+         $env:TSDB_URL = "postgres://tsdbadmin:...@...tsdb.cloud.timescale.com:PORT/tsdb?sslmode=require"
+         python scripts/migration/migrate_to_postgres.py
+
+Either way, never hardcode the credential in this file — it's committed to git.
+
 Usage:
     pip install psycopg2-binary pandas --break-system-packages
     psql "$TSDB_URL" -f scripts/migration/schema.sql   # once, before this
-    python scripts/migration/migrate_to_postgres.py
-
-Set your connection string as an environment variable rather than
-hardcoding it here — this file gets committed to git, your password
-shouldn't be in it.
-
-    $env:TSDB_URL = "postgres://tsdbadmin:...@...tsdb.cloud.timescale.com:PORT/tsdb?sslmode=require"
     python scripts/migration/migrate_to_postgres.py
 """
 import os
@@ -45,8 +65,13 @@ import psycopg2
 from psycopg2.extras import execute_values
 
 DB_URL = os.environ.get("TSDB_URL")
-if not DB_URL:
-    sys.exit("Set TSDB_URL as an environment variable before running this script.")
+PG_DISCRETE_VARS_SET = bool(os.environ.get("PGHOST") and os.environ.get("PGPASSWORD"))
+if not DB_URL and not PG_DISCRETE_VARS_SET:
+    sys.exit(
+        "No database connection configured. Set either TSDB_URL, or the "
+        "discrete PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE/PGSSLMODE "
+        "variables (recommended — see the top of this file for why)."
+    )
 
 BASE_DIR      = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MASTER_CSV    = os.path.join(BASE_DIR, "data", "processed", "agrolinking_master.csv")
@@ -366,7 +391,10 @@ def migrate_intelligence(conn, commodity_map):
 
 
 def main():
-    conn = psycopg2.connect(DB_URL)
+    # Discrete PGHOST/PGPASSWORD/etc. take priority when set — psycopg2
+    # picks them up automatically via libpq when called with no DSN, with
+    # no URL-encoding involved. Falls back to the TSDB_URL connection string.
+    conn = psycopg2.connect() if PG_DISCRETE_VARS_SET else psycopg2.connect(DB_URL)
     try:
         commodity_map, location_map = get_lookup_maps(conn)
         national_id = location_map["National"]
