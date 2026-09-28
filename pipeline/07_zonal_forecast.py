@@ -47,6 +47,19 @@ HORIZON_DAYS = {
     "6_months": 182,
 }
 
+# NOTE: this is deliberately NOT the same dict as above. HORIZON_DAYS is
+# this file's own internal day-count math, aligned to weekly model cadence
+# (4/13/26 weeks). The Postgres forecasts.horizon_days column instead uses
+# calendar-month approximations (30/90/180) to match how 06_validate.py and
+# scripts/migration/migrate_to_postgres.py already label national forecast
+# rows — using HORIZON_DAYS here instead would give the same "monthly"
+# label two different horizon_days values depending on whether the row is
+# national or zonal, breaking any query that joins/compares across them.
+PG_HORIZON_DAYS = {
+    "daily": 1, "weekly": 7, "2_weeks": 14,
+    "monthly": 30, "3_months": 90, "6_months": 180,
+}
+
 
 def fmt(n):
     if n is None: return "--"
@@ -366,6 +379,85 @@ def generate_alert(zonal_out, best_market, national_anchors, run_date, zones):
     return "\n".join(lines)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# DUAL-WRITE TO POSTGRES (TimescaleDB) — state-level forecasts
+# ─────────────────────────────────────────────────────────────────────────────
+# Mirrors write_to_postgres() in 06_validate.py, but for zonal_out instead
+# of national validated forecasts. Lives here (not in 06_validate.py) because
+# 06_validate.py runs as step 6, before this step generates the state-level
+# data at all — there was nothing yet for it to write. Same non-fatal
+# contract: if TSDB_URL isn't set, or the DB is briefly unreachable, this
+# logs a warning and the pipeline continues — the JSON file (already saved)
+# remains the source of truth.
+def write_zonal_to_postgres(zonal_out: dict, run_date: datetime):
+    db_url = os.environ.get("TSDB_URL")
+    if not db_url and not os.environ.get("PGHOST"):
+        logger.warning("  [Postgres] TSDB_URL not set — skipping zonal dual-write (JSON write already done)")
+        return
+
+    try:
+        import psycopg2
+        from psycopg2.extras import execute_values
+    except ImportError:
+        logger.warning("  [Postgres] psycopg2 not installed — skipping zonal dual-write")
+        return
+
+    try:
+        conn = psycopg2.connect() if os.environ.get("PGHOST") else psycopg2.connect(db_url)
+    except Exception as e:
+        logger.warning(f"  [Postgres] Could not connect — skipping zonal dual-write this run: {e}")
+        return
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT commodity_id, name FROM commodities")
+            commodity_map = {name: cid for cid, name in cur.fetchall()}
+            cur.execute("SELECT location_id, state FROM locations")
+            location_map = {state: lid for lid, state in cur.fetchall()}
+
+        rows = []
+        for zone_data in zonal_out.values():
+            for state_name, state_data in zone_data.get("states", {}).items():
+                loc_id = location_map.get(state_name)
+                if loc_id is None:
+                    continue
+                for commodity_name, cd in state_data.items():
+                    cid = commodity_map.get(commodity_name)
+                    if cid is None:
+                        continue
+                    for h_name, h_days in PG_HORIZON_DAYS.items():
+                        h_data = cd.get("horizons", {}).get(h_name)
+                        if not h_data:
+                            continue
+                        price = h_data.get("end_price")
+                        if price is None:
+                            vals = h_data.get("values", [])
+                            price = vals[-1] if vals else None
+                        if price is None or not np.isfinite(price) or price <= 0:
+                            continue
+                        rows.append((run_date, cid, loc_id, h_days, float(price)))
+
+        with conn.cursor() as cur:
+            if rows:
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO forecasts (time, commodity_id, location_id, horizon_days, predicted_price)
+                    VALUES %s
+                    ON CONFLICT (time, commodity_id, location_id, horizon_days)
+                    DO UPDATE SET predicted_price = EXCLUDED.predicted_price
+                    """,
+                    rows,
+                )
+        conn.commit()
+        logger.info(f"  [Postgres] Zonal dual-write OK: {len(rows)} state-level forecast rows")
+    except Exception as e:
+        logger.warning(f"  [Postgres] Zonal dual-write failed this run (JSON write already succeeded): {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+
 def run_zonal_forecast(run_date=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", type=str, default=None)
@@ -420,6 +512,8 @@ def run_zonal_forecast(run_date=None):
             "best_market":      best_market,
         }, f, indent=2, default=str)
     logger.success(f"  Zonal JSON  -> {json_path}")
+
+    write_zonal_to_postgres(zonal_out, run_date)
 
     alert_txt  = generate_alert(zonal_out, best_market, national_anchors, run_date, zones)
     alert_path = os.path.join(ALERT_DIR, f"alert_zonal_{date_str}.txt")

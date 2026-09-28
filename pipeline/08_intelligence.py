@@ -579,6 +579,110 @@ def compute_price_per_unit(national_anchors):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# DUAL-WRITE TO POSTGRES (TimescaleDB) — intelligence metrics
+# ─────────────────────────────────────────────────────────────────────────────
+# Mirrors write_to_postgres() in 06_validate.py and write_zonal_to_postgres()
+# in 07_zonal_forecast.py, for this step's output instead. Splits into
+# per-commodity rows (intelligence_metrics: volatility, arbitrage) and one
+# basket-wide row per day (market_index: FPI, outlook, confidence) — same
+# split as scripts/migration/migrate_to_postgres.py's migrate_intelligence(),
+# which backfilled the history this keeps current. Non-fatal: if TSDB_URL
+# isn't set, or the DB is briefly unreachable, this logs a warning and the
+# pipeline continues — the JSON file (already saved) remains the source of truth.
+def write_intelligence_to_postgres(output: dict, run_date: datetime):
+    db_url = os.environ.get("TSDB_URL")
+    if not db_url and not os.environ.get("PGHOST"):
+        logger.warning("  [Postgres] TSDB_URL not set — skipping intelligence dual-write (JSON write already done)")
+        return
+
+    try:
+        import psycopg2
+        from psycopg2.extras import execute_values
+    except ImportError:
+        logger.warning("  [Postgres] psycopg2 not installed — skipping intelligence dual-write")
+        return
+
+    try:
+        conn = psycopg2.connect() if os.environ.get("PGHOST") else psycopg2.connect(db_url)
+    except Exception as e:
+        logger.warning(f"  [Postgres] Could not connect — skipping intelligence dual-write this run: {e}")
+        return
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT commodity_id, name FROM commodities")
+            commodity_map = {name: cid for cid, name in cur.fetchall()}
+
+        def finite_or_none(v):
+            # NUMERIC columns silently accept 'NaN' as a valid Postgres
+            # value instead of rejecting it — an unguarded NaN wouldn't
+            # error here, it would just corrupt the row.
+            return v if isinstance(v, (int, float)) and np.isfinite(v) else None
+
+        fpi     = output.get("food_price_index", {})
+        vol     = output.get("volatility_index", {})
+        outlook = output.get("outlook_30d", {})
+        conf    = output.get("model_confidence", {})
+        index_row = (
+            run_date,
+            finite_or_none(fpi.get("value")), finite_or_none(fpi.get("mom_change")),
+            finite_or_none(vol.get("value")),
+            finite_or_none(outlook.get("avg_pct_change")),
+            finite_or_none(conf.get("avg_pct")),
+        )
+
+        vol_per_commodity = vol.get("per_commodity", {})
+        arbitrage = output.get("arbitrage", {})
+        metric_rows = []
+        for commodity_name in set(vol_per_commodity) | set(arbitrage):
+            cid = commodity_map.get(commodity_name)
+            if cid is None:
+                continue
+            vol_pct = finite_or_none(vol_per_commodity.get(commodity_name))
+            net_arb = finite_or_none(arbitrage.get(commodity_name, {}).get("net_arbitrage_ngn_kg"))
+            viable  = (net_arb > 0) if net_arb is not None else None
+            metric_rows.append((run_date, cid, vol_pct, net_arb, viable))
+
+        with conn.cursor() as cur:
+            execute_values(
+                cur,
+                """
+                INSERT INTO market_index
+                    (time, fpi, fpi_mom_change, volatility_index, outlook_30d_pct, model_confidence_pct)
+                VALUES %s
+                ON CONFLICT (time) DO UPDATE SET
+                    fpi                  = EXCLUDED.fpi,
+                    fpi_mom_change       = EXCLUDED.fpi_mom_change,
+                    volatility_index     = EXCLUDED.volatility_index,
+                    outlook_30d_pct      = EXCLUDED.outlook_30d_pct,
+                    model_confidence_pct = EXCLUDED.model_confidence_pct
+                """,
+                [index_row],
+            )
+            if metric_rows:
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO intelligence_metrics
+                        (time, commodity_id, volatility_pct, net_arbitrage_ngn_kg, arbitrage_viable)
+                    VALUES %s
+                    ON CONFLICT (time, commodity_id) DO UPDATE SET
+                        volatility_pct       = EXCLUDED.volatility_pct,
+                        net_arbitrage_ngn_kg = EXCLUDED.net_arbitrage_ngn_kg,
+                        arbitrage_viable     = EXCLUDED.arbitrage_viable
+                    """,
+                    metric_rows,
+                )
+        conn.commit()
+        logger.info(f"  [Postgres] Intelligence dual-write OK: 1 market_index row, {len(metric_rows)} intelligence_metrics rows")
+    except Exception as e:
+        logger.warning(f"  [Postgres] Intelligence dual-write failed this run (JSON write already succeeded): {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+
 def run_intelligence():
     run_date = datetime.now()
     date_str = run_date.strftime("%Y-%m-%d")
@@ -759,6 +863,9 @@ def run_intelligence():
         json.dump(output, f, indent=2, default=str)
 
     logger.success(f"  Intelligence saved -> {out_path}")
+
+    write_intelligence_to_postgres(output, run_date)
+
     logger.info("")
     logger.info("  SUMMARY:")
     logger.info(f"    Food Price Index:    {fpi} (base 2025=100)"
