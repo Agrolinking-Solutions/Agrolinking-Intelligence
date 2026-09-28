@@ -302,6 +302,18 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
 
     if os.path.exists(master_path):
         existing = pd.read_csv(master_path, parse_dates=["date"])
+        # Drop rows that can't be real data — unknown commodity, no date or
+        # no price. These appear when the CSV gets corrupted (e.g. git
+        # conflict markers committed in ba28bf9 became "commodities" with
+        # NaN dates, which made Prophet/XGBoost fail for 6 commodities).
+        bad = (
+            ~existing["commodity"].isin(COMMODITIES)
+            | existing["date"].isna()
+            | existing["price_ngn_mt"].isna()
+        )
+        if bad.any():
+            logger.warning(f"  Dropping {int(bad.sum())} malformed rows from existing master")
+            existing = existing[~bad].copy()
         existing_historical = existing[existing["record_type"] == "historical"]
         forecast_rows = existing[existing["record_type"] == "forecast"]
         # Validated_actual rows — today's forecast, confirmed accurate by

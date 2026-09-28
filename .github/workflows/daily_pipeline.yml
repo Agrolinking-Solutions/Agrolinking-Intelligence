@@ -69,6 +69,14 @@ jobs:
       - name: 08 - Intelligence
         run: python pipeline/08_intelligence.py
 
+      # ── Refuse to publish bad data ──────────────────────────────────
+      # Individual steps can "succeed" while writing NaN forecasts (e.g.
+      # from a corrupted master CSV). NaN in the output JSON makes most
+      # API endpoints return 500, so if the gate fails nothing below
+      # runs — the API keeps serving yesterday's good files.
+      - name: Quality gate
+        run: python pipeline/quality_gate.py
+
       # ── Commit and push whatever changed ────────────────────────────
       - name: Commit and push results
         run: |

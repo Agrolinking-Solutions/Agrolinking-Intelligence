@@ -20,6 +20,7 @@ shouldn't be in it.
     python migrate_to_postgres.py
 """
 import os
+import math
 import json
 import glob
 import sys
@@ -55,8 +56,10 @@ def get_lookup_maps(conn):
 def migrate_prices(conn, commodity_map, national_id):
     print("Loading master.csv...")
     df = pd.read_csv(MASTER_CSV, parse_dates=["date"])
+    total = len(df)
     df = df[df["record_type"].isin(REAL_RECORD_TYPES)]
-    print(f"  {len(df):,} real/validated rows to migrate (out of {len(df):,} total after filter)")
+    df = df.dropna(subset=["date", "price_ngn_mt"])
+    print(f"  {len(df):,} real/validated rows to migrate (out of {total:,} total)")
 
     rows = []
     skipped_unknown_commodity = set()
@@ -113,7 +116,9 @@ def migrate_forecasts(conn, commodity_map, national_id):
             gen_date = fc.get("last_known_date") or fc.get("run_date")
             validation = fc.get("validation", {})
             validated = validation.get("status") == "validated"
-            error_pct = validation.get("error_after") or validation.get("error_pct")
+            error_pct = validation.get("error_pct_after")
+            if error_pct is not None and not math.isfinite(error_pct):
+                error_pct = None
             confidence = fc.get("model_confidence")
 
             horizons = fc.get("horizons", {})
@@ -125,9 +130,12 @@ def migrate_forecasts(conn, commodity_map, national_id):
                 h_data = horizons.get(h_name)
                 if not h_data:
                     continue
+                # Price at the END of the horizon, not day 1 (values[0])
                 vals = h_data.get("ensemble", {}).get("values", [])
-                price = vals[0] if vals else h_data.get("forecast_price")
+                price = h_data.get("forecast_end_detail", {}).get("price")
                 if price is None:
+                    price = vals[-1] if vals else h_data.get("forecast_price")
+                if price is None or not math.isfinite(price) or price <= 0:
                     continue
                 rows.append((
                     gen_date, cid, national_id, h_days,

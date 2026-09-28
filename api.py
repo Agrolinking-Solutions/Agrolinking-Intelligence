@@ -32,6 +32,7 @@ NEW ENDPOINTS (v2):
 """
 
 import os
+import re
 import json
 import glob
 from datetime import datetime, timedelta
@@ -75,36 +76,57 @@ VALID_HORIZONS = ["daily", "weekly", "2_weeks", "monthly", "3_months", "6_months
 
 # ── Helper functions ───────────────────────────────────────────────────────
 
-def load_latest_validated():
-    files = sorted(glob.glob(os.path.join(VALIDATED_DIR, "forecast_validated_*.json")))
+def _reject_non_finite(token):
+    raise ValueError(f"non-finite value {token}")
+
+def _load_latest_valid_json(pattern: str, not_found: str):
+    """
+    Newest file matching pattern that parses cleanly with no NaN/Infinity.
+    A pipeline run that produced NaN (e.g. corrupted input data) is skipped
+    and the last good file is served instead — NaN can't be encoded as JSON
+    and would otherwise turn every endpoint reading it into a 500.
+    """
+    files = sorted(glob.glob(pattern))
     if not files:
-        raise HTTPException(status_code=404, detail="No validated forecast files found.")
-    with open(files[-1], encoding="utf-8") as f:
-        return json.load(f), os.path.basename(files[-1])
+        raise HTTPException(status_code=404, detail=not_found)
+    for path in reversed(files):
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f, parse_constant=_reject_non_finite), os.path.basename(path)
+        except (ValueError, OSError):
+            continue
+    raise HTTPException(status_code=503, detail="No valid data file available.")
+
+def load_latest_validated():
+    return _load_latest_valid_json(
+        os.path.join(VALIDATED_DIR, "forecast_validated_*.json"),
+        "No validated forecast files found.")
 
 def load_latest_zonal():
-    files = sorted(glob.glob(os.path.join(ZONAL_DIR, "zonal_forecast_*.json")))
-    if not files:
-        raise HTTPException(status_code=404, detail="No zonal forecast files found.")
-    with open(files[-1], encoding="utf-8") as f:
-        return json.load(f), os.path.basename(files[-1])
+    return _load_latest_valid_json(
+        os.path.join(ZONAL_DIR, "zonal_forecast_*.json"),
+        "No zonal forecast files found.")
 
 def load_latest_alert():
     files = sorted(glob.glob(os.path.join(ALERTS_DIR, "alert_validated_*.txt")))
     if not files:
         raise HTTPException(status_code=404, detail="No alert files found.")
-    with open(files[-1], encoding="utf-8") as f:
-        return f.read(), os.path.basename(files[-1])
+    # Skip alerts rendered from NaN forecasts ("NnanK", "+nan%")
+    for path in reversed(files):
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        if not re.search(r"(?<![a-z])nan(?![a-z])", text):
+            return text, os.path.basename(path)
+    raise HTTPException(status_code=503, detail="No valid alert file available.")
 
 def load_latest_intelligence():
-    files = sorted(glob.glob(os.path.join(INTEL_DIR, "intelligence_*.json")))
-    if not files:
-        raise HTTPException(
-            status_code=404,
-            detail="No intelligence data found. Run pipeline/08_intelligence.py first."
-        )
-    with open(files[-1], encoding="utf-8") as f:
-        return json.load(f), os.path.basename(files[-1])
+    return _load_latest_valid_json(
+        os.path.join(INTEL_DIR, "intelligence_*.json"),
+        "No intelligence data found. Run pipeline/08_intelligence.py first.")
+
+def error_after_pct(vld: dict):
+    """Post-correction validation error. 06_validate writes 'error_pct_after'."""
+    return vld.get("error_pct_after", vld.get("error_after_pct"))
 
 def normalise(name: str) -> str:
     return name.strip().lower()
@@ -214,7 +236,7 @@ def summary():
     validated_commodities = [
         d for d in forecast.values()
         if d.get("validation", {}) and
-           (d.get("validation", {}).get("error_after_pct") is not None or
+           (error_after_pct(d.get("validation", {})) is not None or
             d.get("validation", {}).get("within_target") is not None)
     ]
     within_target = sum(
@@ -222,10 +244,9 @@ def summary():
         if d.get("validation", {}).get("within_target", False)
     )
     errors = [
-        d.get("validation", {}).get("error_after_pct", 0)
+        error_after_pct(d.get("validation", {}))
         for d in validated_commodities
-        if d.get("validation", {}).get("error_after_pct") is not None
-        and d.get("validation", {}).get("error_after_pct", 0) > 0
+        if (error_after_pct(d.get("validation", {})) or 0) > 0
     ]
     total_validated = len(validated_commodities) if validated_commodities else len(forecast)
     avg_error = round(sum(errors) / len(errors), 2) if errors else 0
@@ -287,7 +308,7 @@ def list_commodities():
             "forecast_price":     detail.get("price", 0),
             "forecast_date":      detail.get("date", ""),
             "pct_change_daily":   detail.get("pct_change_from_today", 0),
-            "validation_error":   vld.get("error_after_pct", 0),
+            "validation_error":   error_after_pct(vld) or 0,
             "validation_status":  vld.get("status", "unknown"),
             "within_target":      vld.get("within_target", False),
             "currency":           "NGN",
@@ -322,7 +343,7 @@ def latest_forecast(
                 "forecast_price_ngn": detail.get("price", vals[-1] if vals else 0),
                 "pct_change":         detail.get("pct_change_from_today", 0),
                 "direction":          detail.get("direction", ""),
-                "validation_error":   vld.get("error_after_pct", 0),
+                "validation_error":   error_after_pct(vld) or 0,
                 "within_target":      vld.get("within_target", False),
             }
         else:
@@ -343,7 +364,7 @@ def latest_forecast(
                 "validation":       {
                     "reference_price":  vld.get("reference_price", 0),
                     "error_before_pct": vld.get("error_pct_before", 0),
-                    "error_after_pct":  vld.get("error_after_pct", 0),
+                    "error_after_pct":  error_after_pct(vld) or 0,
                     "action":           vld.get("correction_applied", ""),
                     "within_target":    vld.get("within_target", False),
                 },
@@ -395,7 +416,7 @@ def commodity_forecast(commodity: str):
         "validation":       {
             "reference_price":  vld.get("reference_price", 0),
             "error_before_pct": vld.get("error_pct_before", 0),
-            "error_after_pct":  vld.get("error_after_pct", 0),
+            "error_after_pct":  error_after_pct(vld) or 0,
             "action":           vld.get("correction_applied", ""),
             "within_target":    vld.get("within_target", False),
         },
@@ -429,7 +450,7 @@ def commodity_horizon(commodity: str, horizon: str):
         "pct_change":         detail.get("pct_change_from_today", 0),
         "direction":          detail.get("direction", ""),
         "currency":           "NGN",
-        "validation_error":   data.get("validation", {}).get("error_after_pct", 0),
+        "validation_error":   error_after_pct(data.get("validation", {})) or 0,
         "within_target":      data.get("validation", {}).get("within_target", False),
         "weekly_series": [
             {"date": d, "price": v,
@@ -1187,12 +1208,31 @@ def save_alerts_db(db):
         json.dump(db, f, indent=2)
 
 
+MASTER_PATH = os.path.join(BASE_DIR, "data", "processed", "agrolinking_master.csv")
+
+def load_master_history():
+    """
+    Real (non-forecast) rows from the master dataset. Rows with no date or
+    price are dropped — they can only come from a corrupted file (e.g. git
+    conflict markers) and would otherwise surface as fake commodities.
+    """
+    import pandas as pd
+    if not os.path.exists(MASTER_PATH):
+        raise HTTPException(status_code=404, detail="Master dataset not found on server.")
+    df = pd.read_csv(MASTER_PATH, parse_dates=["date"])
+    df = df.dropna(subset=["date", "price_ngn_mt"])
+    return df[df["record_type"] != "forecast"]
+
+
 # ── Historical time-series ─────────────────────────────────────────────────
 
-@app.get("/history/{commodity}", tags=["Historical Data"])
+# Registered below /history/compare and /history/fpi — see the
+# app.get(...)(commodity_history) call after fpi_history. FastAPI matches
+# routes in registration order, so registering this one first made
+# "compare" and "fpi" get captured as commodity names.
 def commodity_history(
     commodity: str,
-    days: Optional[int] = Query(90, description="Number of days back (default 90)"),
+    days: Optional[int] = Query(90, ge=1, le=3650, description="Number of days back (default 90)"),
     from_date: Optional[str] = Query(None, description="Start date YYYY-MM-DD"),
     to_date: Optional[str]   = Query(None, description="End date YYYY-MM-DD (default today)"),
     resolution: Optional[str] = Query("weekly", description="daily or weekly"),
@@ -1207,13 +1247,7 @@ def commodity_history(
       /history/Ginger?from_date=2026-01-01&to_date=2026-07-19
       /history/Maize%20(white)?days=30&resolution=daily
     """
-    import pandas as pd
-
-    master_path = os.path.join(BASE_DIR, "data", "processed", "agrolinking_master.csv")
-    if not os.path.exists(master_path):
-        raise HTTPException(status_code=404, detail="Master dataset not found on server.")
-
-    df = pd.read_csv(master_path, parse_dates=["date"])
+    df = load_master_history()
 
     # Find commodity
     available = df["commodity"].unique().tolist()
@@ -1297,7 +1331,7 @@ def commodity_history(
 @app.get("/history/compare", tags=["Historical Data"])
 def compare_commodities(
     commodities: str = Query(..., description="Comma-separated commodity names e.g. Rice,Maize (white)"),
-    days: int = Query(90, description="Number of days back"),
+    days: int = Query(90, ge=1, le=3650, description="Number of days back"),
     resolution: str = Query("weekly", description="daily or weekly"),
 ):
     """
@@ -1306,13 +1340,7 @@ def compare_commodities(
 
     Example: /history/compare?commodities=Rice,Wheat,Maize (white)&days=180
     """
-    import pandas as pd
-
-    master_path = os.path.join(BASE_DIR, "data", "processed", "agrolinking_master.csv")
-    if not os.path.exists(master_path):
-        raise HTTPException(status_code=404, detail="Master dataset not found.")
-
-    df    = pd.read_csv(master_path, parse_dates=["date"])
+    df    = load_master_history()
     names = [c.strip() for c in commodities.split(",")]
     start = datetime.now() - timedelta(days=days)
     end   = datetime.now()
@@ -1348,7 +1376,7 @@ def compare_commodities(
 
 
 @app.get("/history/fpi", tags=["Historical Data"])
-def fpi_history(days: int = Query(90, description="Days of FPI history")):
+def fpi_history(days: int = Query(90, ge=1, le=3650, description="Days of FPI history")):
     """
     Historical Food Price Index series from saved intelligence files.
     Returns daily FPI values for the requested period.
@@ -1385,6 +1413,10 @@ def fpi_history(days: int = Query(90, description="Days of FPI history")):
     }
 
 
+# Must come after /history/compare and /history/fpi (see commodity_history)
+app.get("/history/{commodity}", tags=["Historical Data"])(commodity_history)
+
+
 # ── Price Alerts CRUD ──────────────────────────────────────────────────────
 
 @app.get("/alerts/saved", tags=["Price Alerts"])
@@ -1400,7 +1432,7 @@ def get_saved_alerts():
 @app.post("/alerts/saved", tags=["Price Alerts"])
 def create_alert(
     commodity:       str   = Query(..., description="Commodity name e.g. Rice"),
-    threshold_price: float = Query(..., description="Alert price in NGN/MT"),
+    threshold_price: float = Query(..., gt=0, le=1e12, description="Alert price in NGN/MT"),
     direction:       str   = Query(..., description="above or below"),
     email:           Optional[str] = Query(None, description="Email for notification"),
     phone:           Optional[str] = Query(None, description="Phone for WhatsApp notification"),

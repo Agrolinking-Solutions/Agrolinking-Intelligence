@@ -616,21 +616,24 @@ def write_to_postgres(validated: dict, run_date: datetime):
             elif vld.get("reference_price"):
                 today_price = vld["reference_price"]
 
-            if today_price and today_price > 0:
+            if today_price and np.isfinite(today_price) and today_price > 0:
                 price_rows.append((
                     today_ts, cid, national_id, float(today_price), "Agrolinking_validated",
                 ))
 
             validated_flag = vld.get("status") == "validated"
-            error_pct = vld.get("error_after")
+            error_pct = vld.get("error_pct_after")
+            if error_pct is not None and not np.isfinite(error_pct):
+                error_pct = None
             confidence = fc.get("model_confidence")
             for h_name, h_days in HORIZON_DAYS_MAP.items():
                 h_data = fc.get("horizons", {}).get(h_name)
                 if not h_data:
                     continue
-                vals = h_data.get("ensemble", {}).get("values", [])
-                price = vals[0] if vals else h_data.get("forecast_price")
-                if price is None:
+                # Price at the END of the horizon — values[0] is day 1 of
+                # every horizon, which stored the same number for all six.
+                price = get_horizon_endpoint(h_data).get("price")
+                if price is None or not np.isfinite(price) or price <= 0:
                     continue
                 forecast_rows.append((
                     today_ts, cid, national_id, h_days,
@@ -709,6 +712,11 @@ def generate_validated_alert(validated: dict, run_date: datetime) -> str:
 
         # Use validated price (post-correction)
         price     = daily["ensemble"]["values"][0]
+        if price is None or not np.isfinite(price):
+            # Don't publish "NnanK" to subscribers — mark it as missing.
+            # The quality gate fails the run on this, so it gets fixed.
+            lines.append(f"{commodity:<22} {'n/a':>15} {'':>8}  {'':>6}")
+            continue
 
         # % vs reference price (MANUAL_PRICE) — clean market signal
         ref_price = vld.get("reference_price", 0) or fc.get("last_known_price", price)
@@ -743,7 +751,7 @@ def generate_validated_alert(validated: dict, run_date: datetime) -> str:
         f"Trend  = 30-day forecast direction",
         f"Source: Agrolinking Intelligence Platform",
         f"Next update: {(run_date + timedelta(days=1)).strftime('%d %b %Y')}",
-        f"API: agrolinking-intelligence-production.up.railway.app",
+        f"API: agrolinking-intelligence.onrender.com",
     ]
     return "\n".join(lines)
 
