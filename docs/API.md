@@ -1,14 +1,16 @@
 # Agrolinking Commodity Intelligence API
 
-**Primary URL (Railway — never sleeps):** `https://agrolinking-intelligence-production.up.railway.app`
+**Live URL:** `https://agrolinking-intelligence.onrender.com`
 
-**Backup URL (Render):** `https://agrolinking-intelligence.onrender.com`
+**Interactive Docs:** `https://agrolinking-intelligence.onrender.com/docs`
 
-**Interactive Docs:** `https://agrolinking-intelligence-production.up.railway.app/docs`
+**API Version:** 2.1.0 | **Last Updated:** September 2026
 
-**API Version:** 2.1.0 | **Last Updated:** August 2026
+> Railway was used previously but has been decommissioned — the URL 404s.
+> Render is the only live deployment. See [FIXES_AND_IMPROVEMENTS.md](FIXES_AND_IMPROVEMENTS.md)
+> for where the old Railway URL was still being referenced.
 
-All responses are JSON. All prices in NGN/MT unless otherwise stated. CORS open — callable from any domain or frontend framework.
+All responses are JSON. All prices in NGN/MT unless otherwise stated. CORS is currently open to all origins — see [SECURITY.md](SECURITY.md) for why this needs restricting.
 
 ---
 
@@ -16,12 +18,12 @@ All responses are JSON. All prices in NGN/MT unless otherwise stated. CORS open 
 
 | Component | Service | URL | Status |
 |---|---|---|---|
-| Primary API | Railway | agrolinking-intelligence-production.up.railway.app | Always on |
-| Backup API | Render | agrolinking-intelligence.onrender.com | Always on (keep-alive) |
+| API | Render | agrolinking-intelligence.onrender.com | Live |
 | Dashboard | Streamlit Cloud | agrolinking-intelligence-f8qq4uhupaax2qny8rpcpx.streamlit.app | Live |
-| Keep-alive | GitHub Actions | Pings every 4 minutes | Active |
-| Daily pipeline | GitHub Actions | Runs 7am WAT daily | Active |
-| Uptime monitor | UptimeRobot | Monitors /health endpoint | Active |
+| Keep-alive | GitHub Actions | Pings /health | See note below — currently misconfigured |
+| Daily pipeline | GitHub Actions | Runs 05:00 UTC daily | Active |
+
+**Keep-alive note:** Render now runs on a paid plan (no free-tier sleep), so the `.github/workflows/keep_alive.yml` ping workflow no longer serves a purpose and has been removed. See FIXES_AND_IMPROVEMENTS.md.
 
 ---
 
@@ -84,7 +86,7 @@ All responses are JSON. All prices in NGN/MT unless otherwise stated. CORS open 
 
 ### GET /commodities
 ```
-GET https://agrolinking-intelligence-production.up.railway.app/commodities
+GET https://agrolinking-intelligence.onrender.com/commodities
 ```
 ```json
 {
@@ -208,14 +210,14 @@ POST /alerts/saved?commodity=Rice&threshold_price=1500000&direction=above&email=
 
 ### Homepage hero widget
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/summary');
+const res  = await fetch('https://agrolinking-intelligence.onrender.com/summary');
 const data = await res.json();
 // data.commodities_tracked, data.verified_accuracy, data.avg_model_error_pct
 ```
 
 ### Live price cards
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/commodities');
+const res  = await fetch('https://agrolinking-intelligence.onrender.com/commodities');
 const data = await res.json();
 data.commodities.forEach(c => {
   console.log(c.commodity, c.price_ngn_mt, c.day_change_pct);
@@ -224,7 +226,7 @@ data.commodities.forEach(c => {
 
 ### Forecast chart
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/forecasts/Rice/monthly');
+const res  = await fetch('https://agrolinking-intelligence.onrender.com/forecasts/Rice/monthly');
 const data = await res.json();
 const labels = data.weekly_series.map(p => p.date);
 const prices = data.weekly_series.map(p => p.price);
@@ -233,7 +235,7 @@ const prices = data.weekly_series.map(p => p.price);
 
 ### Nigeria map widget
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/zonal/Rice');
+const res  = await fetch('https://agrolinking-intelligence.onrender.com/zonal/Rice');
 const data = await res.json();
 const states = data.state_prices;
 // states["Lagos"].price_ngn_mt, states["Kano"].price_ngn_mt
@@ -241,7 +243,7 @@ const states = data.state_prices;
 
 ### Factor drivers panel
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence-production.up.railway.app/factors?commodity=Rice');
+const res  = await fetch('https://agrolinking-intelligence.onrender.com/factors?commodity=Rice');
 const data = await res.json();
 // data.overall_pressure, data.factors.rainfall_season.rating, etc.
 ```
@@ -249,7 +251,7 @@ const data = await res.json();
 ### Price alert creation
 ```javascript
 const res = await fetch(
-  'https://agrolinking-intelligence-production.up.railway.app/alerts/saved' +
+  'https://agrolinking-intelligence.onrender.com/alerts/saved' +
   '?commodity=Rice&threshold_price=1500000&direction=above',
   { method: 'POST' }
 );
@@ -273,9 +275,7 @@ const alert = await res.json();
 
 ## Deployment Notes
 
-The API is deployed on Railway (primary) with Render as backup. Both autodeploy on every push to the `main` branch of `Agrolinking-Solutions/Agrolinking-Intelligence`.
-
-A GitHub Actions workflow pings `/health` every 4 minutes to prevent any sleep on the backup Render instance. Railway never sleeps regardless.
+The API is deployed on Render only, on a paid plan (no free-tier sleep). It autodeploys on every push to the `main` branch of `Agrolinking-Solutions/Agrolinking-Intelligence`.
 
 The `as_of` field on every endpoint shows the date of the last pipeline run. If it shows a date older than today, the pipeline may not have run — check GitHub Actions logs.
 

@@ -170,7 +170,7 @@ def run_commentary(intel_path: str = None) -> str:
         f"Model Confidence: {conf}%\n"
         f"{'='*55}\n"
         f"Source: Agrolinking Intelligence Platform\n"
-        f"API: agrolinking-intelligence-production.up.railway.app\n"
+        f"API: agrolinking-intelligence.onrender.com\n"
     )
 
     # Save files
