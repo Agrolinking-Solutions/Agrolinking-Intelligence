@@ -1,23 +1,39 @@
 """
-One-off migration: flat files -> Timescale Postgres.
+One-off historical backfill: flat files -> TimescaleDB Postgres.
+
+Run once against schema.sql (in this folder) to load your pre-existing
+history into Postgres. It is NOT the ongoing sync — pipeline/06_validate.py
+already dual-writes each day's national prices/forecasts to Postgres on
+every pipeline run. This script's job is everything that dual-write never
+covered: years of historical prices, past validated forecasts, zonal
+(state-level) forecast history, and intelligence metric history.
 
 Populates:
-  - prices              from data/processed/agrolinking_master.csv
-  - forecasts            from outputs/forecasts/validated/forecast_validated_*.json
+  - prices                from data/processed/agrolinking_master.csv (national only —
+                           there is no historical state-level price data, only
+                           interpolated/forecast state prices, see below)
+  - forecasts              from outputs/forecasts/validated/forecast_validated_*.json
+                           (national) and outputs/forecasts/zonal/zonal_forecast_*.json
+                           (state-level, one row per state per horizon)
+  - intelligence_metrics   per-commodity volatility + arbitrage, from
+                           outputs/intelligence/intelligence_*.json
+  - market_index           basket-wide FPI/volatility/outlook/confidence,
+                           one row per day, from the same intelligence files
 
 Idempotent — every insert uses ON CONFLICT DO NOTHING, so re-running this
 is always safe (it just skips rows that are already there).
 
 Usage:
     pip install psycopg2-binary pandas --break-system-packages
-    python migrate_to_postgres.py
+    psql "$TSDB_URL" -f scripts/migration/schema.sql   # once, before this
+    python scripts/migration/migrate_to_postgres.py
 
 Set your connection string as an environment variable rather than
 hardcoding it here — this file gets committed to git, your password
 shouldn't be in it.
 
     $env:TSDB_URL = "postgres://tsdbadmin:...@...tsdb.cloud.timescale.com:PORT/tsdb?sslmode=require"
-    python migrate_to_postgres.py
+    python scripts/migration/migrate_to_postgres.py
 """
 import os
 import math
@@ -32,14 +48,42 @@ DB_URL = os.environ.get("TSDB_URL")
 if not DB_URL:
     sys.exit("Set TSDB_URL as an environment variable before running this script.")
 
-MASTER_CSV = "data/processed/agrolinking_master.csv"
-VALIDATED_DIR = "outputs/forecasts/validated"
+BASE_DIR      = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MASTER_CSV    = os.path.join(BASE_DIR, "data", "processed", "agrolinking_master.csv")
+VALIDATED_DIR = os.path.join(BASE_DIR, "outputs", "forecasts", "validated")
+ZONAL_DIR     = os.path.join(BASE_DIR, "outputs", "forecasts", "zonal")
+INTEL_DIR     = os.path.join(BASE_DIR, "outputs", "intelligence")
+
+HORIZON_DAYS = {
+    "daily": 1, "weekly": 7, "2_weeks": 14,
+    "monthly": 30, "3_months": 90, "6_months": 180,
+}
 
 # Real price data only — skip synthetic/interpolated filler rows and
 # raw "forecast" placeholder rows. This mirrors the same REAL_SOURCES
 # logic the pipeline itself uses for anchor selection, extended to
 # include validated_actual since those are confirmed-accurate prices.
 REAL_RECORD_TYPES = {"historical", "validated_actual"}
+
+
+def _reject_non_finite(token):
+    raise ValueError(f"non-finite value {token} in JSON")
+
+
+def load_json_safe(path):
+    """
+    Parse JSON, rejecting NaN/Infinity. A full historical backfill globs
+    every file under outputs/, including days where the pipeline produced
+    corrupted NaN output (e.g. 2026-09-26, before the ba28bf9 conflict-marker
+    bug was fixed — see docs/FIXES_AND_IMPROVEMENTS.md). Returns None and
+    prints a warning instead of inserting garbage into Postgres.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f, parse_constant=_reject_non_finite)
+    except ValueError as e:
+        print(f"  SKIPPING {os.path.basename(path)}: {e}")
+        return None
 
 
 def get_lookup_maps(conn):
@@ -49,7 +93,7 @@ def get_lookup_maps(conn):
         cur.execute("SELECT location_id, state FROM locations")
         location_map = {state: lid for lid, state in cur.fetchall()}
     if "National" not in location_map:
-        sys.exit("No 'National' row in locations — run 01_seed_dimensions.sql first.")
+        sys.exit("No 'National' row in locations — run scripts/migration/schema.sql first.")
     return commodity_map, location_map
 
 
@@ -103,8 +147,9 @@ def migrate_forecasts(conn, commodity_map, national_id):
     rows = []
     skipped_unknown_commodity = set()
     for path in files:
-        with open(path) as f:
-            data = json.load(f)
+        data = load_json_safe(path)
+        if data is None:
+            continue
         forecasts = data.get("forecasts", data)
 
         for commodity_name, fc in forecasts.items():
@@ -122,10 +167,6 @@ def migrate_forecasts(conn, commodity_map, national_id):
             confidence = fc.get("model_confidence")
 
             horizons = fc.get("horizons", {})
-            HORIZON_DAYS = {
-                "daily": 1, "weekly": 7, "2_weeks": 14,
-                "monthly": 30, "3_months": 90, "6_months": 180,
-            }
             for h_name, h_days in HORIZON_DAYS.items():
                 h_data = horizons.get(h_name)
                 if not h_data:
@@ -164,6 +205,166 @@ def migrate_forecasts(conn, commodity_map, national_id):
     print("  Done.")
 
 
+def migrate_zonal_forecasts(conn, commodity_map, location_map):
+    """
+    State-level forecast history from outputs/forecasts/zonal/*.json.
+    Same forecasts table as national data, keyed by each state's
+    location_id instead of National. This is what was previously missing —
+    the location_id column existed for this from the start but nothing
+    populated it, so every zonal forecast stayed trapped in JSON files.
+
+    There's no equivalent zonal *prices* migration: the master CSV only
+    has national-level real price observations. State prices in the zonal
+    JSON are the pipeline's own interpolated estimates (state_price),
+    i.e. already a forecast, not a raw observation — they belong in
+    forecasts, not prices.
+    """
+    files = sorted(glob.glob(os.path.join(ZONAL_DIR, "zonal_forecast_*.json")))
+    print(f"Found {len(files)} zonal forecast files.")
+
+    rows = []
+    skipped_unknown_commodity = set()
+    skipped_unknown_state = set()
+    for path in files:
+        data = load_json_safe(path)
+        if data is None:
+            continue
+        run_date = data.get("run_date", "")
+
+        for zone_data in data.get("zones", {}).values():
+            for state_name, state_data in zone_data.get("states", {}).items():
+                loc_id = location_map.get(state_name)
+                if loc_id is None:
+                    skipped_unknown_state.add(state_name)
+                    continue
+
+                for commodity_name, cd in state_data.items():
+                    cid = commodity_map.get(commodity_name)
+                    if cid is None:
+                        skipped_unknown_commodity.add(commodity_name)
+                        continue
+
+                    for h_name, h_days in HORIZON_DAYS.items():
+                        h_data = cd.get("horizons", {}).get(h_name)
+                        if not h_data:
+                            continue
+                        price = h_data.get("end_price")
+                        if price is None:
+                            vals = h_data.get("values", [])
+                            price = vals[-1] if vals else None
+                        if price is None or not math.isfinite(price) or price <= 0:
+                            continue
+                        rows.append((
+                            run_date, cid, loc_id, h_days,
+                            float(price), None, False, None,
+                        ))
+
+    if skipped_unknown_state:
+        print(f"  WARNING — skipped rows for states not in the locations table: "
+              f"{skipped_unknown_state}")
+    if skipped_unknown_commodity:
+        print(f"  WARNING — skipped rows for commodities not in the commodities table: "
+              f"{skipped_unknown_commodity}")
+
+    print(f"  Inserting {len(rows):,} zonal forecast rows...")
+    with conn.cursor() as cur:
+        execute_values(
+            cur,
+            """
+            INSERT INTO forecasts
+                (time, commodity_id, location_id, horizon_days,
+                 predicted_price, model_confidence, validated, error_pct)
+            VALUES %s
+            ON CONFLICT (time, commodity_id, location_id, horizon_days) DO NOTHING
+            """,
+            rows,
+            page_size=1000,
+        )
+    conn.commit()
+    print("  Done.")
+
+
+def migrate_intelligence(conn, commodity_map):
+    """
+    outputs/intelligence/intelligence_*.json splits into two shapes:
+      - per-commodity metrics (volatility, arbitrage)  -> intelligence_metrics
+      - basket-wide indices (FPI, outlook, confidence)  -> market_index, one row/day
+
+    Neither was migrated before — FPI history, volatility trends, and
+    arbitrage history all lived only in these JSON files.
+    """
+    files = sorted(glob.glob(os.path.join(INTEL_DIR, "intelligence_*.json")))
+    print(f"Found {len(files)} intelligence files.")
+
+    metric_rows = []
+    index_rows = []
+    skipped_unknown_commodity = set()
+    for path in files:
+        data = load_json_safe(path)
+        if data is None:
+            continue
+        run_date = data.get("run_date", "")
+
+        fpi     = data.get("food_price_index", {})
+        vol     = data.get("volatility_index", {})
+        outlook = data.get("outlook_30d", {})
+        conf    = data.get("model_confidence", {})
+        index_rows.append((
+            run_date,
+            fpi.get("value"), fpi.get("mom_change"),
+            vol.get("value"),
+            outlook.get("avg_pct_change"),
+            conf.get("avg_pct"),
+            None,  # commentary — only produced by the separate,
+                   # not-yet-wired-in pipeline/generate_commentary.py
+        ))
+
+        vol_per_commodity = vol.get("per_commodity", {})
+        arbitrage = data.get("arbitrage", {})
+        for commodity_name in set(vol_per_commodity) | set(arbitrage):
+            cid = commodity_map.get(commodity_name)
+            if cid is None:
+                skipped_unknown_commodity.add(commodity_name)
+                continue
+            vol_pct = vol_per_commodity.get(commodity_name)
+            net_arb = arbitrage.get(commodity_name, {}).get("net_arbitrage_ngn_kg")
+            viable  = (net_arb > 0) if net_arb is not None else None
+            metric_rows.append((run_date, cid, vol_pct, net_arb, viable))
+
+    if skipped_unknown_commodity:
+        print(f"  WARNING — skipped rows for commodities not in the commodities table: "
+              f"{skipped_unknown_commodity}")
+
+    print(f"  Inserting {len(metric_rows):,} intelligence_metrics rows...")
+    with conn.cursor() as cur:
+        execute_values(
+            cur,
+            """
+            INSERT INTO intelligence_metrics
+                (time, commodity_id, volatility_pct, net_arbitrage_ngn_kg, arbitrage_viable)
+            VALUES %s
+            ON CONFLICT (time, commodity_id) DO NOTHING
+            """,
+            metric_rows,
+            page_size=1000,
+        )
+        print(f"  Inserting {len(index_rows):,} market_index rows...")
+        execute_values(
+            cur,
+            """
+            INSERT INTO market_index
+                (time, fpi, fpi_mom_change, volatility_index, outlook_30d_pct,
+                 model_confidence_pct, commentary)
+            VALUES %s
+            ON CONFLICT (time) DO NOTHING
+            """,
+            index_rows,
+            page_size=1000,
+        )
+    conn.commit()
+    print("  Done.")
+
+
 def main():
     conn = psycopg2.connect(DB_URL)
     try:
@@ -174,12 +375,15 @@ def main():
         migrate_prices(conn, commodity_map, national_id)
         print()
         migrate_forecasts(conn, commodity_map, national_id)
+        print()
+        migrate_zonal_forecasts(conn, commodity_map, location_map)
+        print()
+        migrate_intelligence(conn, commodity_map)
 
         with conn.cursor() as cur:
-            cur.execute("SELECT count(*) FROM prices")
-            print(f"\nprices table now has {cur.fetchone()[0]:,} rows.")
-            cur.execute("SELECT count(*) FROM forecasts")
-            print(f"forecasts table now has {cur.fetchone()[0]:,} rows.")
+            for table in ("prices", "forecasts", "intelligence_metrics", "market_index"):
+                cur.execute(f"SELECT count(*) FROM {table}")
+                print(f"\n{table} table now has {cur.fetchone()[0]:,} rows.")
     finally:
         conn.close()
 
