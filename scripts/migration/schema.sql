@@ -86,15 +86,34 @@ SELECT create_hypertable('forecasts', 'time', if_not_exists => TRUE);
 -- (volatility_index.per_commodity, arbitrage). No location_id: the current
 -- 08_intelligence.py computes these at the national basket level only —
 -- add the column later if per-state intelligence metrics get computed.
-CREATE TABLE IF NOT EXISTS intelligence_metrics (
-    time                    TIMESTAMPTZ NOT NULL,
-    commodity_id            INT NOT NULL REFERENCES commodities(commodity_id),
-    volatility_pct          NUMERIC,             -- 30-day rolling coefficient of variation
-    net_arbitrage_ngn_kg    NUMERIC,             -- from outputs/intelligence: arbitrage[commodity]
-    arbitrage_viable        BOOLEAN,             -- net_arbitrage_ngn_kg > 0
-    PRIMARY KEY (time, commodity_id)
-);
-SELECT create_hypertable('intelligence_metrics', 'time', if_not_exists => TRUE);
+--
+-- Guarded DROP/CREATE instead of plain CREATE TABLE IF NOT EXISTS: an
+-- earlier ad hoc session (before this file existed) already created an
+-- intelligence_metrics table under the original schema sketch, with
+-- different column names (fpi, volatility, arbitrage_flag, commentary).
+-- IF NOT EXISTS alone would see that table and silently keep the old,
+-- incompatible columns instead of these — which is exactly what happened
+-- the first time this file ran. The check only replaces the table when
+-- the new column is missing, so this stays a safe no-op on every run
+-- after the first, and never touches a table that's already correct.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'intelligence_metrics' AND column_name = 'volatility_pct'
+    ) THEN
+        DROP TABLE IF EXISTS intelligence_metrics;
+        CREATE TABLE intelligence_metrics (
+            time                    TIMESTAMPTZ NOT NULL,
+            commodity_id            INT NOT NULL REFERENCES commodities(commodity_id),
+            volatility_pct          NUMERIC,         -- 30-day rolling coefficient of variation
+            net_arbitrage_ngn_kg    NUMERIC,         -- from outputs/intelligence: arbitrage[commodity]
+            arbitrage_viable        BOOLEAN,         -- net_arbitrage_ngn_kg > 0
+            PRIMARY KEY (time, commodity_id)
+        );
+        PERFORM create_hypertable('intelligence_metrics', 'time', if_not_exists => TRUE);
+    END IF;
+END $$;
 
 -- Replaces the basket-wide parts of intelligence_*.json (food_price_index,
 -- volatility_index top-level value, outlook_30d, model_confidence). One
