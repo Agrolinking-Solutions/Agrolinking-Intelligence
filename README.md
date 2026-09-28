@@ -2,435 +2,417 @@
 
 > Nigeria's most accurate agricultural commodity price intelligence system. Built by and for Agrolinking Solutions.
 
----
-
-## Overview
-
-The Agrolinking Commodity Intelligence Platform is a production-grade forecasting and price intelligence system that tracks 13 Nigerian agricultural commodities and 4 livestock/protein commodities across 6 geopolitical zones and 12 states. It combines ARIMA, Prophet, Holt-Winters, XGBoost, and LightGBM ensemble models with daily cross-reference validation against verified market sources to deliver actionable price intelligence to farmers, processors, and investors.
-
-The system runs as a fully automated 7-step pipeline that ingests new data, trains models, generates forecasts, validates accuracy against live market prices, and produces a Streamlit dashboard, a REST API, and WhatsApp-ready broadcast alerts.
-
-**Live Dashboard:** https://agrolinking-intelligence-f8qq4uhupaax2qny8rpcpx.streamlit.app
-
-**Live API:** https://agrolinking-intelligence-api.onrender.com
-
-**API Docs:** https://agrolinking-intelligence-api.onrender.com/docs
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![License](https://img.shields.io/badge/License-Proprietary-red)
+![Status](https://img.shields.io/badge/Status-Production-green)
 
 ---
 
-## What It Does
+## 🎯 Overview
 
-- Forecasts prices for 17 commodities at 6 horizons: daily, weekly, 2 weeks, 1 month, 3 months, and 6 months
-- Validates every forecast against Agricome Africa, WFP Nigeria, NGX, and live market sources, targeting under 3% error
-- Currently achieving 17/17 commodities within 3% target at 1.7% average error post-correction
-- Applies deterministic date-seeded daily microstructure noise to ensemble forecasts so each day produces unique, realistic price variation
-- Applies date-seeded variation to reference price anchors in the validation layer to prevent static output across consecutive runs
-- Applies structural price differentials across 12 states to generate state-level sourcing intelligence
-- Identifies the cheapest sourcing location nationally for each commodity with spread analysis
-- Produces daily broadcast alerts formatted for WhatsApp and email distribution
-- Serves a live Streamlit dashboard with light and dark mode, zonal charts, and forecast trajectory graphs
-- Exposes a FastAPI REST API for frontend integration into the Agrolinking website
+The Agrolinking Commodity Intelligence Platform is a production-grade forecasting and price intelligence system that tracks **17 Nigerian agricultural commodities** across **6 geopolitical zones and 12 states**. It combines ensemble machine learning (ARIMA, Prophet, XGBoost, LightGBM) with daily cross-reference validation against live market sources.
+
+**Live Services:**
+- 📊 **Dashboard:** [Streamlit](https://agrolinking-intelligence-f8qq4uhupaax2qny8rpcpx.streamlit.app)
+- 📡 **API:** [Render](https://agrolinking-intelligence.onrender.com/docs)
+- 📱 **Alerts:** Daily WhatsApp-ready broadcast text
 
 ---
 
-## Commodities Tracked
+## 📋 What It Does
 
-### Agricultural Commodities
+✅ **Forecasts 6 horizons** — daily, weekly, 2 weeks, 1 month, 3 months, 6 months  
+✅ **17 commodities tracked** — 13 agricultural + 4 livestock/protein  
+✅ **Automated daily pipeline** — GitHub Actions runs ingest → intelligence every day at 05:00 UTC
+✅ **Sub-3% accuracy** — Cross-validated against live market prices  
+✅ **Zonal intelligence** — State-level sourcing and price signals
+✅ **Deterministic daily noise** — Reproducible, realistic price variation
+✅ **Quality-gated publishing** — Bad data (NaN, conflict markers) is blocked before it reaches the API
 
-| Commodity | Primary Source | Data Points |
-|---|---|---|
-| Hibiscus | Agricome Africa | 853+ weekly posts |
-| Sesame | Agricome Africa | 831+ weekly posts |
-| Ginger | Agricome Africa | 1,375+ weekly posts |
-| Cocoa | Agricome Africa | 1,375+ weekly posts |
-| Soybeans | Agricome Africa | 1,375+ weekly posts |
-| Cashew Nuts | Agricome Africa | 853+ weekly posts |
-| Sorghum | WFP Nigeria | 1,269+ market readings |
-| Beans (white) | WFP Nigeria | 1,265+ market readings |
-| Beans (red) | WFP Nigeria | 535+ market readings |
-| Maize (white) | WFP Nigeria + Agrolinking | 1,268+ market readings |
-| Maize (yellow) | WFP Nigeria + Agrolinking | 625+ market readings |
-| Wheat | Agrolinking primary | 853+ weekly posts |
-| Rice | WFP Nigeria + Bridge | 1,271+ market readings |
+### Commodities Tracked
 
-### Livestock and Protein Commodities
+**Agricultural (13):** Hibiscus, Sesame, Ginger, Cocoa, Soybeans, Cashew Nuts, Sorghum, Beans (white), Beans (red), Maize (white), Maize (yellow), Wheat, Rice
 
-| Commodity | Primary Source | Unit |
-|---|---|---|
-| Eggs | Market research | NGN/crate (30 eggs) |
-| Fish (dried) | WFP Nigeria + Market research | NGN/MT |
-| Meat (goat) | WFP Nigeria retail + Market research | NGN/MT |
-| Meat (beef) | WFP Nigeria retail + Market research | NGN/MT |
-
-> Note: Livestock and protein commodities are validated against WFP Nigeria retail prices and market research. They are tracked separately from agricultural commodities and are not included in zonal sourcing arbitrage analysis.
+**Livestock/Protein (4):** Meat (beef), Meat (goat), Fish (dried), Eggs
 
 ---
 
-## Zones and States
+## 📊 Quick Facts
 
-| Zone | States | Character |
-|---|---|---|
-| North West | Kano, Kaduna | Nigeria's main grain belt. Maize, Sorghum, Sesame, Wheat |
-| North Central | Plateau, Kogi | Middle Belt. Ginger heartland and Cashew/Cocoa corridor |
-| North East | Adamawa, Borno | Semi-arid. Sorghum and Maize. Conflict premium in Borno |
-| South West | Oyo, Lagos | Commercial capital. Lagos sets consumer market prices |
-| South East | Anambra, Imo | High consumption, import-dependent |
-| South South | Rivers, Delta | Oil belt. High purchasing power. Cocoa producer (Delta) |
-
----
-
-## Pipeline Architecture
-
-The system runs as a sequential 7-step pipeline:
-
-```
-Step 1: Ingest       Scrape and validate new data from all sources
-Step 2: Clean        Standardise, deduplicate, and fill gaps in master CSV
-Step 3: Features     Engineer lag features, rolling stats, and seasonal signals
-Step 4: Train        ARIMA + Prophet + Holt-Winters + XGBoost + LightGBM ensemble
-Step 5: Forecast     Generate 6-horizon price trajectories for all 17 commodities
-                     Applies deterministic date-seeded microstructure noise (±0.5-2%)
-                     to ensemble output so each calendar day produces unique values
-Step 6: Validate     Cross-reference against verified market prices, apply corrections
-                     Reference price anchors are date-seeded (±0.8%) so validation
-                     does not produce identical output on consecutive days
-Step 7: Zonal        Apply state-level price factors and generate subnational intelligence
-```
-
-### Model Ensemble
-
-Each commodity is trained on 5 models. Weights are assigned inversely proportional to each model's holdout MAPE so the best-performing model dominates the ensemble but all 5 contribute.
-
-| Model | Strength | Typical Weight |
-|---|---|---|
-| ARIMA | Stationary price series, short-run momentum | 0.20-0.35 |
-| Prophet | Seasonal decomposition, trend changepoints | 0.18-0.43 |
-| Holt-Winters | Food price cycles, harvest/lean seasonality | 0.17-0.84 |
-| XGBoost | Non-linear lag relationships, market shocks | 0.10-0.84 |
-| LightGBM | Fast gradient boosting on smaller datasets | 0.05-0.25 |
-
-### Daily Noise Design
-
-Nigerian agricultural wholesale prices move 0.5% to 2% per week, not per day. The platform applies small deterministic daily fluctuations seeded by `commodity + date` so:
-
-- The same day always produces the same output (reproducible)
-- Each day produces a different output from the day before (no frozen values)
-- Noise decays exponentially at longer horizons (near-term more variable, long-term smoother)
-- No fabricated price swings are introduced that do not exist in real wholesale markets
-
-### Validation Logic
-
-Correction strength scales with the error between the model forecast and the reference price:
-
-| Error Range | Action | Reference Weight |
-|---|---|---|
-| 0 to 2% | No correction | 0% |
-| 2 to 10% | Soft blend | 75% |
-| 10 to 30% | Hard blend | 90% |
-| Above 30% | Extreme blend | 96% |
-
-### Validation Results (June 2026)
-
-- 17 out of 17 commodities within 3% of live market prices post-correction
-- Average error before validation: 13.8%
-- Average error after validation: 1.7%
-
-### Key Sourcing Intelligence (June 2026)
-
-| Commodity | Best State | Saving vs Lagos |
-|---|---|---|
-| Ginger | Kaduna | 67% cheaper |
-| Maize (white) | Kano | 62% cheaper |
-| Sorghum | Kano | 54% cheaper |
-| Soybeans | Plateau | 47% cheaper |
-| Beans (white) | Kano | 47% cheaper |
-| Rice | Plateau | 31% cheaper |
+| Metric | Value |
+|---|---|
+| Accuracy (post-correction) | 1.7% average error |
+| Data points | 18,000+ weekly observations |
+| Historical depth | 2016–present (10+ years) |
+| Geographic coverage | 6 zones, 12 states, 30+ markets |
+| Model ensemble | 5 models per commodity (ARIMA, Prophet, XGBoost, LightGBM, Holt-Winters) |
+| Update frequency | Daily (skip-train) / Weekly (retrain) |
+| API endpoints | 20+ endpoints, <1s response time |
 
 ---
 
-## Project Structure
+## 🏗️ Project Structure
 
 ```
 agrolinking-intel/
-    .streamlit/
-        config.toml                   Streamlit theme configuration
-    config/
-        settings.py                   Commodity list, file paths, model parameters
-    dashboard/
-        app.py                        Streamlit dashboard (5 pages, light/dark mode)
-    data/
-        external/
-            state_price_differentials.csv    156 rows: zone, state, commodity, factor
-            zones_config.json                6 zones, 12 states, descriptions
-            verified_prices_2026.json        Cross-referenced market reference prices
-            fx_rates.csv                     USD/NGN exchange rates
-            fuel_prices.csv                  Petrol prices (transport cost proxy)
-            inflation.csv                    CPI series
-            season_calendar.csv              Harvest and lean season calendar
-        processed/
-            agrolinking_master.csv           Master dataset across 17 commodities
-            features/                        Per-commodity feature matrices
-        raw/
-            agricome_raw.csv                 Agricome Africa Instagram data
-            wfp_food_prices_nga.csv          WFP Nigeria price monitor
-            rice_historical.csv              WFP + bridge data for Rice
-            wheat_agrolinking.csv            Agrolinking primary wheat data
-    outputs/
-        forecasts/
-            validated/                       forecast_validated_YYYY-MM-DD.json
-            zonal/                           zonal_forecast_YYYY-MM-DD.json
-        daily_alerts/                        alert_validated and alert_zonal .txt files
-        logs/                                Per-step logs, model results, validation reports
-    pipeline/
-        01_ingest.py                         Data ingestion and source validation
-        02_clean.py                          Master dataset cleaning and gap-filling
-        03_features.py                       Feature engineering (79 features per commodity)
-        04_train.py                          5-model ensemble training
-        05_forecast.py                       Multi-horizon forecast generation with daily noise
-        06_validate.py                       Cross-reference validation and correction
-        07_zonal_forecast.py                 State-level price interpolation and drift
-        run_pipeline.py                      Full and skip-train pipeline runner
-    api.py                                   FastAPI REST API (8 endpoints)
-    API_DOCUMENTATION.md                     API reference for the dev team
-    requirements.txt
+├── .github/
+│   └── workflows/
+│       ├── daily_pipeline.yml        # GitHub Actions runner (daily at 05:00 UTC)
+│       └── keep_alive.yml            # Uptime monitoring ping
+├── config/
+│   ├── __init__.py
+│   └── settings.py                   # Commodities, paths, model parameters (source of truth)
+├── dashboard/
+│   └── app.py                        # Streamlit 5-page interactive dashboard
+├── data/
+│   ├── external/                     # FX, inflation, fuel, seasonality, zones
+│   ├── processed/
+│   │   ├── agrolinking_master.csv    # Master dataset (living record, 10+ years)
+│   │   └── features/                 # Per-commodity 79-feature matrices
+│   └── raw/                          # Agricome, WFP, Rice, Wheat CSV files
+├── docs/
+│   ├── ARCHITECTURE.md               # System design, model ensemble, data flow
+│   ├── SECURITY.md                   # Security posture, risk mitigation, hardening plan
+│   ├── FIXES_AND_IMPROVEMENTS.md     # What was fixed in Sept 2026
+│   ├── OPERATIONAL_GUIDE.md          # Running the pipeline, troubleshooting, deployment
+│   └── API.md                        # REST API reference and examples
+├── models/                           # Trained ensemble models (ARIMA, Prophet, XGBoost, .pkl) — gitignored, local only
+├── notebooks/                        # Exploratory analysis — gitignored, not part of the pipeline
+├── outputs/
+│   ├── forecasts/
+│   │   ├── validated/                # Daily validated forecasts (JSON)
+│   │   └── zonal/                    # State-level forecasts (JSON)
+│   ├── daily_alerts/                 # WhatsApp-ready alert text (TXT)
+│   ├── intelligence/                 # Market indices, trade signals (JSON)
+│   └── logs/                         # Per-step logs and validation reports
+├── pipeline/
+│   ├── 01_ingest.py                  # Load and validate all data sources
+│   ├── 02_clean.py                   # Clean, standardize, deduplicate
+│   ├── 03_features.py                # Feature engineering (79 features per commodity)
+│   ├── 04_train.py                   # Train 5-model ensemble per commodity
+│   ├── 05_forecast.py                # Generate 6-horizon forecasts + daily noise
+│   ├── 06_validate.py                # Cross-reference validation + correction
+│   ├── 07_zonal_forecast.py          # State-level price interpolation
+│   ├── 08_intelligence.py            # Synthesize indices, movers, trade signals
+│   ├── 09_staleness_check.py         # Detect stale data > 45 days
+│   ├── quality_gate.py               # CRITICAL: Reject bad outputs (NaN, conflict markers)
+│   ├── run_pipeline.py               # Full and skip-train pipeline runner
+│   ├── scheduler.py                  # (Windows Task Scheduler alternative)
+│   ├── refresh_wfp_hdx.py            # Download WFP Nigeria data from HDX
+│   └── diagnose_stale_anchor.py      # Debug helpers
+├── scripts/
+│   ├── maintenance/                  # Old one-off fix/patch scripts (archived)
+│   └── migration/                    # Postgres migration tools
+├── tests/                            # Unit tests (placeholder)
+├── api.py                            # FastAPI REST endpoint (20 endpoints)
+├── push_daily.ps1                    # Safe local push script (now with quality gate)
+├── requirements.txt                  # Core pipeline dependencies
+├── requirements_api.txt              # API-only (no ML libs needed)
+├── railway.toml                      # Railway deployment config (legacy)
+├── .gitignore                        # Git ignore rules
+└── README.md                         # This file
 ```
 
 ---
 
-## Setup
-
-### Requirements
-
-- Python 3.11.9 (Python 3.14 is not compatible with Prophet and some ARIMA dependencies)
-- Windows 10/11 or Ubuntu 20.04+
-- 4GB RAM minimum, 8GB recommended for full training run
+## 🚀 Quick Start
 
 ### Installation
 
-```powershell
+```bash
 git clone https://github.com/Agrolinking-Solutions/Agrolinking-Intelligence.git
 cd Agrolinking-Intelligence
 
 python -m venv venv
-venv\Scripts\Activate.ps1
+source venv/bin/activate  # Windows: venv\Scripts\Activate.ps1
 
 pip install -r requirements.txt
 ```
 
----
+**Requirements:** Python 3.10+, 4GB RAM (8GB for training), Windows/Linux/Mac
 
-## Running the Pipeline
+### Run the Pipeline
 
-### Daily Run (skip retraining, uses existing models, runs in under 2 minutes)
+```bash
+# Daily run (uses existing trained models, ~2 minutes)
+python pipeline/run_pipeline.py --skip-train
 
-```powershell
-python pipeline\run_pipeline.py --skip-train
+# Full retrain (trains all 5 models per commodity, ~20 minutes)
+python pipeline/run_pipeline.py
+
+# Run individual steps
+python pipeline/01_ingest.py
+python pipeline/04_train.py
+python pipeline/05_forecast.py
 ```
 
-### Full Weekly Run (retrains all 5 models per commodity, takes 15-30 minutes)
+### Run the Dashboard
 
-```powershell
-python pipeline\run_pipeline.py
+```bash
+streamlit run dashboard/app.py
+# Opens http://localhost:8501
 ```
 
-### Run Individual Steps
+### Run the API
 
-```powershell
-python pipeline\03_features.py
-python pipeline\04_train.py
-python pipeline\05_forecast.py
-python pipeline\06_validate.py
-python pipeline\07_zonal_forecast.py
-```
-
----
-
-## Dashboard
-
-### Run Locally
-
-```powershell
-streamlit run dashboard\app.py
-```
-
-Opens at `http://localhost:8501`
-
-### Dashboard Pages
-
-| Page | Description |
-|---|---|
-| Dashboard | Live commodity price cards with daily change pills and validation status |
-| Commodities | Deep dive with forecast trajectory chart and weekly breakdown table |
-| Forecasts | Full 17-commodity summary table across any selected horizon |
-| Zonal Prices | Zone overview, state detail with spider chart, best-buy market, production advantage |
-| Alerts | National and zonal WhatsApp-ready broadcast text, ready to copy |
-
-### Light and Dark Mode
-
-Click the **Dark** or **Light** button in the navigation bar to toggle between themes.
-
----
-
-## REST API
-
-The platform exposes a FastAPI REST API that the Agrolinking development team uses to build the website commodity intelligence section.
-
-### Run Locally
-
-```powershell
+```bash
 python api.py
+# Opens http://localhost:8000
+# API docs at http://localhost:8000/docs
 ```
 
-Opens at `http://localhost:8000`
-Interactive docs at `http://localhost:8000/docs`
+### Check Quality
 
-### Live API
-
+```bash
+python pipeline/quality_gate.py
+# QUALITY GATE PASSED - 17 commodities, outputs valid
 ```
-https://agrolinking-intelligence-api.onrender.com
-https://agrolinking-intelligence-api.onrender.com/docs
-```
-
-### Key Endpoints
-
-| Endpoint | Description |
-|---|---|
-| GET /summary | Homepage hero widget data |
-| GET /commodities | All 17 live prices with daily change and validation status |
-| GET /forecasts/latest | Full forecast all commodities, optional horizon filter |
-| GET /forecasts/{commodity} | Single commodity full 6-horizon forecast |
-| GET /forecasts/{commodity}/{horizon} | Chart-ready weekly series with confidence bands |
-| GET /zonal/latest | All zonal and state prices |
-| GET /zonal/{commodity} | State-level prices with best sourcing intelligence |
-| GET /alerts/latest | Latest WhatsApp-ready broadcast alert |
-
-See `API_DOCUMENTATION.md` for full request/response schemas and frontend integration examples.
 
 ---
 
-## Operational Workflow
+## 📡 REST API
 
-### Critical Rule
+### Live Endpoints
 
-The Agricome Africa Instagram feed (`@agricomeafrica`) is the ground-truth source for 7 commodities. Every time a new weekly post is published (typically Mondays and Thursdays), update `MANUAL_PRICES` in `pipeline/06_validate.py` before running the pipeline.
+| Endpoint | Description | Example |
+|---|---|---|
+| `GET /` | Health check + endpoint directory | `curl https://api.../` |
+| `GET /summary` | Dashboard hero data | `curl https://api.../summary` |
+| `GET /commodities` | All 17 live prices + daily change | `curl https://api.../commodities` |
+| `GET /forecasts/latest` | Full 6-horizon forecast all commodities | `curl https://api.../forecasts/latest` |
+| `GET /forecasts/{commodity}` | Single commodity full forecast | `curl https://api.../forecasts/Rice` |
+| `GET /zonal/latest` | All state-level prices | `curl https://api.../zonal/latest` |
+| `GET /prices/kg` | All prices in NGN/kg | `curl https://api.../prices/kg` |
+| `GET /index/food` | Food Price Index (2025=100) | `curl https://api.../index/food` |
+| `GET /movers` | Biggest riser/faller today | `curl https://api.../movers` |
+| `GET /confidence` | Model confidence scores per commodity | `curl https://api.../confidence` |
+| `GET /history/{commodity}` | Historical 90-day price series | `curl https://api.../history/Rice?days=180` |
+| `GET /history/compare` | Compare multiple commodities | `curl https://api.../history/compare?commodities=Rice,Wheat` |
+| `GET /alerts/saved` | List saved price alerts | `curl https://api.../alerts/saved` |
+| `POST /alerts/saved` | Create price threshold alert | `curl -X POST https://api.../alerts/saved?commodity=Rice&threshold_price=1600000&direction=above` |
+
+**Live API:** https://agrolinking-intelligence.onrender.com/docs
+
+---
+
+## 🔧 Operational Workflow
+
+### Before Each Run: Update Reference Prices
+
+Every Monday/Thursday, Agricome Africa publishes a new post on Instagram. Update `MANUAL_PRICES` in `pipeline/06_validate.py`:
 
 ```python
+# pipeline/06_validate.py
 MANUAL_PRICES = {
-    "Hibiscus":      2_325_000,
+    "Hibiscus":      2_325_000,       # Update from Agricom Monday post
     "Sesame":        1_650_000,
     "Ginger":       12_000_000,
-    "Cocoa":         5_650_000,
-    "Soybeans":        745_000,
-    "Cashew Nuts":   1_950_000,
-    "Sorghum":         420_000,
-    "Beans (white)":   813_000,
-    "Beans (red)":     915_000,
-    "Maize (white)":   370_000,
-    "Maize (yellow)":  400_000,
-    "Wheat":           706_833,
-    "Rice":          1_550_000,
-    # Livestock and protein (update from WFP Nigeria retail + market research)
-    "Meat (beef)":   4_200_000,
-    "Meat (goat)":   4_500_000,
-    "Fish (dried)":  2_800_000,
-    "Eggs":              7_200,
+    # ... etc
 }
 ```
 
-### Recommended Weekly Schedule
+### Recommended Schedule
 
-| Day | Action |
-|---|---|
-| Monday | Check Agricome post, update MANUAL_PRICES, run full pipeline with retrain |
-| Wednesday | Check Agricome post, update MANUAL_PRICES if new post, run --skip-train |
-| Thursday | Check Agricome post, update MANUAL_PRICES if new post, run --skip-train |
-| Daily | Run --skip-train for fresh daily noise-seeded forecasts and zonal prices |
+| Day | Action | Command |
+|---|---|---|
+| **Monday** | Check Agricome post, update MANUAL_PRICES, retrain | `python pipeline/run_pipeline.py` |
+| **Wednesday/Thursday** | Update MANUAL_PRICES if new post, skip retrain | `python pipeline/run_pipeline.py --skip-train` |
+| **Daily** | Fresh forecasts (GitHub Actions runs automatically at 05:00 UTC) | Manual run: `python pipeline/run_pipeline.py --skip-train` |
 
-### Push Updates to GitHub
+### Push to Production
 
-After each pipeline run, push outputs so the Streamlit dashboard and API both stay current:
+After a local run, update GitHub:
 
-```powershell
-git add outputs\forecasts\validated\
-git add outputs\forecasts\zonal\
-git add outputs\daily_alerts\
-git commit -m "Update forecasts $(Get-Date -Format 'yyyy-MM-dd')"
-git push
+```bash
+git add data/processed/agrolinking_master.csv data/processed/features/ outputs/
+git commit -m "Daily update $(date +%Y-%m-%d)"
+git push origin main
 ```
 
-Streamlit Cloud auto-redeploys in 30 seconds. Render auto-redeploys in 2 minutes.
+**Automation:** GitHub Actions runs daily at 05:00 UTC. Use `push_daily.ps1` only if Actions is down.
+
+**Quality Check:** Quality gate prevents bad data from being committed. If it fails:
+
+```bash
+python pipeline/quality_gate.py
+# QUALITY GATE FAILED - do not commit or push these outputs:
+#   - outputs/forecasts/validated/forecast_validated_2026-09-28.json: contains NaN
+```
+
+Don't commit until the gate passes.
 
 ---
 
-## How the Daily Price Variation Works
+## 📚 Documentation
 
-Each daily pipeline run produces unique forecast values through two layers of deterministic noise:
-
-**Layer 1 (Step 5):** After the ensemble forecast is generated, a small noise vector (±0.5 to 2%) is applied to all price values. The noise is seeded by `commodity + date` so it is fully reproducible but unique per day. Noise magnitude decays exponentially at longer horizons so near-term forecasts vary more than 6-month forecasts.
-
-**Layer 2 (Step 6):** The reference price anchor used in validation is also perturbed by ±0.8% using the same date-seeded approach, keyed by `ref_commodity + date`. This prevents the validation correction from pulling every forecast back to an identical static anchor price on consecutive days.
-
-The result is realistic daily microstructure movement consistent with Nigerian agricultural wholesale market behaviour, where prices move 0.5% to 2% per week rather than per day.
-
----
-
-## How the Zonal Price Drift Works
-
-The zonal forecast interpolates the national price along the model forecast curve daily, using the last known date as day zero. Each day produces a unique price slightly different from the previous day. The drift direction and magnitude reflect the model's prediction between retrains.
+| Document | Purpose |
+|---|---|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, pipeline stages, ensemble logic, validation |
+| [SECURITY.md](docs/SECURITY.md) | Security risks, mitigation strategies, hardening plan, incident response |
+| [FIXES_AND_IMPROVEMENTS.md](docs/FIXES_AND_IMPROVEMENTS.md) | What was fixed in September 2026 (NaN crash, route shadowing, etc.) |
+| [OPERATIONAL_GUIDE.md](docs/OPERATIONAL_GUIDE.md) | Running locally, troubleshooting, deployment, monitoring |
+| [API.md](docs/API.md) | REST API reference, request/response schemas, integration examples |
 
 ---
 
-## Deployment
+## 🔒 Security & Production Readiness
+
+### ✅ What's Working
+
+- **No secrets in git** — TSDB_URL passed as GitHub secret
+- **Quality gate blocks bad data** — NaN, conflict markers, missing commodities rejected before publish
+- **Safe local push** — `push_daily.ps1` now checks quality gate + origin status
+- **Data validation** — Input bounds (days, threshold_price), malformed row cleanup
+- **Data integrity** — WFP downloads validated, Postgres writes checked for NaN
+
+### ⚠️ Known Gaps (See [SECURITY.md](docs/SECURITY.md))
+
+- Alert endpoints lack authentication (anyone can list/delete/create)
+- CORS allows all origins (should restrict to Agrolinking domains)
+- No rate limiting (vulnerable to DoS on `/history` endpoints)
+- Postgres role needs least-privilege (currently admin)
+- Requirements files use flexible versions (should pin exact)
+
+**See [SECURITY.md](docs/SECURITY.md) for detailed remediation plan.**
+
+---
+
+## 🚢 Deployment
 
 ### Streamlit Dashboard
 
-1. Go to https://share.streamlit.io
-2. Connect `Agrolinking-Solutions/Agrolinking-Intelligence`
-3. Set main file: `dashboard/app.py`
-4. Deploy
+Auto-deploys on `git push` to Streamlit Cloud (30 seconds).
 
-### REST API on Render
+```
+https://agrolinking-intelligence-f8qq4uhupaax2qny8rpcpx.streamlit.app
+```
 
-1. Go to https://render.com
-2. New Web Service, connect same GitHub repo
-3. Build command: `pip install -r requirements.txt`
-4. Start command: `uvicorn api:app --host 0.0.0.0 --port $PORT`
-5. Plan: Free
-6. Deploy
+### FastAPI on Render
+
+Auto-deploys on `git push` to Render (2 minutes).
+
+```
+https://agrolinking-intelligence.onrender.com
+https://agrolinking-intelligence.onrender.com/docs
+```
+
+### GitHub Actions Pipeline
+
+Runs daily at 05:00 UTC (see `.github/workflows/daily_pipeline.yml`):
+
+1. Checkout repo
+2. Install Python 3.10 + dependencies
+3. Run steps 01–08 (ingest → intelligence)
+4. Run quality gate (step 09)
+5. Commit and push outputs to main
+6. Notify on failure (if configured)
 
 ---
 
-## Data Sources
+## 🛠️ Troubleshooting
 
-| Source | Commodities | Frequency | Quality Score |
+### "API returns 500 errors"
+
+1. Check the latest run log: `cat outputs/logs/forecast_*.log`
+2. Run the quality gate: `python pipeline/quality_gate.py`
+3. If it fails, don't push. Fix the data first.
+
+### "Forecast prices look wrong"
+
+1. Are `MANUAL_PRICES` stale? Check the last Agricome post
+2. Did the validation correction fail? Check `outputs/logs/validation_report_*.json`
+3. Is a commodity missing? Run `python pipeline/quality_gate.py`
+
+### "Zonal prices don't match national"
+
+This is expected. State prices interpolate the national curve using structural factors from `data/external/state_price_differentials.csv`. They won't match exactly.
+
+### "An old run's data is being served"
+
+API fallback to the last good file if the latest contains NaN. Check that `pipeline/quality_gate.py` passes on your data.
+
+---
+
+## 📊 Data Sources
+
+| Source | Commodities | Frequency | Coverage |
 |---|---|---|---|
-| Agricome Africa (@agricomeafrica) | Hibiscus, Sesame, Ginger, Cocoa, Soybeans, Cashew Nuts, Wheat | Weekly | 1.0 |
-| WFP Nigeria Food Price Monitor | Sorghum, Beans, Maize, Rice, Fish, Meat | Monthly | 0.9 |
-| Agrolinking primary collection | Wheat, Maize, Beans | Weekly | 0.95 |
-| NGX / LCFE exchange data | Ginger, Sesame (validation) | Weekly | 0.95 |
-| Market research | Eggs, Meat (beef), Meat (goat), Fish (dried) | Weekly | 0.85 |
-| World Bank commodity index | All (anchor validation) | Monthly | 0.8 |
+| Agricome Africa (@agricomeafrica) | Hibiscus, Sesame, Ginger, Cocoa, Soybeans, Cashew Nuts, Wheat | Weekly | 7 crops |
+| WFP Nigeria Food Price Monitor | Sorghum, Beans, Maize, Rice, Fish, Meat | Monthly | 13 markets |
+| Agrolinking Primary | Wheat, Maize, Beans | Weekly | Internal collection |
+| NGX/LCFE Exchange | Ginger, Sesame (validation) | Weekly | 2 commodities |
+| Market Research | Eggs, Meat (beef), Meat (goat), Fish | Weekly | 4 livestock |
 
 ---
 
-## Built With
+## 🔄 How Daily Variation Works
 
-- Python 3.11.9
-- FastAPI + Uvicorn (REST API)
-- Streamlit (dashboard)
-- Prophet, pmdarima, statsmodels, XGBoost, LightGBM
-- Plotly, pandas, numpy, scikit-learn, loguru
+Each run produces unique values through deterministic date-seeded noise:
+
+**Step 5 (Forecast):** ±0.5–2% noise on ensemble output, seeded by `commodity + date`  
+**Step 6 (Validation):** ±0.8% noise on reference price anchor, seeded by `commodity + date`
+
+Result: Same day always produces the same output (reproducible), but each day differs from the previous (realistic microstructure movement).
+
+---
+
+## 📦 Technology Stack
+
+- **Language:** Python 3.10+
+- **API:** FastAPI + Uvicorn
+- **Dashboard:** Streamlit
+- **Forecasting:** Prophet, pmdarima (ARIMA), XGBoost, LightGBM, statsmodels
+- **Data:** pandas, NumPy, scikit-learn
+- **Logging:** loguru
+- **Data Fetching:** requests, BeautifulSoup4
+- **Database:** PostgreSQL/TimescaleDB (optional, dual-write mode)
 
 ---
 
-## Organisation
+## 📄 License & Attribution
 
-Agrolinking Solutions Nigeria
+**Proprietary.** Built by Agrolinking Solutions Nigeria.
 
-Contact: info@agrolinking.com
-
-Website: https://agrolinking.com
+Data sources:
+- Agricome Africa (licensed, attributed in outputs)
+- WFP Nigeria (CC-BY, public)
+- Internal collection (Agrolinking)
 
 ---
+
+## 👥 Team
+
+**Agrolinking Solutions Nigeria**  
+🌐 Website: https://agrolinking.com  
+📧 Contact: info@agrolinking.com  
 
 *Redefining the Future of Agricultural Connection in Africa*
+
+---
+
+## 📞 Support
+
+| Issue | Action |
+|---|---|
+| API down | Check GitHub Actions logs, run quality gate locally |
+| Dashboard slow | Refresh the page (Streamlit auto-redeploy) |
+| Bad forecasts | Update MANUAL_PRICES in 06_validate.py |
+| Data corruption | Run quality gate, check git history for conflict markers |
+| Want a new commodity | Add to COMMODITIES in config/settings.py, retrain models |
+
+---
+
+## 🎯 Roadmap
+
+- [ ] Authentication on alert endpoints (OAuth2 or API key)
+- [ ] Rate limiting (slowapi)
+- [ ] Postgres for alerts storage (per-user isolation)
+- [ ] Monitoring & Slack alerts
+- [ ] Real-time data ingestion (not just daily batch)
+- [ ] Mobile app for alerts
+- [ ] WhatsApp integration for direct delivery
+
+---
+
+**Last Updated:** September 28, 2026
+**Status:** Production | **Accuracy:** 1.7% average error post-correction (see [FIXES_AND_IMPROVEMENTS.md](docs/FIXES_AND_IMPROVEMENTS.md) for how this is measured)
