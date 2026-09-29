@@ -65,7 +65,10 @@ import psycopg2
 from psycopg2.extras import execute_values
 
 DB_URL = os.environ.get("TSDB_URL")
-PG_DISCRETE_VARS_SET = bool(os.environ.get("PGHOST") and os.environ.get("PGPASSWORD"))
+# "is not None" rather than truthiness — an empty-string PGPASSWORD is a
+# legitimate local trust-auth setup, not "unset". A plain truthiness check
+# would treat that as not-configured and fall through to the DB_URL branch.
+PG_DISCRETE_VARS_SET = os.environ.get("PGHOST") is not None and os.environ.get("PGPASSWORD") is not None
 if not DB_URL and not PG_DISCRETE_VARS_SET:
     sys.exit(
         "No database connection configured. Set either TSDB_URL, or the "
