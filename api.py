@@ -39,6 +39,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
+
+import db
+from config.settings import COMMODITIES
 
 # ── Path configuration ─────────────────────────────────────────────────────
 BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
@@ -1210,18 +1214,78 @@ def save_alerts_db(db):
 
 MASTER_PATH = os.path.join(BASE_DIR, "data", "processed", "agrolinking_master.csv")
 
-def load_master_history():
+def _load_history_from_postgres(commodities=None, start=None, end=None):
     """
-    Real (non-forecast) rows from the master dataset. Rows with no date or
-    price are dropped — they can only come from a corrupted file (e.g. git
-    conflict markers) and would otherwise surface as fake commodities.
+    Query prices directly, filtered server-side by commodity/date range.
+    Raises on any failure — callers fall back to the CSV path, per db.py's
+    contract. Returns the same (commodity, date, price_ngn_mt) shape as
+    the CSV path so downstream pandas code doesn't need to know which
+    source ran.
+    """
+    import pandas as pd
+    with db.get_conn() as conn, conn.cursor() as cur:
+        sql = """
+            SELECT c.name AS commodity, p.time AS date, p.price AS price_ngn_mt
+            FROM prices p
+            JOIN commodities c ON c.commodity_id = p.commodity_id
+            JOIN locations   l ON l.location_id  = p.location_id
+            WHERE l.state = 'National'
+        """
+        params = []
+        if commodities:
+            sql += " AND c.name = ANY(%s)"
+            params.append(list(commodities))
+        if start:
+            sql += " AND p.time >= %s"
+            params.append(start)
+        if end:
+            sql += " AND p.time <= %s"
+            params.append(end)
+        sql += " ORDER BY c.name, p.time"
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+    df = pd.DataFrame(rows, columns=["commodity", "date", "price_ngn_mt"])
+    df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
+    return df
+
+
+def _load_history_from_csv(commodities=None, start=None, end=None):
+    """
+    Fallback path — identical to the original CSV-only load_master_history,
+    with the same optional filters applied in pandas instead of SQL so the
+    two paths can be swapped without callers noticing.
     """
     import pandas as pd
     if not os.path.exists(MASTER_PATH):
         raise HTTPException(status_code=404, detail="Master dataset not found on server.")
     df = pd.read_csv(MASTER_PATH, parse_dates=["date"])
     df = df.dropna(subset=["date", "price_ngn_mt"])
-    return df[df["record_type"] != "forecast"]
+    df = df[df["record_type"] != "forecast"]
+    if commodities:
+        df = df[df["commodity"].isin(commodities)]
+    if start:
+        df = df[df["date"] >= start]
+    if end:
+        df = df[df["date"] <= end]
+    return df[["commodity", "date", "price_ngn_mt"]]
+
+
+def load_master_history(commodities=None, start=None, end=None):
+    """
+    Real (non-forecast) historical price rows, optionally filtered to
+    specific canonical commodity names and/or a date range. Tries Postgres
+    first — filtered server-side, so a single-commodity request doesn't
+    load and parse the entire multi-year master CSV on every call, the
+    original version's main scaling problem. Falls back to the CSV on any
+    Postgres failure (not configured, unreachable, bad query) — the API
+    keeps working exactly as before in that case, just slower.
+    """
+    if db.db_available():
+        try:
+            return _load_history_from_postgres(commodities, start, end)
+        except Exception as e:
+            logger.warning(f"Postgres history query failed, falling back to CSV: {e}")
+    return _load_history_from_csv(commodities, start, end)
 
 
 # ── Historical time-series ─────────────────────────────────────────────────
@@ -1247,18 +1311,15 @@ def commodity_history(
       /history/Ginger?from_date=2026-01-01&to_date=2026-07-19
       /history/Maize%20(white)?days=30&resolution=daily
     """
-    df = load_master_history()
-
-    # Find commodity
-    available = df["commodity"].unique().tolist()
-    key = next((c for c in available if c.lower() == commodity.lower()), None)
+    # Resolve against the canonical commodity list (config.settings) rather
+    # than deriving valid names from the dataset itself — avoids a full
+    # data load just to answer "is this a real commodity name".
+    key = next((c for c in COMMODITIES if c.lower() == commodity.lower()), None)
     if not key:
         raise HTTPException(
             status_code=404,
-            detail=f"Commodity '{commodity}' not found. Available: {available}"
+            detail=f"Commodity '{commodity}' not found. Available: {COMMODITIES}"
         )
-
-    sub = df[df["commodity"] == key].copy()
 
     # Date filtering
     today = datetime.now()
@@ -1278,7 +1339,7 @@ def commodity_history(
     else:
         end = today
 
-    sub = sub[(sub["date"] >= start) & (sub["date"] <= end)].copy()
+    sub = load_master_history(commodities=[key], start=start, end=end)
     sub = sub.sort_values("date")
 
     # Resample
@@ -1340,18 +1401,17 @@ def compare_commodities(
 
     Example: /history/compare?commodities=Rice,Wheat,Maize (white)&days=180
     """
-    df    = load_master_history()
     names = [c.strip() for c in commodities.split(",")]
     start = datetime.now() - timedelta(days=days)
     end   = datetime.now()
 
+    keys = [next((c for c in COMMODITIES if c.lower() == name.lower()), None) for name in names]
+    keys = [k for k in keys if k]
+    df = load_master_history(commodities=keys, start=start, end=end) if keys else None
+
     result = {}
-    for name in names:
-        available = df["commodity"].unique().tolist()
-        key = next((c for c in available if c.lower() == name.lower()), None)
-        if not key:
-            continue
-        sub = df[(df["commodity"] == key) & (df["date"] >= start) & (df["date"] <= end)].copy()
+    for key in keys:
+        sub = df[df["commodity"] == key].copy()
         sub = sub.sort_values("date")
         if resolution == "weekly":
             sub = sub.set_index("date")["price_ngn_mt"].resample("W").mean().dropna().reset_index()

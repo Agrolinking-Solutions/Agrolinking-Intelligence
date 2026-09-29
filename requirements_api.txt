@@ -1,7 +1,11 @@
 # API-only requirements - no ML packages needed
-# The API reads from JSON files, does not run models
+# The API reads from JSON files by default, and from Postgres/TimescaleDB
+# when TSDB_URL or PGHOST/PGPASSWORD/etc. are configured (see db.py) -
+# falls back to files automatically if psycopg2 isn't installed or the
+# DB isn't reachable, so this is a soft dependency, not a hard one.
 fastapi>=0.110.0
 uvicorn>=0.29.0
 pandas>=2.0.0
 python-multipart>=0.0.9
 loguru>=0.7.0
+psycopg2-binary>=2.9.0
