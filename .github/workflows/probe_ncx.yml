@@ -1,0 +1,56 @@
+name: NCX Price Freshness Probe
+
+# Research-only workflow, NOT part of the forecasting pipeline. Logs NCX's
+# public commodity ticker once a day to data/research/ncx_probe_log.csv so
+# that after ~1-2 weeks we have empirical evidence of whether NCX actually
+# updates its prices daily or the page just looks live without changing
+# (see docs/FIXES_AND_IMPROVEMENTS.md and the data-sourcing research notes
+# for why this needs verifying before any real ingestion gets built on it —
+# FEWS NET, the WFP HDX mirror, and a World Bank RTP dataset all looked live
+# on inspection but turned out to be stale or a closed one-off study).
+#
+# Deliberately writes to data/research/, outside outputs/ — the pipeline's
+# quality_gate.py never looks at this path, so a bad probe day can't affect
+# real forecasts, and this workflow never touches main pipeline files.
+#
+# To check progress: python scripts/research/probe_ncx.py --summarize
+
+on:
+  schedule:
+    - cron: "30 6 * * *"   # 06:30 UTC daily — offset from the 05:00 UTC main pipeline run
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe-ncx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run probe
+        run: python scripts/research/probe_ncx.py
+
+      - name: Commit and push probe log
+        run: |
+          git config user.name "agrolinking-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/research/ncx_probe_log.csv
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "NCX probe: $(date -u +'%Y-%m-%d')"
+            git push
+          fi
