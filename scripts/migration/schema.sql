@@ -69,18 +69,34 @@ SELECT create_hypertable('prices', 'time', if_not_exists => TRUE);
 -- 'National' location or a specific state. Forward curve for one
 -- commodity+location = all horizon_days rows for the same (commodity_id,
 -- location_id, time).
+--
+-- horizon_days now holds more than the original 6 checkpoints: 1-7 (daily,
+-- for the downloadable report's "today, tomorrow, ..." first week), 14, 21
+-- (added for the report's "...1wk, 2wk, 3wk, 1mo..." step), 30, 90, 180.
+-- This did not require any pipeline/model change — 05_forecast.py already
+-- computes a full daily trajectory internally for every horizon bucket
+-- (e.g. the "6_months" bucket already contains 180 individual daily
+-- values with confidence bands); the pipeline just wasn't writing more
+-- than each bucket's single end-of-horizon value to Postgres before.
 CREATE TABLE IF NOT EXISTS forecasts (
     time              TIMESTAMPTZ NOT NULL,     -- forecast generation date
     commodity_id      INT NOT NULL REFERENCES commodities(commodity_id),
     location_id       INT NOT NULL REFERENCES locations(location_id),
-    horizon_days      INT NOT NULL,             -- 1,7,14,30,90,180 — this IS the forward curve axis
+    horizon_days      INT NOT NULL,             -- 1-7, 14, 21, 30, 90, 180
     predicted_price   NUMERIC NOT NULL,
+    lower_ci          NUMERIC,                  -- confidence band, added alongside the daily points
+    upper_ci          NUMERIC,
     model_confidence  NUMERIC,
     validated         BOOLEAN NOT NULL DEFAULT FALSE,
     error_pct         NUMERIC,
     PRIMARY KEY (time, commodity_id, location_id, horizon_days)
 );
 SELECT create_hypertable('forecasts', 'time', if_not_exists => TRUE);
+
+-- Idempotent — adds the columns if this schema.sql is being re-run against
+-- a database that already has the table from before this change.
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS lower_ci NUMERIC;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS upper_ci NUMERIC;
 
 -- Replaces the per-commodity parts of outputs/intelligence/intelligence_*.json
 -- (volatility_index.per_commodity, arbitrage). No location_id: the current

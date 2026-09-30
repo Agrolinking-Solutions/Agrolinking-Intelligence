@@ -60,6 +60,7 @@ import math
 import json
 import glob
 import sys
+from datetime import datetime, timedelta
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
@@ -83,9 +84,91 @@ ZONAL_DIR     = os.path.join(BASE_DIR, "outputs", "forecasts", "zonal")
 INTEL_DIR     = os.path.join(BASE_DIR, "outputs", "intelligence")
 
 HORIZON_DAYS = {
-    "daily": 1, "weekly": 7, "2_weeks": 14,
+    # "daily" excluded — see the matching note in pipeline/06_validate.py's
+    # HORIZON_DAYS_MAP: it's just today's own price, not a real forecast,
+    # and would collide on horizon_days=1 with the new "tomorrow" point.
+    "weekly": 7, "2_weeks": 14,
     "monthly": 30, "3_months": 90, "6_months": 180,
 }
+
+# Same daily-resolution extension as the two daily dual-write functions
+# (06_validate.py, 07_zonal_forecast.py) — kept in sync manually since
+# each file's horizon-bucket shape differs slightly. See 06_validate.py
+# for the full rationale.
+EXTRA_DAILY_POINTS = [(d, "weekly") for d in (1, 2, 3, 4, 5, 6)] + [(21, "monthly")]
+
+
+def _parse_date(d):
+    if isinstance(d, datetime):
+        return d
+    return datetime.strptime(str(d)[:10], "%Y-%m-%d")
+
+
+def _day_offset_nested(fc_data, gen_date, day_offset, bucket):
+    """For national forecast JSON, where values live under h_data['ensemble']."""
+    h_data = fc_data.get("horizons", {}).get(bucket)
+    if not h_data:
+        return None
+    target = (gen_date + timedelta(days=day_offset)).strftime("%Y-%m-%d")
+    dates = h_data.get("dates", [])
+    if target not in dates:
+        return None
+    idx = dates.index(target)
+    ens = h_data.get("ensemble", {})
+    vals = ens.get("values", [])
+    if idx >= len(vals):
+        return None
+    lo = ens.get("lower_ci", vals)
+    hi = ens.get("upper_ci", vals)
+    return (vals[idx], lo[idx] if idx < len(lo) else None, hi[idx] if idx < len(hi) else None)
+
+
+def _checkpoint_nested(fc_data, h_name):
+    h_data = fc_data.get("horizons", {}).get(h_name)
+    if not h_data:
+        return None
+    vals = h_data.get("ensemble", {}).get("values", [])
+    price = h_data.get("forecast_end_detail", {}).get("price")
+    if price is None:
+        price = vals[-1] if vals else h_data.get("forecast_price")
+    if price is None:
+        return None
+    lo = h_data.get("ensemble", {}).get("lower_ci", vals)
+    hi = h_data.get("ensemble", {}).get("upper_ci", vals)
+    return (price, lo[-1] if lo else None, hi[-1] if hi else None)
+
+
+def _day_offset_flat(cd, gen_date, day_offset, bucket):
+    """For zonal forecast JSON, where values live directly on h_data (no 'ensemble' nesting)."""
+    h_data = cd.get("horizons", {}).get(bucket)
+    if not h_data:
+        return None
+    target = (gen_date + timedelta(days=day_offset)).strftime("%Y-%m-%d")
+    dates = h_data.get("dates", [])
+    if target not in dates:
+        return None
+    idx = dates.index(target)
+    vals = h_data.get("values", [])
+    if idx >= len(vals):
+        return None
+    lo = h_data.get("lower_ci", vals)
+    hi = h_data.get("upper_ci", vals)
+    return (vals[idx], lo[idx] if idx < len(lo) else None, hi[idx] if idx < len(hi) else None)
+
+
+def _checkpoint_flat(cd, h_name):
+    h_data = cd.get("horizons", {}).get(h_name)
+    if not h_data:
+        return None
+    vals = h_data.get("values", [])
+    price = h_data.get("end_price")
+    if price is None:
+        price = vals[-1] if vals else None
+    if price is None:
+        return None
+    lo = h_data.get("lower_ci", vals)
+    hi = h_data.get("upper_ci", vals)
+    return (price, lo[-1] if lo else None, hi[-1] if hi else None)
 
 # Real price data only — skip synthetic/interpolated filler rows and
 # raw "forecast" placeholder rows. This mirrors the same REAL_SOURCES
@@ -186,7 +269,10 @@ def migrate_forecasts(conn, commodity_map, national_id):
                 skipped_unknown_commodity.add(commodity_name)
                 continue
 
-            gen_date = fc.get("last_known_date") or fc.get("run_date")
+            gen_date_raw = fc.get("last_known_date") or fc.get("run_date")
+            if not gen_date_raw:
+                continue
+            gen_date = _parse_date(gen_date_raw)
             validation = fc.get("validation", {})
             validated = validation.get("status") == "validated"
             error_pct = validation.get("error_pct_after")
@@ -194,22 +280,23 @@ def migrate_forecasts(conn, commodity_map, national_id):
                 error_pct = None
             confidence = fc.get("model_confidence")
 
-            horizons = fc.get("horizons", {})
-            for h_name, h_days in HORIZON_DAYS.items():
-                h_data = horizons.get(h_name)
-                if not h_data:
-                    continue
-                # Price at the END of the horizon, not day 1 (values[0])
-                vals = h_data.get("ensemble", {}).get("values", [])
-                price = h_data.get("forecast_end_detail", {}).get("price")
-                if price is None:
-                    price = vals[-1] if vals else h_data.get("forecast_price")
+            def add_row(h_days, result):
+                if not result:
+                    return
+                price, lo, hi = result
                 if price is None or not math.isfinite(price) or price <= 0:
-                    continue
+                    return
+                lo = lo if (lo is not None and math.isfinite(lo)) else None
+                hi = hi if (hi is not None and math.isfinite(hi)) else None
                 rows.append((
-                    gen_date, cid, national_id, h_days,
-                    float(price), confidence, validated, error_pct,
+                    gen_date_raw, cid, national_id, h_days,
+                    float(price), lo, hi, confidence, validated, error_pct,
                 ))
+
+            for h_name, h_days in HORIZON_DAYS.items():
+                add_row(h_days, _checkpoint_nested(fc, h_name))
+            for day_offset, bucket in EXTRA_DAILY_POINTS:
+                add_row(day_offset, _day_offset_nested(fc, gen_date, day_offset, bucket))
 
     if skipped_unknown_commodity:
         print(f"  WARNING — skipped forecast rows for commodities not in the commodities table: "
@@ -222,7 +309,8 @@ def migrate_forecasts(conn, commodity_map, national_id):
             """
             INSERT INTO forecasts
                 (time, commodity_id, location_id, horizon_days,
-                 predicted_price, model_confidence, validated, error_pct)
+                 predicted_price, lower_ci, upper_ci,
+                 model_confidence, validated, error_pct)
             VALUES %s
             ON CONFLICT (time, commodity_id, location_id, horizon_days) DO NOTHING
             """,
@@ -257,7 +345,10 @@ def migrate_zonal_forecasts(conn, commodity_map, location_map):
         data = load_json_safe(path)
         if data is None:
             continue
-        run_date = data.get("run_date", "")
+        run_date_raw = data.get("run_date", "")
+        if not run_date_raw:
+            continue
+        run_date = _parse_date(run_date_raw)
 
         for zone_data in data.get("zones", {}).values():
             for state_name, state_data in zone_data.get("states", {}).items():
@@ -272,20 +363,23 @@ def migrate_zonal_forecasts(conn, commodity_map, location_map):
                         skipped_unknown_commodity.add(commodity_name)
                         continue
 
-                    for h_name, h_days in HORIZON_DAYS.items():
-                        h_data = cd.get("horizons", {}).get(h_name)
-                        if not h_data:
-                            continue
-                        price = h_data.get("end_price")
-                        if price is None:
-                            vals = h_data.get("values", [])
-                            price = vals[-1] if vals else None
+                    def add_row(h_days, result):
+                        if not result:
+                            return
+                        price, lo, hi = result
                         if price is None or not math.isfinite(price) or price <= 0:
-                            continue
+                            return
+                        lo = lo if (lo is not None and math.isfinite(lo)) else None
+                        hi = hi if (hi is not None and math.isfinite(hi)) else None
                         rows.append((
-                            run_date, cid, loc_id, h_days,
-                            float(price), None, False, None,
+                            run_date_raw, cid, loc_id, h_days,
+                            float(price), lo, hi, None, False, None,
                         ))
+
+                    for h_name, h_days in HORIZON_DAYS.items():
+                        add_row(h_days, _checkpoint_flat(cd, h_name))
+                    for day_offset, bucket in EXTRA_DAILY_POINTS:
+                        add_row(day_offset, _day_offset_flat(cd, run_date, day_offset, bucket))
 
     if skipped_unknown_state:
         print(f"  WARNING — skipped rows for states not in the locations table: "
@@ -301,7 +395,8 @@ def migrate_zonal_forecasts(conn, commodity_map, location_map):
             """
             INSERT INTO forecasts
                 (time, commodity_id, location_id, horizon_days,
-                 predicted_price, model_confidence, validated, error_pct)
+                 predicted_price, lower_ci, upper_ci,
+                 model_confidence, validated, error_pct)
             VALUES %s
             ON CONFLICT (time, commodity_id, location_id, horizon_days) DO NOTHING
             """,

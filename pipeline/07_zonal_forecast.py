@@ -56,9 +56,51 @@ HORIZON_DAYS = {
 # label two different horizon_days values depending on whether the row is
 # national or zonal, breaking any query that joins/compares across them.
 PG_HORIZON_DAYS = {
-    "daily": 1, "weekly": 7, "2_weeks": 14,
+    # "daily" excluded — see the matching note in 06_validate.py's
+    # HORIZON_DAYS_MAP: it's just today's own price (a single value,
+    # date == run_date), not a real forecast, and would collide on
+    # horizon_days=1 with the new "tomorrow" daily point below.
+    "weekly": 7, "2_weeks": 14,
     "monthly": 30, "3_months": 90, "6_months": 180,
 }
+
+# Same daily-resolution extension as 06_validate.py's EXTRA_DAILY_POINTS —
+# see that file for the full rationale. Kept in sync manually since this
+# file's horizon buckets have the same day-0-indexed shape (dates/values/
+# lower_ci/upper_ci) but flatter (no "ensemble" nesting) than the national
+# forecast JSON, so the extraction helpers can't be shared as-is.
+PG_EXTRA_DAILY_POINTS = [(d, "weekly") for d in (1, 2, 3, 4, 5, 6)] + [(21, "monthly")]
+
+def _zonal_day_offset(cd: dict, run_date: datetime, day_offset: int, bucket: str):
+    h_data = cd.get("horizons", {}).get(bucket)
+    if not h_data:
+        return None
+    target = (run_date + timedelta(days=day_offset)).strftime("%Y-%m-%d")
+    dates = h_data.get("dates", [])
+    if target not in dates:
+        return None
+    idx = dates.index(target)
+    vals = h_data.get("values", [])
+    if idx >= len(vals):
+        return None
+    lo = h_data.get("lower_ci", vals)
+    hi = h_data.get("upper_ci", vals)
+    return (vals[idx], lo[idx] if idx < len(lo) else None, hi[idx] if idx < len(hi) else None)
+
+
+def _zonal_checkpoint(cd: dict, h_name: str):
+    h_data = cd.get("horizons", {}).get(h_name)
+    if not h_data:
+        return None
+    price = h_data.get("end_price")
+    vals = h_data.get("values", [])
+    if price is None:
+        price = vals[-1] if vals else None
+    if price is None:
+        return None
+    lo = h_data.get("lower_ci", vals)
+    hi = h_data.get("upper_ci", vals)
+    return (price, lo[-1] if lo else None, hi[-1] if hi else None)
 
 
 def fmt(n):
@@ -425,27 +467,34 @@ def write_zonal_to_postgres(zonal_out: dict, run_date: datetime):
                     cid = commodity_map.get(commodity_name)
                     if cid is None:
                         continue
-                    for h_name, h_days in PG_HORIZON_DAYS.items():
-                        h_data = cd.get("horizons", {}).get(h_name)
-                        if not h_data:
-                            continue
-                        price = h_data.get("end_price")
-                        if price is None:
-                            vals = h_data.get("values", [])
-                            price = vals[-1] if vals else None
+                    def add_row(h_days, result):
+                        if not result:
+                            return
+                        price, lo, hi = result
                         if price is None or not np.isfinite(price) or price <= 0:
-                            continue
-                        rows.append((run_date, cid, loc_id, h_days, float(price)))
+                            return
+                        lo = lo if (lo is not None and np.isfinite(lo)) else None
+                        hi = hi if (hi is not None and np.isfinite(hi)) else None
+                        rows.append((run_date, cid, loc_id, h_days, float(price), lo, hi))
+
+                    for h_name, h_days in PG_HORIZON_DAYS.items():
+                        add_row(h_days, _zonal_checkpoint(cd, h_name))
+                    for day_offset, bucket in PG_EXTRA_DAILY_POINTS:
+                        add_row(day_offset, _zonal_day_offset(cd, run_date, day_offset, bucket))
 
         with conn.cursor() as cur:
             if rows:
                 execute_values(
                     cur,
                     """
-                    INSERT INTO forecasts (time, commodity_id, location_id, horizon_days, predicted_price)
+                    INSERT INTO forecasts
+                        (time, commodity_id, location_id, horizon_days, predicted_price, lower_ci, upper_ci)
                     VALUES %s
                     ON CONFLICT (time, commodity_id, location_id, horizon_days)
-                    DO UPDATE SET predicted_price = EXCLUDED.predicted_price
+                    DO UPDATE SET
+                        predicted_price = EXCLUDED.predicted_price,
+                        lower_ci        = EXCLUDED.lower_ci,
+                        upper_ci        = EXCLUDED.upper_ci
                     """,
                     rows,
                 )

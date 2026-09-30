@@ -565,13 +565,85 @@ def update_master_with_validated(validated: dict, run_date: datetime):
 # unreachable, this logs a warning and the pipeline continues as normal.
 # The CSV/JSON files remain the source of truth until the cutover step.
 HORIZON_DAYS_MAP = {
-    "daily": 1, "weekly": 7, "2_weeks": 14,
+    # "daily" deliberately excluded — its bucket is just today's own price
+    # (a single value, date == run_date), not a real forecast, and today's
+    # actual price already lives in the `prices` table. Keeping it here
+    # would also collide on horizon_days=1 with the new "tomorrow" daily
+    # point below, two different days both claiming the same label.
+    "weekly": 7, "2_weeks": 14,
     "monthly": 30, "3_months": 90, "6_months": 180,
 }
 
+# Extra daily-resolution points for the downloadable report feature (see
+# docs/FIXES_AND_IMPROVEMENTS.md): "today, tomorrow, ... 1 week" as
+# individual days, plus a new 3-week (21 day) checkpoint between 2_weeks
+# and monthly. Each entry is (day_offset, source_horizon_bucket). No new
+# model computation needed: 05_forecast.py already stores a full daily
+# trajectory inside every horizon bucket, this just extracts more of what
+# was already there. Day 7 is deliberately NOT here — it's already
+# covered by the existing "weekly" checkpoint (see the note on
+# extract_day_offset about why these two extraction paths can't be
+# merged into one).
+EXTRA_DAILY_POINTS = [(d, "weekly") for d in (1, 2, 3, 4, 5, 6)] + [(21, "monthly")]
+
+def extract_day_offset(fc_data: dict, run_date: datetime, day_offset: int, bucket: str):
+    """
+    Value + confidence band for a specific number of days ahead of
+    run_date, found by matching the date string within `bucket`'s daily
+    arrays. Only safe for day_offset strictly less than the bucket's own
+    length — e.g. the "weekly" bucket holds days 0-6 (7 values), so this
+    works for day_offset 1-6 but NOT 7 (out of range, always returns
+    None). That mismatch is exactly why the existing 6 checkpoints
+    (1/7/14/30/90/180) are deliberately NOT rewritten to use this
+    function: get_horizon_endpoint()'s "last value in the bucket" is a
+    different, already-correct convention for those, not interchangeable
+    with "day N counted from today" for the new daily/21-day points.
+    """
+    h_data = fc_data.get("horizons", {}).get(bucket)
+    if not h_data:
+        return None
+    target = (run_date + timedelta(days=day_offset)).strftime("%Y-%m-%d")
+    dates = h_data.get("dates", [])
+    if target not in dates:
+        return None
+    idx = dates.index(target)
+    ens = h_data.get("ensemble", {})
+    vals = ens.get("values", [])
+    if idx >= len(vals):
+        return None
+    lo = ens.get("lower_ci", vals)
+    hi = ens.get("upper_ci", vals)
+    return (
+        vals[idx],
+        lo[idx] if idx < len(lo) else None,
+        hi[idx] if idx < len(hi) else None,
+    )
+
+
+def extract_checkpoint_with_ci(fc_data: dict, h_name: str, h_days: int):
+    """
+    Same (price, lower_ci, upper_ci) shape as extract_day_offset, but for
+    the original 6 checkpoints — uses get_horizon_endpoint()'s existing,
+    proven "last value in the bucket" convention for price (unchanged
+    behaviour from before this daily-points feature), and pairs it with
+    that same last index's confidence band.
+    """
+    h_data = fc_data.get("horizons", {}).get(h_name)
+    if not h_data:
+        return None
+    price = get_horizon_endpoint(h_data).get("price")
+    if price is None:
+        return None
+    ens = h_data.get("ensemble", {})
+    vals = ens.get("values", [])
+    lo = ens.get("lower_ci", vals)
+    hi = ens.get("upper_ci", vals)
+    return (price, lo[-1] if lo else None, hi[-1] if hi else None)
+
+
 def write_to_postgres(validated: dict, run_date: datetime):
     db_url = os.environ.get("TSDB_URL")
-    if not db_url:
+    if not db_url and not os.environ.get("PGHOST"):
         logger.warning("  [Postgres] TSDB_URL not set — skipping dual-write (CSV write already done)")
         return
 
@@ -583,7 +655,7 @@ def write_to_postgres(validated: dict, run_date: datetime):
         return
 
     try:
-        conn = psycopg2.connect(db_url)
+        conn = psycopg2.connect() if os.environ.get("PGHOST") else psycopg2.connect(db_url)
     except Exception as e:
         logger.warning(f"  [Postgres] Could not connect — skipping dual-write this run: {e}")
         return
@@ -626,19 +698,29 @@ def write_to_postgres(validated: dict, run_date: datetime):
             if error_pct is not None and not np.isfinite(error_pct):
                 error_pct = None
             confidence = fc.get("model_confidence")
-            for h_name, h_days in HORIZON_DAYS_MAP.items():
-                h_data = fc.get("horizons", {}).get(h_name)
-                if not h_data:
-                    continue
-                # Price at the END of the horizon — values[0] is day 1 of
-                # every horizon, which stored the same number for all six.
-                price = get_horizon_endpoint(h_data).get("price")
+
+            def add_row(h_days, price, lo, hi):
                 if price is None or not np.isfinite(price) or price <= 0:
-                    continue
+                    return
+                lo = lo if (lo is not None and np.isfinite(lo)) else None
+                hi = hi if (hi is not None and np.isfinite(hi)) else None
                 forecast_rows.append((
                     today_ts, cid, national_id, h_days,
-                    float(price), confidence, validated_flag, error_pct,
+                    float(price), lo, hi, confidence, validated_flag, error_pct,
                 ))
+
+            # Existing checkpoints (1/7/14/30/90/180) — same price as
+            # before this feature, now paired with its confidence band.
+            for h_name, h_days in HORIZON_DAYS_MAP.items():
+                result = extract_checkpoint_with_ci(fc, h_name, h_days)
+                if result:
+                    add_row(h_days, *result)
+
+            # New daily-resolution points for the downloadable report
+            for day_offset, bucket in EXTRA_DAILY_POINTS:
+                result = extract_day_offset(fc, run_date, day_offset, bucket)
+                if result:
+                    add_row(day_offset, *result)
 
         with conn.cursor() as cur:
             if price_rows:
@@ -658,11 +740,14 @@ def write_to_postgres(validated: dict, run_date: datetime):
                     """
                     INSERT INTO forecasts
                         (time, commodity_id, location_id, horizon_days,
-                         predicted_price, model_confidence, validated, error_pct)
+                         predicted_price, lower_ci, upper_ci,
+                         model_confidence, validated, error_pct)
                     VALUES %s
                     ON CONFLICT (time, commodity_id, location_id, horizon_days)
                     DO UPDATE SET
                         predicted_price  = EXCLUDED.predicted_price,
+                        lower_ci         = EXCLUDED.lower_ci,
+                        upper_ci         = EXCLUDED.upper_ci,
                         model_confidence = EXCLUDED.model_confidence,
                         validated        = EXCLUDED.validated,
                         error_pct        = EXCLUDED.error_pct
