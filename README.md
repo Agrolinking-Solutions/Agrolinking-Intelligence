@@ -14,7 +14,8 @@ The Agrolinking Commodity Intelligence Platform is a production-grade forecastin
 
 **Live Services:**
 - 📊 **Dashboard:** [Streamlit](https://agrolinking-intelligence-f8qq4uhupaax2qny8rpcpx.streamlit.app)
-- 📡 **API:** [Render](https://agrolinking-intelligence.onrender.com/docs)
+- 📡 **API:** [pis-api.agrolinking.com](https://pis-api.agrolinking.com/docs)
+- 🌐 **Web:** [pis.agrolinking.com](https://pis.agrolinking.com)
 - 📱 **Alerts:** Daily WhatsApp-ready broadcast text
 
 ---
@@ -191,7 +192,7 @@ python pipeline/quality_gate.py
 | `GET /alerts/saved` | List saved price alerts | `curl https://api.../alerts/saved` |
 | `POST /alerts/saved` | Create price threshold alert | `curl -X POST https://api.../alerts/saved?commodity=Rice&threshold_price=1600000&direction=above` |
 
-**Live API:** https://agrolinking-intelligence.onrender.com/docs
+**Live API:** https://pis-api.agrolinking.com/docs
 
 ---
 
@@ -287,13 +288,13 @@ Auto-deploys on `git push` to Streamlit Cloud (30 seconds).
 https://agrolinking-intelligence-f8qq4uhupaax2qny8rpcpx.streamlit.app
 ```
 
-### FastAPI on Render
+### FastAPI on VPS
 
-Auto-deploys on `git push` to Render (2 minutes).
+Moved off Render at the end of September 2026 due to cost — see [docs/API.md](docs/API.md) and [docs/FIXES_AND_IMPROVEMENTS.md](docs/FIXES_AND_IMPROVEMENTS.md). Auto-deploys on `git push` to `main`, same workflow as before.
 
 ```
-https://agrolinking-intelligence.onrender.com
-https://agrolinking-intelligence.onrender.com/docs
+https://pis-api.agrolinking.com
+https://pis-api.agrolinking.com/docs
 ```
 
 ### GitHub Actions Pipeline

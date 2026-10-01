@@ -1,5 +1,25 @@
 # Fixes and Improvements (September 2026)
 
+## Infrastructure Change Log
+
+### October 2026 — Moved API hosting from Render to a VPS
+
+**Reason:** Render's cost. The billing card was removed from the Render account at the end of September 2026, which means the Render deployment (`agrolinking-intelligence.onrender.com`) will stop serving once Render suspends the service for non-payment — do not rely on that URL in any new work.
+
+**What changed:**
+- API is now served from a VPS at `pis-api.agrolinking.com` (confirmed live, HTTPS working, responding with current data — `last_updated` matched the actual latest pipeline run date at time of verification)
+- Web frontend now served from the same VPS at `pis.agrolinking.com`
+- Deployment mechanism is unchanged — still auto-deploys on every push to `main`, same as Render before it (confirmed with the team, not just assumed)
+- There was a brief transition period where the API was reachable at a temporary `sslip.io` address pointing directly at the VPS's IP (`169.58.87.142`) before the permanent `pis-api.agrolinking.com` domain was pointed at it — that sslip.io address is no longer referenced anywhere in the docs and should be treated as dead
+
+**What this fixes incidentally:** the temporary sslip.io address was plain HTTP with no TLS — a real gap for any traffic depending on it. The permanent `pis-api.agrolinking.com` domain serves proper HTTPS, so that gap is closed as a side effect of the permanent domain landing.
+
+**Verified working on the permanent domain:** `/health`, `/`, and both Postgres-backed endpoints (`/history/Rice`, `/history/compare`) all returned correct data from `https://pis-api.agrolinking.com` directly.
+
+**What still needs checking:**
+- CORS is still wide open (`allow_origins=["*"]`) regardless of which host serves the API — see docs/SECURITY.md, unrelated to this move but worth remembering now that a real production domain is in place
+- `docs/API.md`, `README.md` updated to reference the new permanent domains throughout; `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONAL_GUIDE.md` still have older Render-era references in places that are more historical/narrative — not actively misleading, but worth a cleanup pass later
+
 ## Critical Issues Fixed
 
 ### 1. NaN Outputs Crashed API (CRITICAL)

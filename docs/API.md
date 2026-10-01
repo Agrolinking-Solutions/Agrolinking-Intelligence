@@ -1,14 +1,17 @@
 # Agrolinking Commodity Intelligence API
 
-**Live URL:** `https://agrolinking-intelligence.onrender.com`
+**Live URL:** `https://pis-api.agrolinking.com`
 
-**Interactive Docs:** `https://agrolinking-intelligence.onrender.com/docs`
+**Interactive Docs:** `https://pis-api.agrolinking.com/docs`
 
 **API Version:** 2.1.0 | **Last Updated:** September 2026
 
-> Railway was used previously but has been decommissioned — the URL 404s.
-> Render is the only live deployment. See [FIXES_AND_IMPROVEMENTS.md](FIXES_AND_IMPROVEMENTS.md)
-> for where the old Railway URL was still being referenced.
+> Moved off Render at the end of September 2026 because of cost — now on
+> a VPS, served via `pis-api.agrolinking.com` (and the web frontend at
+> `pis.agrolinking.com`) with proper HTTPS. See
+> [FIXES_AND_IMPROVEMENTS.md](FIXES_AND_IMPROVEMENTS.md) for the full
+> record of the move. Railway, used even earlier than Render, has been
+> fully decommissioned and no longer resolves at all.
 
 All responses are JSON. All prices in NGN/MT unless otherwise stated. CORS is currently open to all origins — see [SECURITY.md](SECURITY.md) for why this needs restricting.
 
@@ -18,12 +21,12 @@ All responses are JSON. All prices in NGN/MT unless otherwise stated. CORS is cu
 
 | Component | Service | URL | Status |
 |---|---|---|---|
-| API | Render | agrolinking-intelligence.onrender.com | Live |
+| API | VPS | pis-api.agrolinking.com | Live — HTTPS |
+| Web frontend | VPS | pis.agrolinking.com | Live |
 | Dashboard | Streamlit Cloud | agrolinking-intelligence-f8qq4uhupaax2qny8rpcpx.streamlit.app | Live |
-| Keep-alive | GitHub Actions | Pings /health | See note below — currently misconfigured |
 | Daily pipeline | GitHub Actions | Runs 05:00 UTC daily | Active |
 
-**Keep-alive note:** Render now runs on a paid plan (no free-tier sleep), so the `.github/workflows/keep_alive.yml` ping workflow no longer serves a purpose and has been removed. See FIXES_AND_IMPROVEMENTS.md.
+**Deploy note:** the VPS auto-deploys on every push to `main`, same workflow as Render before it.
 
 ---
 
@@ -86,7 +89,7 @@ All responses are JSON. All prices in NGN/MT unless otherwise stated. CORS is cu
 
 ### GET /commodities
 ```
-GET https://agrolinking-intelligence.onrender.com/commodities
+GET https://pis-api.agrolinking.com/commodities
 ```
 ```json
 {
@@ -210,14 +213,14 @@ POST /alerts/saved?commodity=Rice&threshold_price=1500000&direction=above&email=
 
 ### Homepage hero widget
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence.onrender.com/summary');
+const res  = await fetch('https://pis-api.agrolinking.com/summary');
 const data = await res.json();
 // data.commodities_tracked, data.verified_accuracy, data.avg_model_error_pct
 ```
 
 ### Live price cards
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence.onrender.com/commodities');
+const res  = await fetch('https://pis-api.agrolinking.com/commodities');
 const data = await res.json();
 data.commodities.forEach(c => {
   console.log(c.commodity, c.price_ngn_mt, c.day_change_pct);
@@ -226,7 +229,7 @@ data.commodities.forEach(c => {
 
 ### Forecast chart
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence.onrender.com/forecasts/Rice/monthly');
+const res  = await fetch('https://pis-api.agrolinking.com/forecasts/Rice/monthly');
 const data = await res.json();
 const labels = data.weekly_series.map(p => p.date);
 const prices = data.weekly_series.map(p => p.price);
@@ -235,7 +238,7 @@ const prices = data.weekly_series.map(p => p.price);
 
 ### Nigeria map widget
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence.onrender.com/zonal/Rice');
+const res  = await fetch('https://pis-api.agrolinking.com/zonal/Rice');
 const data = await res.json();
 const states = data.state_prices;
 // states["Lagos"].price_ngn_mt, states["Kano"].price_ngn_mt
@@ -243,7 +246,7 @@ const states = data.state_prices;
 
 ### Factor drivers panel
 ```javascript
-const res  = await fetch('https://agrolinking-intelligence.onrender.com/factors?commodity=Rice');
+const res  = await fetch('https://pis-api.agrolinking.com/factors?commodity=Rice');
 const data = await res.json();
 // data.overall_pressure, data.factors.rainfall_season.rating, etc.
 ```
@@ -251,7 +254,7 @@ const data = await res.json();
 ### Price alert creation
 ```javascript
 const res = await fetch(
-  'https://agrolinking-intelligence.onrender.com/alerts/saved' +
+  'https://pis-api.agrolinking.com/alerts/saved' +
   '?commodity=Rice&threshold_price=1500000&direction=above',
   { method: 'POST' }
 );
@@ -275,7 +278,7 @@ const alert = await res.json();
 
 ## Deployment Notes
 
-The API is deployed on Render only, on a paid plan (no free-tier sleep). It autodeploys on every push to the `main` branch of `Agrolinking-Solutions/Agrolinking-Intelligence`.
+The API is deployed on a VPS, served at `pis-api.agrolinking.com`. It autodeploys on every push to the `main` branch of `Agrolinking-Solutions/Agrolinking-Intelligence` — same workflow as Render before it.
 
 The `as_of` field on every endpoint shows the date of the last pipeline run. If it shows a date older than today, the pipeline may not have run — check GitHub Actions logs.
 
