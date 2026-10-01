@@ -20,6 +20,16 @@
 - CORS is still wide open (`allow_origins=["*"]`) regardless of which host serves the API — see docs/SECURITY.md, unrelated to this move but worth remembering now that a real production domain is in place
 - `docs/API.md`, `README.md` updated to reference the new permanent domains throughout; `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONAL_GUIDE.md` still have older Render-era references in places that are more historical/narrative — not actively misleading, but worth a cleanup pass later
 
+### October 2026 — GitHub Actions workflow: missing TSDB_URL on 2 steps, and a near-miss on training frequency
+
+**Found while answering a routine question** about whether the daily pipeline was fully automated.
+
+**Real bug fixed:** `.github/workflows/daily_pipeline.yml` only passed the `TSDB_URL` secret to the "06 - Validate" step. Each GitHub Actions step's `env:` is scoped to that step alone — it doesn't carry to later steps. This meant the zonal (step 07) and intelligence (step 08) Postgres dual-writes, added earlier, have been silently logging "TSDB_URL not set" and skipping on every single automated run since they were built — only the one-time manual backfill actually got that data into Postgres, not the ongoing daily feed. Fixed by adding the same `env:` block to steps 07 and 08.
+
+**Near-miss, caught before pushing — did NOT change this:** `run_pipeline.py` (used for local/manual runs) has a weekly-retrain intent — `today == 0` (Monday) skips training the rest of the week. The GitHub Actions workflow calls each pipeline script directly, never through that wrapper, so it has always trained every single day, not just Mondays. That looked like an obvious second bug to fix alongside the TSDB_URL one — a draft fix (Monday-only training via a day-of-week check) was written, then traced through before pushing: GitHub Actions runners are ephemeral (a fresh VM per run) and `models/` is gitignored, never committed, with no `actions/upload-artifact`/`download-artifact` or any other caching in the workflow to carry Monday's trained model files to the rest of the week. `forecast_commodity()` in `05_forecast.py` skips a commodity entirely when all 3 of its models return `None` (checked via `os.path.exists()` before `joblib.load()`). On an ephemeral runner with no `models/` directory at all, that's every commodity, every day except Monday — the "fix" would have produced zero forecasts 6 days out of 7. The draft was reverted before it was ever committed.
+
+**Real fix still needed, not done yet:** add actual model persistence across runs (most likely `actions/upload-artifact` after the Monday training step, `actions/download-artifact` before forecasting on other days), then the Monday-only skip becomes safe to add. Training daily is costing GitHub Actions minutes unnecessarily until this is built — it's correct output, just wasteful compute, so there's no urgency to fix it blindly.
+
 ## Critical Issues Fixed
 
 ### 1. NaN Outputs Crashed API (CRITICAL)

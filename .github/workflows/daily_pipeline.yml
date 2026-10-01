@@ -52,6 +52,18 @@ jobs:
       - name: 03 - Features
         run: python pipeline/03_features.py
 
+      # NOT changed to Monday-only despite run_pipeline.py's `today == 0`
+      # intent for local runs — see docs/FIXES_AND_IMPROVEMENTS.md. GitHub
+      # Actions runners are ephemeral (fresh VM every run, models/ is
+      # gitignored and never committed), and there is no artifact caching
+      # here to carry a Monday training run's model files forward to the
+      # rest of the week. Skipping training on non-Mondays would leave
+      # models/ completely empty on Tue-Sun, and forecast_commodity() in
+      # 05_forecast.py skips any commodity where all 3 models return None
+      # — meaning every commodity would produce zero forecast, every day
+      # except Monday. Training daily is accidentally load-bearing until
+      # real model persistence (e.g. actions/upload-artifact +
+      # actions/download-artifact) is added across runs.
       - name: 04 - Train
         run: python pipeline/04_train.py
 
@@ -63,10 +75,18 @@ jobs:
           TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/06_validate.py
 
+      # TSDB_URL was missing on these two steps — each step's env is
+      # scoped to itself, not inherited from step 06, so the zonal and
+      # intelligence dual-writes to Postgres have been silently failing
+      # ("TSDB_URL not set") on every automated run since they were added.
       - name: 07 - Zonal forecast
+        env:
+          TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/07_zonal_forecast.py
 
       - name: 08 - Intelligence
+        env:
+          TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/08_intelligence.py
 
       # ── Refuse to publish bad data ──────────────────────────────────
