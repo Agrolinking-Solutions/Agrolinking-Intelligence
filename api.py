@@ -71,8 +71,18 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins     = ["*"],
-    allow_credentials = True,
-    allow_methods     = ["GET"],
+    # allow_credentials=True with origins=["*"] is invalid per the CORS
+    # spec (browsers reject the combination) — left False since the new
+    # alerts auth uses an Authorization: Bearer header, not cookies, so
+    # credentialed (cookie-carrying) cross-origin requests were never
+    # needed here. See docs/SECURITY.md for the still-open task of
+    # restricting allow_origins to real domains instead of "*".
+    allow_credentials = False,
+    # Was GET-only, which meant browsers rejected the alerts endpoints'
+    # POST (create) and DELETE (remove) requests via CORS preflight
+    # before the request even reached auth — unrelated to whether the
+    # caller was logged in, this blocked the feature outright.
+    allow_methods     = ["GET", "POST", "DELETE"],
     allow_headers     = ["*"],
 )
 
@@ -1195,21 +1205,66 @@ def route_detail(origin: str, destination: str):
 # V3 ENDPOINTS — History, Alerts CRUD, Meta, Documentation
 # ══════════════════════════════════════════════════════════════════════════════
 
-import uuid
 from typing import List
+from fastapi import Depends
+from auth import get_current_user_email
 
-ALERTS_DB_PATH = os.path.join(BASE_DIR, "outputs", "alerts", "saved_alerts.json")
-os.makedirs(os.path.dirname(ALERTS_DB_PATH), exist_ok=True)
+# Alerts used to live in outputs/alerts/saved_alerts.json — a single file
+# anyone could read or write, with no concept of who an alert belonged to.
+# Now backed by Postgres (users/alerts tables) and gated behind a verified
+# Google login (auth.py) on every endpoint below. Unlike /history and the
+# other Postgres-backed reads, there is deliberately NO JSON-file fallback
+# here: a fallback that served the old unscoped file would silently undo
+# the entire point of adding auth. If Postgres isn't reachable, these
+# endpoints return 503 rather than quietly degrading to "everyone's data,
+# no login required."
 
-def load_alerts_db():
-    if os.path.exists(ALERTS_DB_PATH):
-        with open(ALERTS_DB_PATH) as f:
-            return json.load(f)
-    return {"alerts": []}
+def _get_or_create_user(email: str) -> int:
+    """Look up a user by verified email, creating the row on first use."""
+    with db.get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+        row = cur.fetchone()
+        if row:
+            return row[0]
+        cur.execute("INSERT INTO users (email) VALUES (%s) RETURNING user_id", (email,))
+        user_id = cur.fetchone()[0]
+        conn.commit()
+        return user_id
 
-def save_alerts_db(db):
-    with open(ALERTS_DB_PATH, "w") as f:
-        json.dump(db, f, indent=2)
+
+def _resolve_commodity_id(cur, name: str):
+    cur.execute("SELECT commodity_id, name FROM commodities WHERE LOWER(name) = LOWER(%s)", (name,))
+    row = cur.fetchone()
+    return row if row else (None, None)
+
+
+def _latest_national_price(cur, commodity_id: int):
+    cur.execute("""
+        SELECT p.price FROM prices p
+        JOIN locations l ON l.location_id = p.location_id
+        WHERE p.commodity_id = %s AND l.state = 'National'
+        ORDER BY p.time DESC LIMIT 1
+    """, (commodity_id,))
+    row = cur.fetchone()
+    return float(row[0]) if row else 0.0
+
+
+def _serialize_alert(row):
+    (alert_id, commodity, direction, threshold, label, active,
+     created_at, last_checked_at, triggered_at, triggered_price) = row
+    return {
+        "id":              alert_id,
+        "commodity":       commodity,
+        "direction":       direction,
+        "threshold_price": float(threshold),
+        "label":           label,
+        "active":          active,
+        "created_at":      created_at.isoformat() if created_at else None,
+        "last_checked":    last_checked_at.isoformat() if last_checked_at else None,
+        "triggered":       triggered_at is not None,
+        "triggered_at":    triggered_at.isoformat() if triggered_at else None,
+        "triggered_price": float(triggered_price) if triggered_price is not None else None,
+    }
 
 
 MASTER_PATH = os.path.join(BASE_DIR, "data", "processed", "agrolinking_master.csv")
@@ -1480,13 +1535,28 @@ app.get("/history/{commodity}", tags=["Historical Data"])(commodity_history)
 # ── Price Alerts CRUD ──────────────────────────────────────────────────────
 
 @app.get("/alerts/saved", tags=["Price Alerts"])
-def get_saved_alerts():
-    """List all saved price threshold alerts."""
-    db = load_alerts_db()
-    return {
-        "count":  len(db["alerts"]),
-        "alerts": db["alerts"],
-    }
+def get_saved_alerts(email: str = Depends(get_current_user_email)):
+    """List the logged-in user's saved price threshold alerts. Requires a Google login (Authorization: Bearer <token>)."""
+    try:
+        with db.get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            row = cur.fetchone()
+            if not row:
+                return {"count": 0, "alerts": []}
+            cur.execute("""
+                SELECT a.alert_id, c.name, a.condition, a.threshold, a.label, a.active,
+                       a.created_at, a.last_checked_at, a.triggered_at, a.triggered_price
+                FROM alerts a
+                JOIN commodities c ON c.commodity_id = a.commodity_id
+                WHERE a.user_id = %s
+                ORDER BY a.created_at DESC
+            """, (row[0],))
+            alerts = [_serialize_alert(r) for r in cur.fetchall()]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Could not load alerts: {e}")
+    return {"count": len(alerts), "alerts": alerts}
 
 
 @app.post("/alerts/saved", tags=["Price Alerts"])
@@ -1494,144 +1564,153 @@ def create_alert(
     commodity:       str   = Query(..., description="Commodity name e.g. Rice"),
     threshold_price: float = Query(..., gt=0, le=1e12, description="Alert price in NGN/MT"),
     direction:       str   = Query(..., description="above or below"),
-    email:           Optional[str] = Query(None, description="Email for notification"),
-    phone:           Optional[str] = Query(None, description="Phone for WhatsApp notification"),
     label:           Optional[str] = Query(None, description="Custom label for this alert"),
+    email: str = Depends(get_current_user_email),
 ):
     """
-    Create a new price threshold alert.
+    Create a new price threshold alert for the logged-in user.
     Alert triggers when commodity price crosses the threshold in the specified direction.
 
     direction: 'above' = alert when price rises above threshold
                'below' = alert when price falls below threshold
 
-    Note: actual WhatsApp/email delivery requires Twilio/SendGrid integration.
-    Use GET /alerts/check to manually check alert status.
+    Requires a Google login (Authorization: Bearer <token>). Actual WhatsApp/
+    email delivery requires Twilio/SendGrid integration — not built yet.
     """
     if direction not in ["above", "below"]:
         raise HTTPException(status_code=400, detail="direction must be 'above' or 'below'")
 
-    # Validate commodity exists
     try:
-        zonal, _ = load_latest_zonal()
-        anchors  = zonal.get("national_anchors", {})
-        key = next((k for k in anchors if k.lower() == commodity.lower()), None)
-        if not key:
-            raise HTTPException(status_code=404,
-                detail=f"Commodity '{commodity}' not found.")
-        current_price = anchors[key].get("price", 0)
+        with db.get_conn() as conn, conn.cursor() as cur:
+            commodity_id, key = _resolve_commodity_id(cur, commodity)
+            if commodity_id is None:
+                raise HTTPException(status_code=404, detail=f"Commodity '{commodity}' not found.")
+
+            user_id = _get_or_create_user(email)
+            final_label = label or f"{key} {direction} N{threshold_price:,.0f}"
+
+            cur.execute("""
+                INSERT INTO alerts (user_id, commodity_id, condition, threshold, label)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING alert_id, created_at
+            """, (user_id, commodity_id, direction, threshold_price, final_label))
+            alert_id, created_at = cur.fetchone()
+            conn.commit()
+
+            current_price = _latest_national_price(cur, commodity_id)
     except HTTPException:
         raise
-    except Exception:
-        key = commodity
-        current_price = 0
-
-    alert = {
-        "id":              str(uuid.uuid4())[:8],
-        "commodity":       key,
-        "threshold_price": threshold_price,
-        "direction":       direction,
-        "label":           label or f"{key} {direction} N{threshold_price:,.0f}",
-        "email":           email,
-        "phone":           phone,
-        "created_at":      datetime.now().isoformat(),
-        "last_checked":    None,
-        "triggered":       False,
-        "triggered_at":    None,
-        "triggered_price": None,
-        "active":          True,
-        "current_price_at_creation": current_price,
-    }
-
-    db = load_alerts_db()
-    db["alerts"].append(alert)
-    save_alerts_db(db)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Could not create alert: {e}")
 
     return {
-        "message":  "Alert created successfully.",
-        "alert":    alert,
-        "note":     "Use GET /alerts/check to check all alerts against current prices. "
-                    "Actual push notifications require WhatsApp Business API or email integration.",
+        "message": "Alert created successfully.",
+        "alert": {
+            "id": alert_id, "commodity": key, "direction": direction,
+            "threshold_price": threshold_price, "label": final_label,
+            "created_at": created_at.isoformat(), "active": True,
+            "current_price_at_creation": current_price,
+        },
+        "note": "Use GET /alerts/check to check your alerts against current prices. "
+                "Actual push notifications require WhatsApp Business API or email integration.",
     }
 
 
 @app.delete("/alerts/saved/{alert_id}", tags=["Price Alerts"])
-def delete_alert(alert_id: str):
-    """Delete a saved price alert by ID."""
-    db = load_alerts_db()
-    before = len(db["alerts"])
-    db["alerts"] = [a for a in db["alerts"] if a["id"] != alert_id]
-    if len(db["alerts"]) == before:
-        raise HTTPException(status_code=404, detail=f"Alert ID '{alert_id}' not found.")
-    save_alerts_db(db)
-    return {"message": f"Alert {alert_id} deleted.", "remaining": len(db["alerts"])}
+def delete_alert(alert_id: int, email: str = Depends(get_current_user_email)):
+    """Delete one of the logged-in user's saved price alerts by ID. Requires a Google login."""
+    try:
+        with db.get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            row = cur.fetchone()
+            # Same 404 whether the alert doesn't exist or belongs to someone
+            # else — never reveal that an ID is real but owned by another user.
+            if not row:
+                raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found.")
+            cur.execute(
+                "DELETE FROM alerts WHERE alert_id = %s AND user_id = %s RETURNING alert_id",
+                (alert_id, row[0]),
+            )
+            deleted = cur.fetchone()
+            conn.commit()
+            if not deleted:
+                raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Could not delete alert: {e}")
+    return {"message": f"Alert {alert_id} deleted."}
 
 
 @app.get("/alerts/check", tags=["Price Alerts"])
-def check_alerts():
+def check_alerts(email: str = Depends(get_current_user_email)):
     """
-    Check all saved alerts against current prices.
-    Returns list of triggered alerts.
-    This is the monitoring job — run daily or on-demand.
-    Actual notification delivery (WhatsApp/email) requires
-    Twilio or SendGrid integration configured separately.
-    """
-    db = load_alerts_db()
-    if not db["alerts"]:
-        return {"triggered": [], "checked": 0, "message": "No saved alerts to check."}
+    Check the logged-in user's alerts against current prices and mark any
+    that have crossed their threshold as triggered. Requires a Google login.
 
+    Scoped to the caller's own alerts, not a global check — a true
+    background job that checks everyone's alerts and actually sends
+    notifications belongs in a server-side script reading Postgres
+    directly (not a public endpoint returning other people's alert data),
+    once Twilio/SendGrid delivery is built.
+    """
     try:
-        zonal, _ = load_latest_zonal()
-        anchors  = zonal.get("national_anchors", {})
-    except Exception:
-        raise HTTPException(status_code=500, detail="Could not load current prices.")
+        with db.get_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM users WHERE email = %s", (email,))
+            row = cur.fetchone()
+            if not row:
+                return {"triggered": [], "checked": 0, "message": "No saved alerts to check."}
+            user_id = row[0]
 
-    triggered = []
-    updated   = []
-    now       = datetime.now().isoformat()
+            cur.execute("""
+                SELECT a.alert_id, c.commodity_id, c.name, a.condition, a.threshold, a.label
+                FROM alerts a
+                JOIN commodities c ON c.commodity_id = a.commodity_id
+                WHERE a.user_id = %s AND a.active = TRUE AND a.triggered_at IS NULL
+            """, (user_id,))
+            active_alerts = cur.fetchall()
 
-    for alert in db["alerts"]:
-        if not alert.get("active", True):
-            updated.append(alert)
-            continue
+            if not active_alerts:
+                return {"triggered": [], "checked": 0, "message": "No saved alerts to check."}
 
-        key = next((k for k in anchors if k.lower() == alert["commodity"].lower()), None)
-        current_price = anchors.get(key, {}).get("price", 0) if key else 0
-
-        alert["last_checked"]   = now
-        alert["current_price"]  = current_price
-
-        is_triggered = (
-            (alert["direction"] == "above" and current_price >= alert["threshold_price"]) or
-            (alert["direction"] == "below" and current_price <= alert["threshold_price"])
-        )
-
-        if is_triggered and not alert.get("triggered"):
-            alert["triggered"]       = True
-            alert["triggered_at"]    = now
-            alert["triggered_price"] = current_price
-            triggered.append({
-                **alert,
-                "message": (
-                    f"{alert['commodity']} is now N{current_price:,.0f}/MT — "
-                    f"{'above' if alert['direction']=='above' else 'below'} "
-                    f"your threshold of N{alert['threshold_price']:,.0f}/MT."
-                ),
-                "pct_from_threshold": round(
-                    (current_price - alert["threshold_price"])
-                    / alert["threshold_price"] * 100, 2
-                ),
-            })
-        updated.append(alert)
-
-    db["alerts"] = updated
-    save_alerts_db(db)
+            now = datetime.now()
+            triggered = []
+            for alert_id, commodity_id, commodity_name, direction, threshold, label in active_alerts:
+                threshold = float(threshold)
+                current_price = _latest_national_price(cur, commodity_id)
+                is_triggered = (
+                    (direction == "above" and current_price >= threshold) or
+                    (direction == "below" and current_price <= threshold)
+                )
+                if is_triggered:
+                    cur.execute("""
+                        UPDATE alerts SET last_checked_at = %s, triggered_at = %s, triggered_price = %s
+                        WHERE alert_id = %s
+                    """, (now, now, current_price, alert_id))
+                    triggered.append({
+                        "id": alert_id, "commodity": commodity_name, "direction": direction,
+                        "threshold_price": threshold, "label": label,
+                        "triggered_price": current_price,
+                        "message": (
+                            f"{commodity_name} is now N{current_price:,.0f}/MT — "
+                            f"{'above' if direction == 'above' else 'below'} "
+                            f"your threshold of N{threshold:,.0f}/MT."
+                        ),
+                        "pct_from_threshold": round((current_price - threshold) / threshold * 100, 2),
+                    })
+                else:
+                    cur.execute("UPDATE alerts SET last_checked_at = %s WHERE alert_id = %s", (now, alert_id))
+            conn.commit()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Could not check alerts: {e}")
 
     return {
-        "checked":      len(updated),
-        "triggered":    triggered,
+        "checked":         len(active_alerts),
+        "triggered":       triggered,
         "triggered_count": len(triggered),
-        "checked_at":   now,
+        "checked_at":      now.isoformat(),
         "note": "To enable push notifications, integrate Twilio (WhatsApp) "
                 "or SendGrid (email) with the triggered alerts list above.",
     }

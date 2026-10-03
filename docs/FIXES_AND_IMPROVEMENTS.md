@@ -30,6 +30,24 @@
 
 **Real fix still needed, not done yet:** add actual model persistence across runs (most likely `actions/upload-artifact` after the Monday training step, `actions/download-artifact` before forecasting on other days), then the Monday-only skip becomes safe to add. Training daily is costing GitHub Actions minutes unnecessarily until this is built — it's correct output, just wasteful compute, so there's no urgency to fix it blindly.
 
+### October 2026 — Alerts locked down with real auth, moved to Postgres
+
+**Problem:** `/alerts/saved` (GET/POST) and `/alerts/saved/{id}` (DELETE) had no authentication at all — anyone could list every saved alert (with email/phone), create unlimited alerts, or delete anyone else's. Storage was a single world-readable JSON file (`outputs/alerts/saved_alerts.json`), with no concept of "whose alert is this."
+
+**Fix:** Confirmed with the tech team that the frontend already has real user accounts via Google Sign-In — rather than build a second, disconnected login system, `auth.py` verifies the same Google ID token the frontend already has, directly against Google's public keys (no shared secret needed from the frontend team at all). All four alert endpoints now require `Authorization: Bearer <google_id_token>` and scope every read/write to the caller's own `user_id`. Storage moved to Postgres (`users`/`alerts` tables, already in `schema.sql` but unused until now) — `alerts` gained `label`, `last_checked_at`, and `triggered_price` columns to match what the old JSON tracked.
+
+Deliberately no JSON-file fallback on these endpoints (unlike `/history`, `/forecasts/latest`, etc.) — a fallback would mean falling back to the old unscoped file, which defeats the entire point. Returns 503 if Postgres is unreachable instead.
+
+**Also fixed while here:** CORS was `allow_methods=["GET"]` only, which meant browsers rejected the alerts endpoints' POST/DELETE requests via preflight before the request even reached auth — unrelated to login status, this blocked the feature outright regardless of whether auth worked. Added POST/DELETE. Also dropped `allow_credentials=True` (paired with `allow_origins=["*"]`, which is an invalid combination per the CORS spec) — not needed since Bearer-token auth doesn't use cookies.
+
+**Verified:**
+- User isolation: a second simulated user cannot see, list, or delete a first user's alert (tested via FastAPI's `dependency_overrides`, since a real Google token requires an actual browser OAuth flow)
+- A forged JWT with a fake signature and spoofed `email` claim is correctly rejected — confirms real cryptographic verification against Google's keys, not just checking the token's shape
+- Full create → check → trigger → re-check (no double-trigger) flow tested against real price data in a local Postgres test database
+- Ownership-violation attempts return the same 404 as a nonexistent ID, never revealing that an alert exists but belongs to someone else
+
+**Still open:** `/alerts/check` is scoped to the caller's own alerts now (not a global sweep) — an actual background job that checks everyone's alerts and sends notifications via Twilio/SendGrid belongs in a server-side script reading Postgres directly, not a public endpoint. Notification delivery itself still isn't built.
+
 ## Critical Issues Fixed
 
 ### 1. NaN Outputs Crashed API (CRITICAL)

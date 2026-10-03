@@ -148,10 +148,13 @@ SELECT create_hypertable('market_index', 'time', if_not_exists => TRUE);
 -- ═══════════════════════════════════════════════════════════════════════
 -- STEP 3 — Forward-looking tables (Phase 2: alerts, portfolio tracking)
 -- ═══════════════════════════════════════════════════════════════════════
--- Not written to by any pipeline script yet. Schema included now so a
--- later migration doesn't need a second schema pass. See docs/SECURITY.md
--- for why alert data (email/phone) needs per-user isolation before this
--- replaces the current outputs/alerts/saved_alerts.json file.
+-- users/alerts are now live — api.py's /alerts/* endpoints require a
+-- verified Google login (see auth.py) and store here instead of the old
+-- world-readable outputs/alerts/saved_alerts.json file. user_id comes
+-- from looking up (or creating) a row by the verified email in the
+-- Google ID token — see docs/SECURITY.md for why this had to happen
+-- before alerts could be considered a real feature rather than a
+-- liability (anyone could list/delete anyone's alerts before this).
 
 CREATE TABLE IF NOT EXISTS users (
     user_id         SERIAL PRIMARY KEY,
@@ -161,15 +164,24 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS alerts (
-    alert_id        SERIAL PRIMARY KEY,
-    user_id         INT NOT NULL REFERENCES users(user_id),
-    commodity_id    INT NOT NULL REFERENCES commodities(commodity_id),
-    condition       TEXT NOT NULL,              -- 'above' | 'below'
-    threshold       NUMERIC NOT NULL,
-    active          BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    triggered_at    TIMESTAMPTZ
+    alert_id         SERIAL PRIMARY KEY,
+    user_id          INT NOT NULL REFERENCES users(user_id),
+    commodity_id     INT NOT NULL REFERENCES commodities(commodity_id),
+    condition        TEXT NOT NULL,              -- 'above' | 'below'
+    threshold        NUMERIC NOT NULL,
+    label            TEXT,
+    active           BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_checked_at  TIMESTAMPTZ,
+    triggered_at     TIMESTAMPTZ,
+    triggered_price  NUMERIC
 );
+
+-- Idempotent — in case schema.sql is re-run after alerts already existed
+-- under the original, narrower column set.
+ALTER TABLE alerts ADD COLUMN IF NOT EXISTS label TEXT;
+ALTER TABLE alerts ADD COLUMN IF NOT EXISTS last_checked_at TIMESTAMPTZ;
+ALTER TABLE alerts ADD COLUMN IF NOT EXISTS triggered_price NUMERIC;
 
 CREATE TABLE IF NOT EXISTS portfolio_holdings (
     holding_id      SERIAL PRIMARY KEY,
@@ -234,4 +246,6 @@ UNION ALL SELECT 'locations', count(*) FROM locations
 UNION ALL SELECT 'prices', count(*) FROM prices
 UNION ALL SELECT 'forecasts', count(*) FROM forecasts
 UNION ALL SELECT 'intelligence_metrics', count(*) FROM intelligence_metrics
-UNION ALL SELECT 'market_index', count(*) FROM market_index;
+UNION ALL SELECT 'market_index', count(*) FROM market_index
+UNION ALL SELECT 'users', count(*) FROM users
+UNION ALL SELECT 'alerts', count(*) FROM alerts;

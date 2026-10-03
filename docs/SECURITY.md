@@ -18,60 +18,15 @@ See [FIXES_AND_IMPROVEMENTS.md](FIXES_AND_IMPROVEMENTS.md) for the full list of 
 
 ## Authentication & Authorization
 
-### Alert Endpoints (Priority: HIGH)
+### Alert Endpoints (FIXED — October 2026)
 
-The `/alerts/saved` endpoints expose personal data and allow write operations without authentication:
+~~The `/alerts/saved` endpoints expose personal data and allow write operations without authentication~~ — fixed. All four endpoints (`GET/POST /alerts/saved`, `DELETE /alerts/saved/{id}`, `GET /alerts/check`) now require a verified Google login token (`Authorization: Bearer <google_id_token>`), checked in `auth.py` against Google's own public keys — no shared secret needed, the frontend's existing Google Sign-In is the trust anchor. Alerts are scoped to the caller's own `user_id`; trying to read or delete another user's alert returns the same 404 as a nonexistent ID (never reveals that it exists but belongs to someone else).
 
-```python
-# VULNERABLE: Anyone can:
-GET /alerts/saved              # See all saved alerts with email/phone
-POST /alerts/saved?...         # Create unlimited alerts
-DELETE /alerts/saved/{id}      # Delete anyone's alert
-```
+Storage moved from the world-readable `outputs/alerts/saved_alerts.json` file to Postgres (`users`/`alerts` tables in `scripts/migration/schema.sql`). Unlike the other Postgres-backed endpoints, there's deliberately no JSON-file fallback here — a fallback would have meant falling back to the old unscoped, no-login file, silently undoing the fix. If Postgres is unreachable, these endpoints return 503 instead.
 
-**Fix:** Add API key authentication or OAuth2
+Verified: user-isolation tested directly (a second simulated user cannot see, list, or delete a first user's alert — confirmed via FastAPI dependency override in lieu of a real Google token, which requires a browser flow), forged-JWT rejection tested (a token with a fake signature and a spoofed `email` claim is correctly rejected — confirms real cryptographic verification is happening, not just structural checks), and the full trigger-on-threshold-crossed logic tested against real price data.
 
-```python
-from fastapi import Depends, HTTPException, Header
-
-async def verify_api_key(x_api_key: str = Header(...)) -> str:
-    if x_api_key not in os.environ.get("ALLOWED_API_KEYS", "").split(","):
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return x_api_key
-
-@app.get("/alerts/saved")
-async def get_saved_alerts(api_key: str = Depends(verify_api_key)):
-    # Isolate alerts by api_key or user_id
-    ...
-```
-
-### Personal Data
-
-Saved alerts store email and phone numbers. When alerts are stored in JSON on disk, they're world-readable:
-
-```json
-{
-  "id": "abc123",
-  "email": "user@example.com",      // PII
-  "phone": "+234......"              // PII
-}
-```
-
-**Fix:** Move alerts to Postgres with per-user isolation:
-
-```python
--- schema
-CREATE TABLE alerts (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id),
-    commodity VARCHAR NOT NULL,
-    threshold_price DECIMAL NOT NULL,
-    email VARCHAR,                    -- encrypted
-    phone VARCHAR,                    -- encrypted
-    active BOOLEAN DEFAULT TRUE,
-    UNIQUE(user_id, commodity, threshold_price)
-);
-```
+See `docs/FIXES_AND_IMPROVEMENTS.md` for the full record. Email/phone are no longer stored per-alert at all — they live once in `users`, not duplicated and exposed on every alert row.
 
 ## CORS Configuration
 
@@ -397,8 +352,8 @@ if gate_failed:
 
 - [ ] `requirements*.txt` pinned to exact versions
 - [ ] GitHub Actions all pinned to commit SHAs
-- [ ] API key authentication on `/alerts/*` endpoints
-- [ ] CORS restricted to Agrolinking domains
+- [x] Authentication on `/alerts/*` endpoints (Google ID token, Oct 2026 — not API keys as originally planned, see above)
+- [ ] CORS restricted to Agrolinking domains (still `*`; `allow_credentials` fixed to `False` so the `*`+credentials conflict is gone, but origins still unrestricted)
 - [ ] Rate limiting enabled (slowapi)
 - [ ] Input validation on all endpoints
 - [ ] Database role limited to INSERT only
