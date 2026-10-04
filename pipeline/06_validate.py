@@ -565,11 +565,14 @@ def update_master_with_validated(validated: dict, run_date: datetime):
 # unreachable, this logs a warning and the pipeline continues as normal.
 # The CSV/JSON files remain the source of truth until the cutover step.
 HORIZON_DAYS_MAP = {
-    # "daily" deliberately excluded — its bucket is just today's own price
-    # (a single value, date == run_date), not a real forecast, and today's
-    # actual price already lives in the `prices` table. Keeping it here
-    # would also collide on horizon_days=1 with the new "tomorrow" daily
-    # point below, two different days both claiming the same label.
+    # "daily" maps to 0, not 1 — checked against a real sample and its
+    # value is NOT identical to today's price in the `prices` table (off
+    # by ~0.1%, since this is the model's own day-0 estimate, not the
+    # validated reference price). It's real, distinct data, not
+    # redundant — a 0.1% difference would have broken the "serve
+    # identical data" guarantee for /forecasts/latest's "daily" horizon.
+    # 0 instead of 1 avoids colliding with the "tomorrow" daily point.
+    "daily": 0,
     "weekly": 7, "2_weeks": 14,
     "monthly": 30, "3_months": 90, "6_months": 180,
 }
@@ -617,28 +620,31 @@ def extract_day_offset(fc_data: dict, run_date: datetime, day_offset: int, bucke
         vals[idx],
         lo[idx] if idx < len(lo) else None,
         hi[idx] if idx < len(hi) else None,
+        target,
     )
 
 
 def extract_checkpoint_with_ci(fc_data: dict, h_name: str, h_days: int):
     """
-    Same (price, lower_ci, upper_ci) shape as extract_day_offset, but for
-    the original 6 checkpoints — uses get_horizon_endpoint()'s existing,
-    proven "last value in the bucket" convention for price (unchanged
-    behaviour from before this daily-points feature), and pairs it with
-    that same last index's confidence band.
+    Same (price, lower_ci, upper_ci, date) shape as extract_day_offset,
+    but for the original 6 checkpoints — uses get_horizon_endpoint()'s
+    existing, proven "last value in the bucket" convention for price
+    (unchanged behaviour from before this daily-points feature), paired
+    with that same last index's confidence band and real date string.
     """
     h_data = fc_data.get("horizons", {}).get(h_name)
     if not h_data:
         return None
-    price = get_horizon_endpoint(h_data).get("price")
+    endpoint = get_horizon_endpoint(h_data)
+    price = endpoint.get("price")
     if price is None:
         return None
+    date_str = endpoint.get("date")
     ens = h_data.get("ensemble", {})
     vals = ens.get("values", [])
     lo = ens.get("lower_ci", vals)
     hi = ens.get("upper_ci", vals)
-    return (price, lo[-1] if lo else None, hi[-1] if hi else None)
+    return (price, lo[-1] if lo else None, hi[-1] if hi else None, date_str)
 
 
 def write_to_postgres(validated: dict, run_date: datetime):
@@ -699,14 +705,32 @@ def write_to_postgres(validated: dict, run_date: datetime):
                 error_pct = None
             confidence = fc.get("model_confidence")
 
-            def add_row(h_days, price, lo, hi):
+            # The rest of what /forecasts/latest's "validation" block
+            # needs — computed once per commodity per day (validate_commodity
+            # runs once, not once per horizon), so the same value repeats
+            # across all 12 horizon_days rows below.
+            reference_price = vld.get("reference_price")
+            if reference_price is not None and not np.isfinite(reference_price):
+                reference_price = None
+            error_pct_before = vld.get("error_pct_before")
+            if error_pct_before is not None and not np.isfinite(error_pct_before):
+                error_pct_before = None
+            correction_applied = vld.get("correction_applied")
+            last_known_price = fc.get("last_known_price")
+            if last_known_price is not None and not np.isfinite(last_known_price):
+                last_known_price = None
+            last_known_date = fc.get("last_known_date")
+
+            def add_row(h_days, price, lo, hi, fdate):
                 if price is None or not np.isfinite(price) or price <= 0:
                     return
                 lo = lo if (lo is not None and np.isfinite(lo)) else None
                 hi = hi if (hi is not None and np.isfinite(hi)) else None
                 forecast_rows.append((
                     today_ts, cid, national_id, h_days,
-                    float(price), lo, hi, confidence, validated_flag, error_pct,
+                    float(price), lo, hi, fdate, confidence, validated_flag, error_pct,
+                    reference_price, error_pct_before, correction_applied,
+                    last_known_price, last_known_date,
                 ))
 
             # Existing checkpoints (1/7/14/30/90/180) — same price as
@@ -740,17 +764,25 @@ def write_to_postgres(validated: dict, run_date: datetime):
                     """
                     INSERT INTO forecasts
                         (time, commodity_id, location_id, horizon_days,
-                         predicted_price, lower_ci, upper_ci,
-                         model_confidence, validated, error_pct)
+                         predicted_price, lower_ci, upper_ci, forecast_date,
+                         model_confidence, validated, error_pct,
+                         reference_price, error_pct_before, correction_applied,
+                         last_known_price, last_known_date)
                     VALUES %s
                     ON CONFLICT (time, commodity_id, location_id, horizon_days)
                     DO UPDATE SET
-                        predicted_price  = EXCLUDED.predicted_price,
-                        lower_ci         = EXCLUDED.lower_ci,
-                        upper_ci         = EXCLUDED.upper_ci,
-                        model_confidence = EXCLUDED.model_confidence,
-                        validated        = EXCLUDED.validated,
-                        error_pct        = EXCLUDED.error_pct
+                        predicted_price    = EXCLUDED.predicted_price,
+                        lower_ci           = EXCLUDED.lower_ci,
+                        upper_ci           = EXCLUDED.upper_ci,
+                        forecast_date      = EXCLUDED.forecast_date,
+                        model_confidence   = EXCLUDED.model_confidence,
+                        validated          = EXCLUDED.validated,
+                        error_pct          = EXCLUDED.error_pct,
+                        reference_price    = EXCLUDED.reference_price,
+                        error_pct_before   = EXCLUDED.error_pct_before,
+                        correction_applied = EXCLUDED.correction_applied,
+                        last_known_price   = EXCLUDED.last_known_price,
+                        last_known_date    = EXCLUDED.last_known_date
                     """,
                     forecast_rows,
                 )

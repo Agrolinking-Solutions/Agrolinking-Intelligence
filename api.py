@@ -334,6 +334,50 @@ def list_commodities():
     }
 
 
+HORIZON_TO_DAYS = {"daily": 0, "weekly": 7, "2_weeks": 14, "monthly": 30, "3_months": 90, "6_months": 180}
+
+def _load_forecasts_latest_from_postgres(horizon_filter=None):
+    """
+    Raises on any failure — caller falls back to the JSON path. Reads the
+    single most recent national forecast run (one date shared across all
+    commodities, matching the original one-file-per-day JSON behaviour)
+    and reconstructs the exact same shape /forecasts/latest always
+    returned, down to within_target = error_pct_after <= 3.0 (confirmed
+    an exact identity by reading 06_validate.py's own computation, not
+    an approximation) and pct_change/direction computed against
+    last_known_price the same way 06_validate.py computes them.
+    """
+    days_wanted = [HORIZON_TO_DAYS[horizon_filter]] if horizon_filter else list(HORIZON_TO_DAYS.values())
+    with db.get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            WITH latest AS (
+                SELECT max(f.time) AS t FROM forecasts f
+                JOIN locations l ON l.location_id = f.location_id
+                WHERE l.state = 'National'
+            )
+            SELECT c.name, f.horizon_days, f.predicted_price, f.forecast_date,
+                   f.last_known_price, f.last_known_date, f.reference_price,
+                   f.error_pct_before, f.error_pct, f.correction_applied, f.time
+            FROM forecasts f
+            JOIN commodities c ON c.commodity_id = f.commodity_id
+            JOIN locations l ON l.location_id = f.location_id, latest
+            WHERE l.state = 'National' AND f.time = latest.t AND f.horizon_days = ANY(%s)
+        """, (days_wanted,))
+        rows = cur.fetchall()
+    if not rows:
+        raise RuntimeError("no national forecast rows found in Postgres")
+    return rows
+
+
+DAYS_TO_HORIZON = {v: k for k, v in HORIZON_TO_DAYS.items()}
+
+def _pct_and_direction(price, last_known_price):
+    if price is None or last_known_price is None or last_known_price <= 0:
+        return 0, ""
+    pct = round((price - last_known_price) / last_known_price * 100, 2)
+    return pct, ("up" if price > last_known_price else "down")
+
+
 @app.get("/forecasts/latest", tags=["Forecasts"])
 def latest_forecast(
     horizon: Optional[str] = Query(None, description="Filter: daily|weekly|2_weeks|monthly|3_months|6_months")
@@ -341,6 +385,61 @@ def latest_forecast(
     """Full validated forecast for all commodities. Optional horizon filter."""
     if horizon and horizon not in VALID_HORIZONS:
         raise HTTPException(status_code=400, detail=f"Invalid horizon. Valid: {VALID_HORIZONS}")
+
+    if db.db_available():
+        try:
+            pg_rows = _load_forecasts_latest_from_postgres(horizon)
+            run_date = ""
+            by_commodity = {}
+            for name, h_days, price, fdate, last_known, lk_date, ref_price, err_before, err_after, action, time in pg_rows:
+                run_date = time.strftime("%Y-%m-%d")
+                by_commodity.setdefault(name, {})[h_days] = {
+                    "price": float(price), "date": fdate.strftime("%Y-%m-%d") if fdate else "",
+                    "last_known": float(last_known) if last_known is not None else None,
+                    "last_known_date": lk_date.strftime("%Y-%m-%d") if lk_date else "",
+                    "ref_price": float(ref_price) if ref_price is not None else 0,
+                    "err_before": float(err_before) if err_before is not None else 0,
+                    "err_after": float(err_after) if err_after is not None else 0,
+                    "action": action or "",
+                }
+            result = {}
+            for name, by_horizon in by_commodity.items():
+                if horizon:
+                    h = by_horizon.get(HORIZON_TO_DAYS[horizon])
+                    if not h:
+                        continue
+                    pct, direction = _pct_and_direction(h["price"], h["last_known"])
+                    err_after = h["err_after"]
+                    result[name] = {
+                        "horizon": horizon, "forecast_date": h["date"],
+                        "forecast_price_ngn": h["price"], "pct_change": pct, "direction": direction,
+                        "validation_error": err_after, "within_target": err_after <= 3.0,
+                    }
+                else:
+                    horizon_summary = {}
+                    for h_days, h in by_horizon.items():
+                        h_name = DAYS_TO_HORIZON.get(h_days)
+                        if not h_name:
+                            continue
+                        pct, direction = _pct_and_direction(h["price"], h["last_known"])
+                        horizon_summary[h_name] = {
+                            "date": h["date"], "price": h["price"], "pct_change": pct, "direction": direction,
+                        }
+                    any_h = next(iter(by_horizon.values()))
+                    result[name] = {
+                        "last_known_price": any_h["last_known"] or 0,
+                        "last_known_date": any_h["last_known_date"],
+                        "validation": {
+                            "reference_price": any_h["ref_price"], "error_before_pct": any_h["err_before"],
+                            "error_after_pct": any_h["err_after"], "action": any_h["action"],
+                            "within_target": any_h["err_after"] <= 3.0,
+                        },
+                        "horizons": horizon_summary,
+                    }
+            return {"run_date": run_date, "currency": "NGN", "unit": "NGN/MT", "forecasts": result}
+        except Exception as e:
+            logger.warning(f"Postgres forecasts/latest query failed, falling back to JSON: {e}")
+
     forecast, fname = load_latest_validated()
     run_date = run_date_from_file(fname)
     result = {}

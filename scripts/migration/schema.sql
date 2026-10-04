@@ -86,9 +86,45 @@ CREATE TABLE IF NOT EXISTS forecasts (
     predicted_price   NUMERIC NOT NULL,
     lower_ci          NUMERIC,                  -- confidence band, added alongside the daily points
     upper_ci          NUMERIC,
+    -- The actual calendar date this horizon_days point lands on. NOT a
+    -- simple time + horizon_days offset — checked against real data, the
+    -- forecast's own date math (next-Monday anchoring, weekly cadence) is
+    -- more involved than that, so this is the real string the pipeline
+    -- itself computed, not a recomputation that could drift from it.
+    forecast_date     DATE,
     model_confidence  NUMERIC,
     validated         BOOLEAN NOT NULL DEFAULT FALSE,
     error_pct         NUMERIC,
+    -- National rows only (location = 'National'): the rest of what
+    -- api.py's /forecasts/latest "validation" block needs, alongside the
+    -- error_pct this table already had. Same value repeated across all
+    -- 12 horizon_days rows for a given commodity+day, since validation
+    -- runs once per commodity per day, not once per horizon — a little
+    -- redundant on disk, simpler than a second table for 3 small columns.
+    reference_price    NUMERIC,
+    error_pct_before   NUMERIC,
+    correction_applied TEXT,
+    -- The model's own anchor price (05_forecast.py's last real/validated
+    -- price at generation time) — confirmed distinct from both
+    -- reference_price (the manual validation anchor) and the price
+    -- written to the `prices` table (the corrected "daily" value) on a
+    -- real sample: three different numbers. Needed to compute
+    -- pct_change_from_today/direction the same way 06_validate.py does.
+    last_known_price   NUMERIC,
+    -- Distinct from `time` — time is the run/generation date (Monday-
+    -- snapped in the live daily write), last_known_date is the date of
+    -- the actual anchor price, which can be an earlier date. Confirmed
+    -- these differ in practice, not a redundant pair of columns.
+    last_known_date    DATE,
+    -- Zonal (state-level) rows only: what /zonal/{commodity} needs beyond
+    -- the forecast curve itself. Same repeated-per-horizon-row tradeoff
+    -- as above. state_price is NOT the same number as any horizon_days
+    -- checkpoint (checked against real data — it's the zonal pipeline's
+    -- own independently-interpolated current-state estimate, distinct
+    -- from the forecast trajectory), so it needs its own column.
+    day_change_pct     NUMERIC,
+    is_primary         BOOLEAN,
+    state_price        NUMERIC,
     PRIMARY KEY (time, commodity_id, location_id, horizon_days)
 );
 SELECT create_hypertable('forecasts', 'time', if_not_exists => TRUE);
@@ -97,6 +133,15 @@ SELECT create_hypertable('forecasts', 'time', if_not_exists => TRUE);
 -- a database that already has the table from before this change.
 ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS lower_ci NUMERIC;
 ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS upper_ci NUMERIC;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS forecast_date DATE;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS reference_price NUMERIC;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS error_pct_before NUMERIC;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS correction_applied TEXT;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS last_known_price NUMERIC;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS last_known_date DATE;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS day_change_pct NUMERIC;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS is_primary BOOLEAN;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS state_price NUMERIC;
 
 -- Replaces the per-commodity parts of outputs/intelligence/intelligence_*.json
 -- (volatility_index.per_commodity, arbitrage). No location_id: the current

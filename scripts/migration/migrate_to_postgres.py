@@ -84,9 +84,9 @@ ZONAL_DIR     = os.path.join(BASE_DIR, "outputs", "forecasts", "zonal")
 INTEL_DIR     = os.path.join(BASE_DIR, "outputs", "intelligence")
 
 HORIZON_DAYS = {
-    # "daily" excluded — see the matching note in pipeline/06_validate.py's
-    # HORIZON_DAYS_MAP: it's just today's own price, not a real forecast,
-    # and would collide on horizon_days=1 with the new "tomorrow" point.
+    # "daily" maps to 0 — see the matching note in pipeline/06_validate.py's
+    # HORIZON_DAYS_MAP. 0 avoids colliding with the "tomorrow" point.
+    "daily": 0,
     "weekly": 7, "2_weeks": 14,
     "monthly": 30, "3_months": 90, "6_months": 180,
 }
@@ -120,7 +120,7 @@ def _day_offset_nested(fc_data, gen_date, day_offset, bucket):
         return None
     lo = ens.get("lower_ci", vals)
     hi = ens.get("upper_ci", vals)
-    return (vals[idx], lo[idx] if idx < len(lo) else None, hi[idx] if idx < len(hi) else None)
+    return (vals[idx], lo[idx] if idx < len(lo) else None, hi[idx] if idx < len(hi) else None, target)
 
 
 def _checkpoint_nested(fc_data, h_name):
@@ -128,14 +128,16 @@ def _checkpoint_nested(fc_data, h_name):
     if not h_data:
         return None
     vals = h_data.get("ensemble", {}).get("values", [])
-    price = h_data.get("forecast_end_detail", {}).get("price")
+    detail = h_data.get("forecast_end_detail", {})
+    price = detail.get("price")
     if price is None:
         price = vals[-1] if vals else h_data.get("forecast_price")
     if price is None:
         return None
+    date_str = detail.get("date") or (h_data.get("dates", [None])[-1])
     lo = h_data.get("ensemble", {}).get("lower_ci", vals)
     hi = h_data.get("ensemble", {}).get("upper_ci", vals)
-    return (price, lo[-1] if lo else None, hi[-1] if hi else None)
+    return (price, lo[-1] if lo else None, hi[-1] if hi else None, date_str)
 
 
 def _day_offset_flat(cd, gen_date, day_offset, bucket):
@@ -153,7 +155,7 @@ def _day_offset_flat(cd, gen_date, day_offset, bucket):
         return None
     lo = h_data.get("lower_ci", vals)
     hi = h_data.get("upper_ci", vals)
-    return (vals[idx], lo[idx] if idx < len(lo) else None, hi[idx] if idx < len(hi) else None)
+    return (vals[idx], lo[idx] if idx < len(lo) else None, hi[idx] if idx < len(hi) else None, target)
 
 
 def _checkpoint_flat(cd, h_name):
@@ -166,9 +168,11 @@ def _checkpoint_flat(cd, h_name):
         price = vals[-1] if vals else None
     if price is None:
         return None
+    dates = h_data.get("dates", [])
+    date_str = dates[-1] if dates else None
     lo = h_data.get("lower_ci", vals)
     hi = h_data.get("upper_ci", vals)
-    return (price, lo[-1] if lo else None, hi[-1] if hi else None)
+    return (price, lo[-1] if lo else None, hi[-1] if hi else None, date_str)
 
 # Real price data only — skip synthetic/interpolated filler rows and
 # raw "forecast" placeholder rows. This mirrors the same REAL_SOURCES
@@ -280,17 +284,31 @@ def migrate_forecasts(conn, commodity_map, national_id):
                 error_pct = None
             confidence = fc.get("model_confidence")
 
+            reference_price = validation.get("reference_price")
+            if reference_price is not None and not math.isfinite(reference_price):
+                reference_price = None
+            error_pct_before = validation.get("error_pct_before")
+            if error_pct_before is not None and not math.isfinite(error_pct_before):
+                error_pct_before = None
+            correction_applied = validation.get("correction_applied")
+            last_known_price = fc.get("last_known_price")
+            if last_known_price is not None and not math.isfinite(last_known_price):
+                last_known_price = None
+            last_known_date = fc.get("last_known_date")
+
             def add_row(h_days, result):
                 if not result:
                     return
-                price, lo, hi = result
+                price, lo, hi, fdate = result
                 if price is None or not math.isfinite(price) or price <= 0:
                     return
                 lo = lo if (lo is not None and math.isfinite(lo)) else None
                 hi = hi if (hi is not None and math.isfinite(hi)) else None
                 rows.append((
                     gen_date_raw, cid, national_id, h_days,
-                    float(price), lo, hi, confidence, validated, error_pct,
+                    float(price), lo, hi, fdate, confidence, validated, error_pct,
+                    reference_price, error_pct_before, correction_applied,
+                    last_known_price, last_known_date,
                 ))
 
             for h_name, h_days in HORIZON_DAYS.items():
@@ -309,8 +327,10 @@ def migrate_forecasts(conn, commodity_map, national_id):
             """
             INSERT INTO forecasts
                 (time, commodity_id, location_id, horizon_days,
-                 predicted_price, lower_ci, upper_ci,
-                 model_confidence, validated, error_pct)
+                 predicted_price, lower_ci, upper_ci, forecast_date,
+                 model_confidence, validated, error_pct,
+                 reference_price, error_pct_before, correction_applied,
+                 last_known_price, last_known_date)
             VALUES %s
             ON CONFLICT (time, commodity_id, location_id, horizon_days) DO NOTHING
             """,
@@ -363,17 +383,26 @@ def migrate_zonal_forecasts(conn, commodity_map, location_map):
                         skipped_unknown_commodity.add(commodity_name)
                         continue
 
+                    day_change_pct = cd.get("day_change_pct")
+                    if day_change_pct is not None and not math.isfinite(day_change_pct):
+                        day_change_pct = None
+                    is_primary = bool(cd.get("is_primary", False))
+                    state_price = cd.get("state_price")
+                    if state_price is not None and not math.isfinite(state_price):
+                        state_price = None
+
                     def add_row(h_days, result):
                         if not result:
                             return
-                        price, lo, hi = result
+                        price, lo, hi, fdate = result
                         if price is None or not math.isfinite(price) or price <= 0:
                             return
                         lo = lo if (lo is not None and math.isfinite(lo)) else None
                         hi = hi if (hi is not None and math.isfinite(hi)) else None
                         rows.append((
                             run_date_raw, cid, loc_id, h_days,
-                            float(price), lo, hi, None, False, None,
+                            float(price), lo, hi, fdate, None, False, None,
+                            None, None, None, None, None, day_change_pct, is_primary, state_price,
                         ))
 
                     for h_name, h_days in HORIZON_DAYS.items():
@@ -395,8 +424,11 @@ def migrate_zonal_forecasts(conn, commodity_map, location_map):
             """
             INSERT INTO forecasts
                 (time, commodity_id, location_id, horizon_days,
-                 predicted_price, lower_ci, upper_ci,
-                 model_confidence, validated, error_pct)
+                 predicted_price, lower_ci, upper_ci, forecast_date,
+                 model_confidence, validated, error_pct,
+                 reference_price, error_pct_before, correction_applied,
+                 last_known_price, last_known_date,
+                 day_change_pct, is_primary, state_price)
             VALUES %s
             ON CONFLICT (time, commodity_id, location_id, horizon_days) DO NOTHING
             """,

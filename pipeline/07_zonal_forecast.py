@@ -56,10 +56,9 @@ HORIZON_DAYS = {
 # label two different horizon_days values depending on whether the row is
 # national or zonal, breaking any query that joins/compares across them.
 PG_HORIZON_DAYS = {
-    # "daily" excluded — see the matching note in 06_validate.py's
-    # HORIZON_DAYS_MAP: it's just today's own price (a single value,
-    # date == run_date), not a real forecast, and would collide on
-    # horizon_days=1 with the new "tomorrow" daily point below.
+    # "daily" maps to 0 — see the matching note in 06_validate.py's
+    # HORIZON_DAYS_MAP. 0 avoids colliding with the "tomorrow" point below.
+    "daily": 0,
     "weekly": 7, "2_weeks": 14,
     "monthly": 30, "3_months": 90, "6_months": 180,
 }
@@ -85,7 +84,7 @@ def _zonal_day_offset(cd: dict, run_date: datetime, day_offset: int, bucket: str
         return None
     lo = h_data.get("lower_ci", vals)
     hi = h_data.get("upper_ci", vals)
-    return (vals[idx], lo[idx] if idx < len(lo) else None, hi[idx] if idx < len(hi) else None)
+    return (vals[idx], lo[idx] if idx < len(lo) else None, hi[idx] if idx < len(hi) else None, target)
 
 
 def _zonal_checkpoint(cd: dict, h_name: str):
@@ -100,7 +99,9 @@ def _zonal_checkpoint(cd: dict, h_name: str):
         return None
     lo = h_data.get("lower_ci", vals)
     hi = h_data.get("upper_ci", vals)
-    return (price, lo[-1] if lo else None, hi[-1] if hi else None)
+    dates = h_data.get("dates", [])
+    date_str = dates[-1] if dates else None
+    return (price, lo[-1] if lo else None, hi[-1] if hi else None, date_str)
 
 
 def fmt(n):
@@ -467,15 +468,35 @@ def write_zonal_to_postgres(zonal_out: dict, run_date: datetime):
                     cid = commodity_map.get(commodity_name)
                     if cid is None:
                         continue
+                    # What /zonal/{commodity} needs beyond the price itself
+                    # — already computed per state+commodity in cd, just
+                    # never reached Postgres before. Same value repeats
+                    # across all 12 horizon_days rows below, same tradeoff
+                    # as reference_price on the national side.
+                    day_change_pct = cd.get("day_change_pct")
+                    if day_change_pct is not None and not np.isfinite(day_change_pct):
+                        day_change_pct = None
+                    is_primary = bool(cd.get("is_primary", False))
+                    # NOT the same number as any horizon checkpoint, including
+                    # "daily" — checked against real data, this is the zonal
+                    # pipeline's own separately-interpolated current-state
+                    # estimate. /zonal/{commodity} reads this field specifically.
+                    state_price = cd.get("state_price")
+                    if state_price is not None and not np.isfinite(state_price):
+                        state_price = None
+
                     def add_row(h_days, result):
                         if not result:
                             return
-                        price, lo, hi = result
+                        price, lo, hi, fdate = result
                         if price is None or not np.isfinite(price) or price <= 0:
                             return
                         lo = lo if (lo is not None and np.isfinite(lo)) else None
                         hi = hi if (hi is not None and np.isfinite(hi)) else None
-                        rows.append((run_date, cid, loc_id, h_days, float(price), lo, hi))
+                        rows.append((
+                            run_date, cid, loc_id, h_days, float(price), lo, hi, fdate,
+                            day_change_pct, is_primary, state_price,
+                        ))
 
                     for h_name, h_days in PG_HORIZON_DAYS.items():
                         add_row(h_days, _zonal_checkpoint(cd, h_name))
@@ -488,13 +509,18 @@ def write_zonal_to_postgres(zonal_out: dict, run_date: datetime):
                     cur,
                     """
                     INSERT INTO forecasts
-                        (time, commodity_id, location_id, horizon_days, predicted_price, lower_ci, upper_ci)
+                        (time, commodity_id, location_id, horizon_days, predicted_price, lower_ci, upper_ci,
+                         forecast_date, day_change_pct, is_primary, state_price)
                     VALUES %s
                     ON CONFLICT (time, commodity_id, location_id, horizon_days)
                     DO UPDATE SET
                         predicted_price = EXCLUDED.predicted_price,
                         lower_ci        = EXCLUDED.lower_ci,
-                        upper_ci        = EXCLUDED.upper_ci
+                        upper_ci        = EXCLUDED.upper_ci,
+                        forecast_date   = EXCLUDED.forecast_date,
+                        day_change_pct  = EXCLUDED.day_change_pct,
+                        is_primary      = EXCLUDED.is_primary,
+                        state_price     = EXCLUDED.state_price
                     """,
                     rows,
                 )
