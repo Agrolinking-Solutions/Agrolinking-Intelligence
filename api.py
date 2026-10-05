@@ -179,6 +179,29 @@ def load_latest_zonal():
         os.path.join(ZONAL_DIR, "zonal_forecast_*.json"),
         "No zonal forecast files found.")
 
+def today_anchor(commodity_key: str):
+    """
+    (price, date) for "today", interpolated along the model's own daily
+    curve the same way 07_zonal_forecast.py's national_anchor_price
+    already is — reused here rather than recomputed, since that's the
+    one place in the pipeline that already solves the problem this
+    exists for: last_known_price/last_known_date only advance once a
+    week (06_validate.py snaps its master.csv write to that week's
+    Monday, matching the weekly granularity the rest of the pipeline
+    uses), so a value that's supposed to look "live" each day the
+    pipeline runs needs this instead of the raw last_known fields.
+    Returns (None, None) on any failure — callers treat this as
+    optional, not a reason to fail the whole response.
+    """
+    try:
+        zonal, _ = load_latest_zonal()
+        anchor = zonal.get("national_anchors", {}).get(commodity_key)
+        if not anchor or not anchor.get("price"):
+            return None, None
+        return anchor["price"], zonal.get("run_date", "")[:10]
+    except Exception:
+        return None, None
+
 def load_latest_alert():
     files = sorted(glob.glob(os.path.join(ALERTS_DIR, "alert_validated_*.txt")))
     if not files:
@@ -416,7 +439,8 @@ def _load_forecasts_latest_from_postgres(horizon_filter=None):
             )
             SELECT c.name, f.horizon_days, f.predicted_price, f.forecast_date,
                    f.last_known_price, f.last_known_date, f.reference_price,
-                   f.error_pct_before, f.error_pct, f.correction_applied, f.time
+                   f.error_pct_before, f.error_pct, f.correction_applied, f.time,
+                   f.national_anchor_price
             FROM forecasts f
             JOIN commodities c ON c.commodity_id = f.commodity_id
             JOIN locations l ON l.location_id = f.location_id, latest
@@ -450,7 +474,7 @@ def latest_forecast(
             pg_rows = _load_forecasts_latest_from_postgres(horizon)
             run_date = ""
             by_commodity = {}
-            for name, h_days, price, fdate, last_known, lk_date, ref_price, err_before, err_after, action, time in pg_rows:
+            for name, h_days, price, fdate, last_known, lk_date, ref_price, err_before, err_after, action, time, anchor_price in pg_rows:
                 run_date = time.strftime("%Y-%m-%d")
                 by_commodity.setdefault(name, {})[h_days] = {
                     "price": float(price), "date": fdate.strftime("%Y-%m-%d") if fdate else "",
@@ -460,6 +484,7 @@ def latest_forecast(
                     "err_before": float(err_before) if err_before is not None else 0,
                     "err_after": float(err_after) if err_after is not None else 0,
                     "action": action or "",
+                    "anchor_price": float(anchor_price) if anchor_price is not None else None,
                 }
             result = {}
             for name, by_horizon in by_commodity.items():
@@ -485,9 +510,18 @@ def latest_forecast(
                             "date": h["date"], "price": h["price"], "pct_change": pct, "direction": direction,
                         }
                     any_h = next(iter(by_horizon.values()))
+                    # national_anchor_price only lives on the horizon_days=0
+                    # row (that's the one 07_zonal_forecast.py's national
+                    # write attaches to) — any_h could be any horizon, so
+                    # look it up by h_days=0 specifically, not any_h.
+                    daily_h = by_horizon.get(0)
                     result[name] = {
                         "last_known_price": any_h["last_known"] or 0,
                         "last_known_date": any_h["last_known_date"],
+                        # Interpolated daily — see today_anchor() for why
+                        # last_known_date above only moves weekly.
+                        "today_price": daily_h["anchor_price"] if daily_h else None,
+                        "today_date": run_date,
                         "validation": {
                             "reference_price": any_h["ref_price"], "error_before_pct": any_h["err_before"],
                             "error_after_pct": any_h["err_after"], "action": any_h["action"],
@@ -530,9 +564,12 @@ def latest_forecast(
                     "pct_change": detail.get("pct_change_from_today", 0),
                     "direction": detail.get("direction", ""),
                 }
+            today_price, today_date = today_anchor(name)
             result[name] = {
                 "last_known_price": data.get("last_known_price", 0),
                 "last_known_date":  data.get("last_known_date", ""),
+                "today_price":      today_price,
+                "today_date":       today_date,
                 "validation":       {
                     "reference_price":  vld.get("reference_price", 0),
                     "error_before_pct": vld.get("error_pct_before", 0),
@@ -575,6 +612,8 @@ def commodity_forecast(commodity: str):
             ],
         }
     per_kg, unit = price_per_kg(key, data.get("last_known_price", 0))
+    today_price, today_date = today_anchor(key)
+    today_per_kg = price_per_kg(key, today_price)[0] if today_price else None
     return {
         "commodity":        key,
         "run_date":         run_date_from_file(fname),
@@ -582,6 +621,14 @@ def commodity_forecast(commodity: str):
         "last_known_price_per_unit": per_kg,
         "unit_label":       unit,
         "last_known_date":  data.get("last_known_date", ""),
+        # Interpolated along the model's own daily curve — last_known_date
+        # only advances weekly (see today_anchor()), this moves every day
+        # the pipeline runs. Use this for a "current price" display;
+        # last_known_price/date above remain the true last real/validated
+        # data point, which is what validation error% is measured against.
+        "today_price":            today_price,
+        "today_price_per_unit":   today_per_kg,
+        "today_date":             today_date,
         "currency":         "NGN",
         "models_used":      data.get("models_used", []),
         "weights":          data.get("weights", {}),
