@@ -50,39 +50,38 @@ app.add_middleware(
 
 Local dev origins (`localhost:3000`/`5173`) are only added when `ALLOW_LOCAL_DEV_CORS=1` is set in the environment — never set on the deployed VPS. If another real frontend origin appears, add it to `CORS_ALLOWED_ORIGINS` in `api.py` rather than reopening this to `*`.
 
-## Rate Limiting
+## Rate Limiting — FIXED
 
-### Current (None)
-
-Every API call re-reads CSV files from disk:
-
-```python
-@app.get("/history/{commodity}")
-def commodity_history(commodity: str, days: int = 90):
-    df = pd.read_csv(MASTER_PATH)  # 3MB read every call
-    ...
-```
-
-A simple loop can exhaust free-tier Render memory:
-
-```bash
-while true; do curl https://api.../history/Rice; done
-```
-
-**Fix:** Add `slowapi` rate limiting
+`slowapi` added, per-IP, in-memory (fine for the single VPS instance this
+runs on; would need a shared Redis backend if this ever scales to multiple
+instances behind a load balancer):
 
 ```python
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"], headers_enabled=True)
 app.state.limiter = limiter
-
-@app.get("/history/{commodity}")
-@limiter.limit("100/hour")  # 100 requests per hour per IP
-def commodity_history(request: Request, commodity: str, days: int = 90):
-    ...
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 ```
+
+- **60/minute per IP by default**, applied automatically to every route via
+  the middleware — no per-route decoration needed for the ~35 read
+  endpoints. Generous enough to cover a dashboard's ~15-20 calls on page
+  load plus several refreshes, while still blocking scraping/abuse.
+- **`/health` is exempt** so uptime monitors aren't throttled.
+- **`POST`/`DELETE /alerts/saved` get a stricter explicit `20/minute`**
+  (`@limiter.limit(...)`, which overrides the default) since each call is
+  a real Postgres write, not a cached read.
+- Degrades gracefully if `slowapi` isn't installed — the API still starts
+  with no rate limiting rather than failing to boot, the same
+  soft-dependency pattern `db.py` uses for Postgres.
+- `X-RateLimit-*` and `Retry-After` headers are sent on every response so
+  clients (and the frontend) can see their remaining quota.
+
+Verified via `TestClient`: the default limit trips at the 61st call in a
+minute, the strict alert-mutation limit trips at the 21st, `/health` never
+trips even past 70 calls, and FastAPI's path/query parameter handling for
+the decorated alert routes is unaffected (checked against the generated
+OpenAPI schema).
 
 ## Input Validation
 
@@ -344,7 +343,7 @@ if gate_failed:
 - [ ] GitHub Actions all pinned to commit SHAs
 - [x] Authentication on `/alerts/*` endpoints (Google ID token, Oct 2026 — not API keys as originally planned, see above)
 - [x] CORS restricted to real Agrolinking domains (Oct 2026 — `pis.agrolinking.com`, `agrolinking.com`, `www.agrolinking.com`; `allow_credentials=False`, see above)
-- [ ] Rate limiting enabled (slowapi)
+- [x] Rate limiting enabled (slowapi — Oct 2026, 60/min default, 20/min on alert writes, see above)
 - [ ] Input validation on all endpoints
 - [ ] Database role limited to INSERT only
 - [ ] TSDB connection uses SSL + verify-full

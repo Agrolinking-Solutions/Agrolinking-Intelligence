@@ -37,9 +37,18 @@ import json
 import glob
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
+
+try:
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+    from slowapi.middleware import SlowAPIMiddleware
+    from slowapi.util import get_remote_address
+    SLOWAPI_AVAILABLE = True
+except ImportError:
+    SLOWAPI_AVAILABLE = False
 
 import db
 from config.settings import COMMODITIES
@@ -103,6 +112,37 @@ app.add_middleware(
     allow_methods     = ["GET", "POST", "DELETE"],
     allow_headers     = ["*"],
 )
+
+# ── Rate limiting ──────────────────────────────────────────────────────────
+# Per-IP, in-memory (fine for the single VPS instance this runs on — would
+# need a shared Redis backend if this ever scales to multiple instances
+# behind a load balancer). 60/minute default covers a dashboard firing off
+# its ~15-20 GET calls on page load with room for several refreshes, while
+# still blocking scraping/abuse. /health is exempted so uptime monitors
+# aren't throttled. The alerts write endpoints get a stricter explicit
+# limit below since each call is a real Postgres write, not a cached read.
+#
+# Degrades gracefully: if slowapi isn't installed, the API still runs with
+# no rate limiting rather than failing to start — same soft-dependency
+# pattern as db.py for Postgres.
+if SLOWAPI_AVAILABLE:
+    limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"], headers_enabled=True)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
+else:
+    limiter = None
+    logger.warning("slowapi not installed — API running with no rate limiting")
+
+def _exempt_from_rate_limit(func):
+    """No-op if slowapi isn't installed, so routes can use this unconditionally."""
+    return limiter.exempt(func) if limiter else func
+
+def _strict_rate_limit(rate: str):
+    """Overrides the default_limits above for one route. No-op without slowapi."""
+    def decorator(func):
+        return limiter.limit(rate)(func) if limiter else func
+    return decorator
 
 VALID_HORIZONS = ["daily", "weekly", "2_weeks", "monthly", "3_months", "6_months"]
 
@@ -255,6 +295,7 @@ def root():
 
 
 @app.get("/health", tags=["Info"])
+@_exempt_from_rate_limit
 def health_check():
     """Dedicated health check endpoint for uptime monitoring services."""
     return {"status": "operational", "timestamp": datetime.now().isoformat()}
@@ -1771,7 +1812,9 @@ def get_saved_alerts(email: str = Depends(get_current_user_email)):
 
 
 @app.post("/alerts/saved", tags=["Price Alerts"])
+@_strict_rate_limit("20/minute")
 def create_alert(
+    request: Request,
     commodity:       str   = Query(..., description="Commodity name e.g. Rice"),
     threshold_price: float = Query(..., gt=0, le=1e12, description="Alert price in NGN/MT"),
     direction:       str   = Query(..., description="above or below"),
@@ -1828,7 +1871,8 @@ def create_alert(
 
 
 @app.delete("/alerts/saved/{alert_id}", tags=["Price Alerts"])
-def delete_alert(alert_id: int, email: str = Depends(get_current_user_email)):
+@_strict_rate_limit("20/minute")
+def delete_alert(request: Request, alert_id: int, email: str = Depends(get_current_user_email)):
     """Delete one of the logged-in user's saved price alerts by ID. Requires a Google login."""
     try:
         with db.get_conn() as conn, conn.cursor() as cur:
