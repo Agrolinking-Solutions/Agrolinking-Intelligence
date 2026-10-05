@@ -68,15 +68,33 @@ app = FastAPI(
     },
 )
 
+CORS_ALLOWED_ORIGINS = [
+    "https://pis.agrolinking.com",
+    "https://agrolinking.com",
+    "https://www.agrolinking.com",
+]
+# Local dev origins only added when explicitly enabled — never on
+# the deployed VPS, which has no reason to set this.
+if os.environ.get("ALLOW_LOCAL_DEV_CORS") == "1":
+    CORS_ALLOWED_ORIGINS += [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins     = ["*"],
+    # Restricted to real Agrolinking domains instead of "*" — closes the
+    # last open item from docs/SECURITY.md's CORS section. If another
+    # real frontend origin shows up (a staging URL, a new subdomain),
+    # add it to CORS_ALLOWED_ORIGINS above rather than reopening this.
+    allow_origins     = CORS_ALLOWED_ORIGINS,
     # allow_credentials=True with origins=["*"] is invalid per the CORS
     # spec (browsers reject the combination) — left False since the new
     # alerts auth uses an Authorization: Bearer header, not cookies, so
     # credentialed (cookie-carrying) cross-origin requests were never
-    # needed here. See docs/SECURITY.md for the still-open task of
-    # restricting allow_origins to real domains instead of "*".
+    # needed here.
     allow_credentials = False,
     # Was GET-only, which meant browsers rejected the alerts endpoints'
     # POST (create) and DELETE (remove) requests via CORS preflight
@@ -613,9 +631,103 @@ def latest_zonal(
     }
 
 
+def _load_zonal_commodity_from_postgres(commodity_key):
+    """
+    Raises on any failure — caller falls back to the JSON path. national_
+    anchor_price/yesterday_price are the only fields that aren't derivable
+    from what the rest of the migration already captured (confirmed
+    against real data for 4 commodities); day_change_pct, pct_vs_reference,
+    and best_sourcing are all computed from them here rather than stored,
+    exactly like the JSON pipeline computes them at write time.
+    """
+    with db.get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            WITH latest AS (
+                SELECT max(f.time) AS t
+                FROM forecasts f
+                JOIN commodities c ON c.commodity_id = f.commodity_id
+                JOIN locations l ON l.location_id = f.location_id
+                WHERE c.name = %s AND l.state = 'National' AND f.horizon_days = 0
+            )
+            SELECT l.state, l.zone, f.state_price, f.day_change_pct, f.is_primary,
+                   f.national_anchor_price, f.yesterday_price, f.reference_price, f.time
+            FROM forecasts f
+            JOIN commodities c ON c.commodity_id = f.commodity_id
+            JOIN locations l ON l.location_id = f.location_id, latest
+            WHERE c.name = %s AND f.horizon_days = 0 AND f.time = latest.t
+        """, (commodity_key, commodity_key))
+        rows = cur.fetchall()
+    if not rows:
+        raise RuntimeError(f"no zonal Postgres rows for {commodity_key}")
+    return rows
+
+
 @app.get("/zonal/{commodity}", tags=["Zonal Prices"])
 def commodity_zonal(commodity: str):
     """State-level prices for one commodity with best sourcing intelligence."""
+    key = next((c for c in COMMODITIES if normalise(c) == normalise(commodity)), None)
+
+    if key and db.db_available():
+        try:
+            rows = _load_zonal_commodity_from_postgres(key)
+            run_date = ""
+            national_row = None
+            state_prices = {}
+            for state, zone, state_price, day_chg, is_primary, anchor, yest, ref_price, time in rows:
+                run_date = time.strftime("%Y-%m-%d")
+                if state == "National":
+                    national_row = (anchor, yest, ref_price)
+                    continue
+                if state_price is None:
+                    continue
+                price = float(state_price)
+                per_kg, unit = price_per_kg(key, price)
+                state_prices[state] = {
+                    "zone":           zone,
+                    "price_ngn_mt":   price,
+                    "price_per_unit": per_kg,
+                    "unit_label":     unit,
+                    "day_change_pct": float(day_chg) if day_chg is not None else 0,
+                    "is_primary":     bool(is_primary),
+                }
+            if national_row is None or not state_prices:
+                raise RuntimeError("incomplete zonal Postgres data")
+
+            anchor_raw, yest_raw, ref_raw = national_row
+            nat_price = float(anchor_raw) if anchor_raw is not None else 0
+            yest      = float(yest_raw) if yest_raw is not None else nat_price
+            ref_price = float(ref_raw) if ref_raw is not None else 0
+            day_change_pct   = round((nat_price - yest) / yest * 100, 2) if yest else 0
+            pct_vs_reference = round((nat_price - ref_price) / ref_price * 100, 2) if ref_price else 0
+
+            all_prices = {f"{s} ({d['zone']})": d["price_ngn_mt"] for s, d in state_prices.items()}
+            cheapest = min(all_prices, key=all_prices.get)
+            dearest  = max(all_prices, key=all_prices.get)
+            best = {
+                "best_buy":            cheapest,
+                "best_buy_price":      all_prices[cheapest],
+                "highest_price":       dearest,
+                "highest_price_val":   all_prices[dearest],
+                "national_spread_pct": round((all_prices[dearest] - all_prices[cheapest]) / all_prices[cheapest] * 100, 1),
+                "all_state_prices":    all_prices,
+            }
+
+            per_kg_nat, unit_nat = price_per_kg(key, nat_price)
+            return {
+                "commodity":             key,
+                "run_date":              run_date,
+                "national_price_ngn_mt": nat_price,
+                "national_price_per_unit": per_kg_nat,
+                "unit_label":            unit_nat,
+                "day_change_pct":        day_change_pct,
+                "pct_vs_reference":      pct_vs_reference,
+                "currency":              "NGN",
+                "best_sourcing":         best,
+                "state_prices":          state_prices,
+            }
+        except Exception:
+            pass  # fall through to JSON
+
     zonal, fname = load_latest_zonal()
     anchors = zonal.get("national_anchors", {})
     key = next((k for k in anchors if normalise(k) == normalise(commodity)), None)
@@ -636,7 +748,7 @@ def commodity_zonal(commodity: str):
                     "day_change_pct": comm_data.get("day_change_pct", 0),
                     "is_primary":     comm_data.get("is_primary", False),
                 }
-    best = zonal.get("best_sourcing", {}).get(key, {})
+    best = zonal.get("best_sourcing", zonal.get("best_market", {})).get(key, {})
     nat_price = anchors.get(key, {}).get("price", 0)
     per_kg_nat, unit_nat = price_per_kg(key, nat_price)
     return {

@@ -432,7 +432,7 @@ def generate_alert(zonal_out, best_market, national_anchors, run_date, zones):
 # contract: if TSDB_URL isn't set, or the DB is briefly unreachable, this
 # logs a warning and the pipeline continues — the JSON file (already saved)
 # remains the source of truth.
-def write_zonal_to_postgres(zonal_out: dict, run_date: datetime):
+def write_zonal_to_postgres(zonal_out: dict, national_anchors: dict, run_date: datetime):
     db_url = os.environ.get("TSDB_URL")
     if not db_url and not os.environ.get("PGHOST"):
         logger.warning("  [Postgres] TSDB_URL not set — skipping zonal dual-write (JSON write already done)")
@@ -457,6 +457,31 @@ def write_zonal_to_postgres(zonal_out: dict, run_date: datetime):
             commodity_map = {name: cid for cid, name in cur.fetchall()}
             cur.execute("SELECT location_id, state FROM locations")
             location_map = {state: lid for lid, state in cur.fetchall()}
+
+        # National anchor rows: /zonal/{commodity} needs today's and
+        # yesterday's national price (confirmed NOT derivable from
+        # anything already captured). These attach to the same
+        # (National, horizon_days=0) row 06_validate.py already writes
+        # for the day's model estimate — the UPDATE below only ever
+        # touches these two columns, so it can't clobber that row's
+        # predicted_price/CI. If 06_validate hasn't run yet this row
+        # doesn't exist, so the INSERT path falls back to using the
+        # anchor price as predicted_price too (reasonable approximation,
+        # gets corrected once 06_validate runs and writes for real).
+        national_id = location_map.get("National")
+        national_rows = []
+        if national_id is not None:
+            for commodity, anchor in national_anchors.items():
+                cid = commodity_map.get(commodity)
+                if cid is None:
+                    continue
+                price = anchor.get("price")
+                yest  = anchor.get("yesterday_price")
+                if price is None or not np.isfinite(price) or price <= 0:
+                    continue
+                if yest is not None and not np.isfinite(yest):
+                    yest = None
+                national_rows.append((run_date, cid, national_id, 0, float(price), float(price), yest))
 
         rows = []
         for zone_data in zonal_out.values():
@@ -524,8 +549,24 @@ def write_zonal_to_postgres(zonal_out: dict, run_date: datetime):
                     """,
                     rows,
                 )
+            if national_rows:
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO forecasts
+                        (time, commodity_id, location_id, horizon_days, predicted_price,
+                         national_anchor_price, yesterday_price)
+                    VALUES %s
+                    ON CONFLICT (time, commodity_id, location_id, horizon_days)
+                    DO UPDATE SET
+                        national_anchor_price = EXCLUDED.national_anchor_price,
+                        yesterday_price        = EXCLUDED.yesterday_price
+                    """,
+                    national_rows,
+                )
         conn.commit()
-        logger.info(f"  [Postgres] Zonal dual-write OK: {len(rows)} state-level forecast rows")
+        logger.info(f"  [Postgres] Zonal dual-write OK: {len(rows)} state-level rows, "
+                    f"{len(national_rows)} national anchor rows")
     except Exception as e:
         logger.warning(f"  [Postgres] Zonal dual-write failed this run (JSON write already succeeded): {e}")
         conn.rollback()
@@ -588,7 +629,7 @@ def run_zonal_forecast(run_date=None):
         }, f, indent=2, default=str)
     logger.success(f"  Zonal JSON  -> {json_path}")
 
-    write_zonal_to_postgres(zonal_out, run_date)
+    write_zonal_to_postgres(zonal_out, national_anchors, run_date)
 
     alert_txt  = generate_alert(zonal_out, best_market, national_anchors, run_date, zones)
     alert_path = os.path.join(ALERT_DIR, f"alert_zonal_{date_str}.txt")

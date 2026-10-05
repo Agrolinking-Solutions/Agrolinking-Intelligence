@@ -28,37 +28,27 @@ Verified: user-isolation tested directly (a second simulated user cannot see, li
 
 See `docs/FIXES_AND_IMPROVEMENTS.md` for the full record. Email/phone are no longer stored per-alert at all — they live once in `users`, not duplicated and exposed on every alert row.
 
-## CORS Configuration
+## CORS Configuration — FIXED
 
-### Current (Vulnerable)
+Origins restricted to the real Agrolinking domains instead of `*`:
 
 ```python
+CORS_ALLOWED_ORIGINS = [
+    "https://pis.agrolinking.com",   # the live web frontend (VPS)
+    "https://agrolinking.com",
+    "https://www.agrolinking.com",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],           # Allow everyone
-    allow_credentials=True,        # Including cookies
-    allow_methods=["GET"],
+    allow_origins=CORS_ALLOWED_ORIGINS,
+    allow_credentials=False,   # alerts auth uses Authorization: Bearer, not cookies —
+                               # credentialed cross-origin requests were never needed
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 ```
 
-**Issue:** `allow_origins=["*"]` with `allow_credentials=True` violates CORS spec. Browsers reject it, but proxies may not.
-
-**Fix:**
-
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://agrolinking.com",
-        "https://www.agrolinking.com",
-        "https://dashboard.agrolinking.com",
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
-)
-```
+Local dev origins (`localhost:3000`/`5173`) are only added when `ALLOW_LOCAL_DEV_CORS=1` is set in the environment — never set on the deployed VPS. If another real frontend origin appears, add it to `CORS_ALLOWED_ORIGINS` in `api.py` rather than reopening this to `*`.
 
 ## Rate Limiting
 
@@ -353,7 +343,7 @@ if gate_failed:
 - [ ] `requirements*.txt` pinned to exact versions
 - [ ] GitHub Actions all pinned to commit SHAs
 - [x] Authentication on `/alerts/*` endpoints (Google ID token, Oct 2026 — not API keys as originally planned, see above)
-- [ ] CORS restricted to Agrolinking domains (still `*`; `allow_credentials` fixed to `False` so the `*`+credentials conflict is gone, but origins still unrestricted)
+- [x] CORS restricted to real Agrolinking domains (Oct 2026 — `pis.agrolinking.com`, `agrolinking.com`, `www.agrolinking.com`; `allow_credentials=False`, see above)
 - [ ] Rate limiting enabled (slowapi)
 - [ ] Input validation on all endpoints
 - [ ] Database role limited to INSERT only

@@ -358,7 +358,9 @@ def migrate_zonal_forecasts(conn, commodity_map, location_map):
     files = sorted(glob.glob(os.path.join(ZONAL_DIR, "zonal_forecast_*.json")))
     print(f"Found {len(files)} zonal forecast files.")
 
+    national_id = location_map.get("National")
     rows = []
+    national_rows = []
     skipped_unknown_commodity = set()
     skipped_unknown_state = set()
     for path in files:
@@ -369,6 +371,22 @@ def migrate_zonal_forecasts(conn, commodity_map, location_map):
         if not run_date_raw:
             continue
         run_date = _parse_date(run_date_raw)
+
+        # National anchor backfill — same two values the live dual-write
+        # in 07_zonal_forecast.py captures, attached to the (National,
+        # horizon_days=0) row migrate_forecasts() already inserted above.
+        if national_id is not None:
+            for commodity_name, anchor in data.get("national_anchors", {}).items():
+                cid = commodity_map.get(commodity_name)
+                if cid is None:
+                    continue
+                price = anchor.get("price")
+                yest  = anchor.get("yesterday_price")
+                if price is None or not math.isfinite(price) or price <= 0:
+                    continue
+                if yest is not None and not math.isfinite(yest):
+                    yest = None
+                national_rows.append((run_date_raw, cid, national_id, 0, float(price), float(price), yest))
 
         for zone_data in data.get("zones", {}).values():
             for state_name, state_data in zone_data.get("states", {}).items():
@@ -433,6 +451,23 @@ def migrate_zonal_forecasts(conn, commodity_map, location_map):
             ON CONFLICT (time, commodity_id, location_id, horizon_days) DO NOTHING
             """,
             rows,
+            page_size=1000,
+        )
+    print(f"  Inserting {len(national_rows):,} national anchor rows...")
+    with conn.cursor() as cur:
+        execute_values(
+            cur,
+            """
+            INSERT INTO forecasts
+                (time, commodity_id, location_id, horizon_days, predicted_price,
+                 national_anchor_price, yesterday_price)
+            VALUES %s
+            ON CONFLICT (time, commodity_id, location_id, horizon_days)
+            DO UPDATE SET
+                national_anchor_price = EXCLUDED.national_anchor_price,
+                yesterday_price        = EXCLUDED.yesterday_price
+            """,
+            national_rows,
             page_size=1000,
         )
     conn.commit()

@@ -125,6 +125,20 @@ CREATE TABLE IF NOT EXISTS forecasts (
     day_change_pct     NUMERIC,
     is_primary         BOOLEAN,
     state_price        NUMERIC,
+    -- National rows only: /zonal/{commodity} needs today's and
+    -- yesterday's national "anchor" price. Confirmed these are NOT the
+    -- same number as last_known_price, reference_price, or the
+    -- horizon_days=0 forecast value on real data — 07_zonal_forecast.py
+    -- computes these independently (one index lookup each into
+    -- 05_forecast.py's own 182-day daily_series, which is NOT stored
+    -- here in full — that "full daily resolution" option was already
+    -- decided against for cost; these two single values are cheap).
+    -- Everything else /zonal/{commodity} needs (day_change, pct_vs_ref)
+    -- is exactly derivable from these two plus reference_price, already
+    -- confirmed against real data for 4 different commodities — no
+    -- further columns needed for those.
+    national_anchor_price NUMERIC,
+    yesterday_price        NUMERIC,
     PRIMARY KEY (time, commodity_id, location_id, horizon_days)
 );
 SELECT create_hypertable('forecasts', 'time', if_not_exists => TRUE);
@@ -142,6 +156,8 @@ ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS last_known_date DATE;
 ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS day_change_pct NUMERIC;
 ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS is_primary BOOLEAN;
 ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS state_price NUMERIC;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS national_anchor_price NUMERIC;
+ALTER TABLE forecasts ADD COLUMN IF NOT EXISTS yesterday_price NUMERIC;
 
 -- Replaces the per-commodity parts of outputs/intelligence/intelligence_*.json
 -- (volatility_index.per_commodity, arbitrage). No location_id: the current
