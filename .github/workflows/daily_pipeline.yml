@@ -89,6 +89,18 @@ jobs:
           TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/08_intelligence.py
 
+      # Existed in the repo but was never wired in here, so nothing has
+      # been checking data freshness on the actual daily runs — only
+      # whoever remembered to run it manually. Exits non-zero on ALERT/
+      # NO_REAL_DATA, but continue-on-error keeps that from blocking the
+      # commit below: a stale real-data source is a real problem to fix,
+      # but it shouldn't stop today's otherwise-valid forecasts from
+      # publishing. The failure still shows up in the Actions run log
+      # (yellow "!" on this step) and in outputs/logs/staleness_alert.json.
+      - name: 09 - Staleness check
+        continue-on-error: true
+        run: python pipeline/09_staleness_check.py
+
       # ── Refuse to publish bad data ──────────────────────────────────
       # Individual steps can "succeed" while writing NaN forecasts (e.g.
       # from a corrupted master CSV). NaN in the output JSON makes most
