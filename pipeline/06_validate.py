@@ -35,6 +35,8 @@ warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES
 
+REAL_SOURCES = {"Agricome", "Agrolinking_primary", "WFP"}
+
 logger.remove()
 logger.add(sys.stdout,
     format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
@@ -451,17 +453,33 @@ def update_master_with_validated(validated: dict, run_date: datetime):
             # and correctly replaces whatever was in that exact slot.
             _raw_today = pd.Timestamp(run_date.date())
             today_ts = _raw_today - pd.Timedelta(days=_raw_today.dayofweek)
-            # UPSERT, not skip-if-exists: today's slot must always reflect
-            # the latest validated correction. The old "skip if a row
-            # already exists" guard let a single bad write (e.g. from
-            # before a commodity had a reference price at all) freeze
-            # that date's price forever, even after the bug producing it
-            # was fixed — every later, correctly-validated run would
-            # silently no-op against a stale wrong number.
-            master = master[
-                ~((master["commodity"] == commodity) & (master["date"] == today_ts))
+
+            # Never overwrite real data with this model self-estimate.
+            # 01_ingest.py runs earlier in the same pipeline and can
+            # write a genuine Agricome/WFP price into this exact slot —
+            # found by tracing why freshly-sourced Agricome data still
+            # showed up as stale in 09_staleness_check.py: this UPSERT
+            # was unconditionally deleting it and replacing it with the
+            # "daily" horizon's model estimate a few steps later in the
+            # same run, so real data never survived the day it arrived.
+            existing_at_slot = master[
+                (master["commodity"] == commodity) & (master["date"] == today_ts)
             ]
-            new_rows.append({
+            already_real = existing_at_slot["data_source"].isin(REAL_SOURCES).any()
+
+            if not already_real:
+                # UPSERT, not skip-if-exists: today's slot must always
+                # reflect the latest validated correction, as long as it's
+                # not real data (handled above). The old "skip if a row
+                # already exists" guard let a single bad write (e.g. from
+                # before a commodity had a reference price at all) freeze
+                # that date's price forever, even after the bug producing
+                # it was fixed — every later, correctly-validated run
+                # would silently no-op against a stale wrong number.
+                master = master[
+                    ~((master["commodity"] == commodity) & (master["date"] == today_ts))
+                ]
+                new_rows.append({
                     "commodity":          commodity,
                     "date":               today_ts,
                     "price_ngn_mt":       round(today_price, 2),
