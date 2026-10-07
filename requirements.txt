@@ -19,6 +19,7 @@ loguru>=0.7.0
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 pyarrow>=14.0.0
+anthropic>=1.11.0   # pipeline/10_web_price_search.py — soft dependency, skips cleanly if unset. Version pinned to what was actually tested; older versions may also support the web_search tool but weren't verified here.
 
 # API server
 fastapi>=0.110.0

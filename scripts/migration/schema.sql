@@ -253,6 +253,29 @@ CREATE TABLE IF NOT EXISTS portfolio_holdings (
     entry_date      DATE NOT NULL
 );
 
+-- Completely separate from prices/forecasts by design — this is Claude-API
+-- web-search-sourced price data, which carries real hallucination risk
+-- (a model can state a confident wrong number when it can't find a truly
+-- current source). It must never silently blend into or override the
+-- real/validated data those tables hold. It lives here for review, and
+-- only feeds into validation later if/when that's an explicit decision,
+-- not an automatic one.
+CREATE TABLE IF NOT EXISTS web_price_estimates (
+    estimate_id     SERIAL PRIMARY KEY,
+    commodity_id    INT NOT NULL REFERENCES commodities(commodity_id),
+    query_date      DATE NOT NULL,              -- the date this search ran
+    price_ngn_mt    NUMERIC,                    -- NULL if the model found nothing usable
+    source_url      TEXT,
+    source_title    TEXT,
+    source_date     TEXT,                       -- date the model believes the source price is from, as found (not parsed/validated)
+    source_snippet  TEXT,                       -- the text the price was extracted from, for audit
+    model_confidence TEXT,                      -- the model's own stated confidence: high | medium | low
+    model_used      TEXT NOT NULL,
+    raw_response    TEXT,                       -- full model output, for debugging bad extractions
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (commodity_id, query_date)
+);
+
 -- ═══════════════════════════════════════════════════════════════════════
 -- STEP 4 — Seed dimension data
 -- ═══════════════════════════════════════════════════════════════════════

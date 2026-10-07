@@ -1,6 +1,6 @@
 name: Daily Forecast Pipeline
 
-# Runs the full 01→08 pipeline every day, unattended, and commits the
+# Runs the full 01→10 pipeline every day, unattended, and commits the
 # results back to the repo. This replaces manually running each step
 # by hand — the anchor/validated-actual cycle only advances daily if
 # something actually runs the pipeline every day; this is that "something".
@@ -41,6 +41,9 @@ jobs:
       # Same sequence as the manual runs this session established:
       # 01 (ingest) → 02 (clean) → 03 (features) → 04 (train) →
       # 05 (forecast) → 06 (validate) → 07 (zonal) → 08 (intelligence).
+      # 09 (staleness) and 10 (web price search) run after, both with
+      # continue-on-error: true since neither should block publishing
+      # today's otherwise-valid forecasts.
       # Each step's failure stops the run rather than silently
       # continuing on bad/partial data.
       - name: 01 - Ingest
@@ -100,6 +103,17 @@ jobs:
       - name: 09 - Staleness check
         continue-on-error: true
         run: python pipeline/09_staleness_check.py
+
+      # Writes only to the isolated web_price_estimates Postgres table —
+      # never touches master.csv, prices, or forecasts. Skips cleanly (exit
+      # 0) if ANTHROPIC_API_KEY isn't set, so this secret is opt-in: add it
+      # whenever ready, nothing breaks before then.
+      - name: 10 - Web price search
+        continue-on-error: true
+        env:
+          TSDB_URL: ${{ secrets.TSDB_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python pipeline/10_web_price_search.py
 
       # ── Refuse to publish bad data ──────────────────────────────────
       # Individual steps can "succeed" while writing NaN forecasts (e.g.
