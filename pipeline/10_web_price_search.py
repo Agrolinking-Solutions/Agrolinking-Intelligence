@@ -43,12 +43,22 @@ logger.add(sys.stdout,
 MODEL_NAME = "claude-sonnet-5"
 MAX_SEARCHES_PER_COMMODITY = 3   # caps cost per commodity per run
 
-PROMPT_TEMPLATE = """Find the most recent real wholesale price for {commodity} in Nigeria, in NGN per metric tonne (NGN/MT).
+# Eggs are priced per crate (30 eggs) everywhere else in this system
+# (see api.py's price_per_kg()), not per metric tonne — found this the
+# hard way: the first real run asked for NGN/MT uniformly and got back a
+# nonsensically scaled number for Eggs, because the source it found was
+# already a per-crate price. The price_ngn_mt column name stays the same
+# for every commodity (matches write_estimate() and how the rest of the
+# system already overloads that column for Eggs) — only the unit asked
+# for in the prompt changes.
+UNIT_LABEL = {"Eggs": "NGN per crate of 30 eggs (NGN/crate)"}
+
+PROMPT_TEMPLATE = """Find the most recent real wholesale price for {commodity} in Nigeria, in {unit}.
 
 Rules:
 - Only use a price you can attribute to a specific, named, dated source (a news article, market report, exchange price, or similar). Never estimate or infer a price from general knowledge.
 - Prefer the most recent date you can find. If nothing is available within roughly the last 60 days, return null rather than using an old or unclear figure.
-- If the source gives a price in a different unit (per kg, per bag, per crate, per litre, a different currency), convert it to NGN/MT yourself and show that conversion in "notes".
+- If the source gives a price in a different unit (per kg, per bag, per crate, per litre, a different currency), convert it to {unit} yourself and show that conversion in "notes".
 - If you find conflicting prices from different sources, prefer the one that is most recent and most specific to a named Nigerian market or exchange.
 
 Respond with ONLY a single JSON object, no other text, in exactly this shape:
@@ -66,14 +76,24 @@ def search_commodity_price(client, commodity: str) -> dict:
     """Raises on any API-level failure — caller logs and continues with the next commodity."""
     response = client.messages.create(
         model=MODEL_NAME,
-        max_tokens=1024,
+        # 1024 was too small — confirmed live: with web_search in the
+        # loop, the model's own search queries and result snippets eat
+        # into this same budget before it gets to write the final JSON
+        # answer, so several real responses were cut off mid-sentence.
+        max_tokens=4096,
         tools=[{
             "type": "web_search_20250305",
             "name": "web_search",
             "max_uses": MAX_SEARCHES_PER_COMMODITY,
-            "user_location": {"type": "approximate", "country": "NG"},
+            # No user_location — the API's country-code allowlist doesn't
+            # include Nigeria ("Country code NG is not supported", found
+            # testing this live). The prompt itself already says "Nigeria"
+            # explicitly, which is enough to steer the search correctly.
         }],
-        messages=[{"role": "user", "content": PROMPT_TEMPLATE.format(commodity=commodity)}],
+        messages=[{"role": "user", "content": PROMPT_TEMPLATE.format(
+            commodity=commodity,
+            unit=UNIT_LABEL.get(commodity, "NGN per metric tonne (NGN/MT)"),
+        )}],
     )
 
     # The final text block should be the JSON — but the model may still
@@ -85,9 +105,16 @@ def search_commodity_price(client, commodity: str) -> dict:
     )
     match = re.search(r"\{.*\}", full_text, re.DOTALL)
     if not match:
-        raise ValueError(f"No JSON object found in model response: {full_text[:200]!r}")
+        raise ValueError(
+            f"No JSON object found (stop_reason={response.stop_reason}): {full_text[:500]!r}"
+        )
 
-    parsed = json.loads(match.group(0))
+    try:
+        parsed = json.loads(match.group(0))
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Malformed JSON (stop_reason={response.stop_reason}): {e} — {match.group(0)[:500]!r}"
+        )
     parsed["_raw_response"] = full_text
     return parsed
 
@@ -158,7 +185,14 @@ def run_web_price_search():
         logger.warning(f"  [Postgres] Could not connect — skipping this run: {e}")
         return True
 
-    client = anthropic.Anthropic(api_key=api_key)
+    # Some Anthropic Console API keys are scoped to a specific workspace
+    # rather than the account's default one — those require every request
+    # to carry an anthropic-workspace-id header, or the API rejects them
+    # with a 400 before the request is even evaluated. Optional: only set
+    # ANTHROPIC_WORKSPACE_ID if your key actually needs it.
+    workspace_id = os.environ.get("ANTHROPIC_WORKSPACE_ID")
+    extra_headers = {"anthropic-workspace-id": workspace_id} if workspace_id else {}
+    client = anthropic.Anthropic(api_key=api_key, default_headers=extra_headers)
     query_date = datetime.now(timezone.utc).date()
     n_ok, n_null, n_failed = 0, 0, 0
 

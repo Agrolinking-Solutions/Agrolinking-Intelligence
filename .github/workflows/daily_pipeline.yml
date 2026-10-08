@@ -113,6 +113,7 @@ jobs:
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
         run: python pipeline/10_web_price_search.py
 
       # ── Refuse to publish bad data ──────────────────────────────────
