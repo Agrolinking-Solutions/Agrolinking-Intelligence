@@ -63,6 +63,14 @@ def run_full_pipeline(skip_train: bool = False, train_only: bool = False):
 
     pipeline_dir = os.path.dirname(os.path.abspath(__file__))
 
+    # ── Step 0: Live external factors (FX + weather) ──────────────────────────
+    # Soft dependency: isolated data files, never blocks or feeds the forecast
+    # until a backtest (12_backtest.py) shows a factor helps.
+    if not train_only:
+        ext = load_module(os.path.join(pipeline_dir, "11_external_factors.py"), "external_factors")
+        _, ok = run_step("Step 0 — Live External Factors", ext.run_external_factors)
+        results["external_factors"] = ok
+
     # ── Step 1: Ingest ────────────────────────────────────────────────────────
     if not train_only:
         ingest = load_module(os.path.join(pipeline_dir, "01_ingest.py"), "ingest")
@@ -110,6 +118,13 @@ def run_full_pipeline(skip_train: bool = False, train_only: bool = False):
     if train_only:
         logger.success("Train-only mode complete.")
         return results
+
+    # ── Step 4b: Re-score forecasters on real prices (champion selection) ─────
+    # Fast (~30s, no model fitting), so it runs every day: accuracy is
+    # re-measured as each new real price arrives. Soft dependency.
+    select = load_module(os.path.join(pipeline_dir, "13_select_forecaster.py"), "select_forecaster")
+    _, ok = run_step("Step 4b — Accuracy Scoring & Champion Selection", select.run_selection)
+    results["champion_selection"] = ok
 
     # ── Step 5: Forecast ──────────────────────────────────────────────────────
     # Remove old forecast rows before generating new ones

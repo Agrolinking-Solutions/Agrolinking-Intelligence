@@ -46,6 +46,14 @@ jobs:
       # today's otherwise-valid forecasts.
       # Each step's failure stops the run rather than silently
       # continuing on bad/partial data.
+      # Live FX + weather into their own isolated files (never feeds the
+      # forecast inputs). continue-on-error: a failed pull must not block
+      # publishing today's forecasts. The two data files are committed
+      # below so the daily history accumulates across ephemeral runners.
+      - name: 00 - Live external factors
+        continue-on-error: true
+        run: python pipeline/11_external_factors.py
+
       - name: 01 - Ingest
         run: python pipeline/01_ingest.py
 
@@ -69,6 +77,14 @@ jobs:
       # actions/download-artifact) is added across runs.
       - name: 04 - Train
         run: python pipeline/04_train.py
+
+      # Re-scores every forecaster on REAL prices (rolling backtest, ~30s)
+      # and writes outputs/backtest/model_selection.json, which 05 reads to
+      # pick each commodity's champion. continue-on-error: if it fails, 05
+      # simply skips the champion forecast for the day.
+      - name: 04b - Accuracy scoring and champion selection
+        continue-on-error: true
+        run: python pipeline/13_select_forecaster.py
 
       - name: 05 - Forecast
         run: python pipeline/05_forecast.py
@@ -129,7 +145,7 @@ jobs:
         run: |
           git config user.name "agrolinking-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/
+          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else

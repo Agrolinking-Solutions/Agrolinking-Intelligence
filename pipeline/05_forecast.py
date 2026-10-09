@@ -185,6 +185,41 @@ def forecast_arima(commodity, n_weeks):
         return None
 
 
+CHAMPION_MODE = os.environ.get("FORECAST_CHAMPION_MODE", "shadow").lower()
+SELECTION_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                              "outputs", "backtest", "model_selection.json")
+_selection_cache = None
+
+def build_champion(commodity, hist_df, last_price, last_date, future_df):
+    """Weekly forecast from the backtest-selected drift method (or None)."""
+    global _selection_cache
+    if CHAMPION_MODE == "off":
+        return None
+    try:
+        from pipeline.drift_models import weekly_growth, project
+        if _selection_cache is None:
+            with open(SELECTION_PATH) as f:
+                _selection_cache = json.load(f)
+        sel = _selection_cache.get(commodity)
+        if not sel:
+            return None
+        g = weekly_growth(sel["method"], hist_df)
+        weeks = np.maximum((pd.to_datetime(future_df["date"]) - pd.Timestamp(last_date)).dt.days / 7.0, 0)
+        values = project(last_price, g, weeks.values)
+        # interval half-width from the measured backtest error, widening with horizon
+        mape4 = sel.get("mape_4w") or 5.0
+        hw = np.clip(max(mape4, 2.0) / 100 * 1.6 * np.sqrt(np.maximum(weeks.values, 1) / 4.0), 0, 0.6)
+        return {"method": sel["method"], "values": values.tolist(),
+                "lower_ci": (values * (1 - hw)).tolist(), "upper_ci": (values * (1 + hw)).tolist(),
+                "accuracy_4w": sel.get("accuracy_4w"), "n_4w": sel.get("n_4w")}
+    except FileNotFoundError:
+        logger.debug("  no model_selection.json yet — champion skipped")
+        return None
+    except Exception as e:
+        logger.warning(f"  [{commodity}] champion forecast failed: {e}")
+        return None
+
+
 def forecast_prophet(commodity, future_df, hist_df):
     """Generate forecast from saved Prophet model using future regressors."""
     path = get_model_path("prophet", commodity)
@@ -623,6 +658,24 @@ def forecast_commodity(commodity, run_date):
         logger.warning(f"  [{commodity}] No forecasts available — skipping")
         return None
 
+    # ── Champion forecaster (backtest-selected, see 13_select_forecaster.py) ──
+    # The ML ensemble lost to "last price carried forward" in the rolling
+    # backtest on real prices, so each commodity gets the forecaster that
+    # actually scored best. "shadow" (default) computes it and stores it
+    # next to the live ensemble without changing what clients see; "live"
+    # replaces the ensemble; "off" skips it. Set FORECAST_CHAMPION_MODE.
+    champion = build_champion(commodity, hist_df, last_price, last_date, future_df)
+    if champion and CHAMPION_MODE == "live":
+        base = float(hist_df["price_ngn_mt"].iloc[-1])
+        scale = base / last_price if last_price > 0 else 1.0
+        ensemble = {
+            "values":       [v * scale for v in champion["values"]],
+            "lower_ci":     [v * scale for v in champion["lower_ci"]],
+            "upper_ci":     [v * scale for v in champion["upper_ci"]],
+            "models_used":  [f"champion:{champion['method']}"],
+            "weights_used": {f"champion:{champion['method']}": 1.0},
+        }
+
     # ── Rebase model output onto the anchor price ───────────────────────
     # The models trained on hist_df, whose last row (model_base_price /
     # model_base_date) is often now OLDER than last_price/last_date (the
@@ -736,6 +789,19 @@ def forecast_commodity(commodity, run_date):
         # 07_zonal_forecast.py). No more ad-hoc interpolation downstream.
         "daily_series": daily_curve,
     }
+    if champion:
+        result["champion"] = {
+            "mode":        CHAMPION_MODE,
+            "method":      champion["method"],
+            "accuracy_4w": champion["accuracy_4w"],
+            "n_4w":        champion["n_4w"],
+            "weekly_series": {
+                "dates":    [str(d.date()) for d in future_dates],
+                "values":   [round(v, 2) for v in champion["values"]],
+                "lower_ci": [round(v, 2) for v in champion["lower_ci"]],
+                "upper_ci": [round(v, 2) for v in champion["upper_ci"]],
+            },
+        }
 
     return result
 
