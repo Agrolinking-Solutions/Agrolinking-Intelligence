@@ -21,6 +21,8 @@ PATHS = {
     # Raw data (original, never overwritten)
     "raw_agricome":     os.path.join(ROOT, "data", "raw", "agricome_raw.csv"),
     "raw_wfp":          os.path.join(ROOT, "data", "raw", "wfp_food_prices_nga.csv"),
+    # Web-sourced prices that passed 14_promote_web_prices.py's checks
+    "raw_web_prices":   os.path.join(ROOT, "data", "raw", "web_prices.csv"),
 
     # Processed / living master dataset (the recycling file)
     "master":           os.path.join(ROOT, "data", "processed", "agrolinking_master.csv"),

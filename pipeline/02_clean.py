@@ -21,7 +21,9 @@ logger.add(sys.stdout,
     format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
     level="INFO")
 
-REAL_SOURCES = {"Agricome","WFP","Agrolinking_primary"}
+# Web_search = web prices that passed 14_promote_web_prices.py's checks
+# (only ever fills commodities whose Agricome/WFP price has gone stale).
+REAL_SOURCES = {"Agricome","WFP","Agrolinking_primary","Web_search"}
 
 HARD_BOUNDS = {
     "Sorghum":       {"floor":50_000,    "ceil":1_000_000},

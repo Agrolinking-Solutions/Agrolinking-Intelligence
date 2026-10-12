@@ -79,6 +79,27 @@ def load_agricome() -> pd.DataFrame:
     return df
 
 
+def load_web_prices() -> pd.DataFrame:
+    """
+    Web-sourced prices that passed 14_promote_web_prices.py's checks.
+    Lowest-priority real source: Agricome and WFP win any same-week tie.
+    Returns an empty frame (same columns) when nothing has been promoted yet.
+    """
+    cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",
+            "region", "fx_rate", "rainfall_index", "data_quality_score", "is_validated",
+            "notes", "data_source"]
+    path = PATHS["raw_web_prices"]
+    if not os.path.exists(path):
+        return pd.DataFrame(columns=cols)
+    df = pd.read_csv(path, parse_dates=["week_start_date"])
+    df = df.rename(columns={"week_start_date": "date", "price": "price_ngn_mt"})
+    df["data_source"] = "Web_search"
+    df["record_type"] = "historical"
+    df = df[df["price_ngn_mt"].notna() & (df["price_ngn_mt"] > 0)]
+    logger.success(f"Web-sourced prices loaded: {len(df):,} rows | {df['commodity'].nunique()} commodities")
+    return df[cols].copy()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PART 2 — LOAD WFP + CONVERT UNITS → NGN/MT
 # ─────────────────────────────────────────────────────────────────────────────
@@ -227,7 +248,8 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
 # PART 3 — MERGE & DEDUPLICATE
 # ─────────────────────────────────────────────────────────────────────────────
 
-def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame) -> pd.DataFrame:
+def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
+                  web_df: pd.DataFrame = None) -> pd.DataFrame:
     """
     Merge Agricome and WFP commodity data.
 
@@ -251,11 +273,16 @@ def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame) -> pd.DataFra
     )
 
     # Stack them
-    combined = pd.concat([agricome_df, wfp_df], ignore_index=True)
+    frames = [agricome_df, wfp_df]
+    if web_df is not None and len(web_df) > 0:
+        web_df["date"] = pd.to_datetime(web_df["date"])
+        web_df["date"] = web_df["date"] - pd.to_timedelta(web_df["date"].dt.dayofweek, unit="D")
+        frames.append(web_df)
+    combined = pd.concat(frames, ignore_index=True)
 
-    # Sort: Agricome first, WFP second — so when we drop duplicates,
-    # Agricome row is kept
-    source_priority = {"Agricome": 0, "WFP": 1}
+    # Sort: Agricome first, WFP second, web-sourced last — so when we drop
+    # duplicates, the higher-quality row is kept
+    source_priority = {"Agricome": 0, "WFP": 1, "Web_search": 2}
     combined["_priority"] = combined["data_source"].map(source_priority).fillna(9)
     combined = combined.sort_values(["commodity", "date", "_priority"])
 
@@ -336,7 +363,7 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
 
         # Tag existing rows by source priority
         existing_historical["_priority"] = existing_historical["data_source"].map({
-            "Agricome": 0, "Agrolinking_primary": 0, "WFP": 1,
+            "Agricome": 0, "Agrolinking_primary": 0, "WFP": 1, "Web_search": 1.5,
             "Synthetic (World Bank/FAO × FX)": 3,
             "Interpolated": 4, "Agrolinking_old": 5,
         }).fillna(6)
@@ -461,7 +488,8 @@ def run_ingestion() -> pd.DataFrame:
 
     agricome_df           = load_agricome()
     wfp_commodity_df, fuel_df = load_wfp()
-    master_df             = merge_sources(agricome_df, wfp_commodity_df)
+    web_df                = load_web_prices()
+    master_df             = merge_sources(agricome_df, wfp_commodity_df, web_df)
     save_outputs(master_df, fuel_df)
 
     logger.info("=" * 60)

@@ -31,7 +31,7 @@ logger.add(sys.stdout,
     format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
     level="INFO")
 
-REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary"}
+REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "Web_search"}
 
 # Thresholds — tuned to how often each commodity's real source SHOULD
 # update. Agricome-native commodities are scraped weekly, so >45 days
@@ -72,6 +72,12 @@ def check_freshness():
 
         last_real_date = real["date"].max()
         days_stale = (today - last_real_date).days
+        # Web-sourced prices keep a commodity "fresh" but are lower quality
+        # than Agricome/WFP — report which kind the latest price is.
+        latest_rows = real[real["date"] == last_real_date]
+        web_only = bool((latest_rows["data_source"] == "Web_search").all())
+        hq = real[real["data_source"] != "Web_search"]
+        hq_days = int((today - hq["date"].max()).days) if len(hq) else None
 
         if days_stale >= ALERT_DAYS:
             status = "ALERT"
@@ -85,6 +91,8 @@ def check_freshness():
             "last_real_date": str(last_real_date.date()),
             "days_stale": int(days_stale),
             "status": status,
+            "latest_is_web_sourced": web_only,
+            "days_since_agricome_or_wfp": hq_days,
         })
 
     return results
@@ -101,6 +109,14 @@ def format_report(results, run_date):
         f"  {run_date.strftime('%A, %d %B %Y')}",
         "=" * 60,
     ]
+
+    web_filled = [r for r in results if r.get("latest_is_web_sourced")]
+    if web_filled:
+        lines.append(f"\n  ℹ️  {len(web_filled)} commodit(y/ies) currently filled by web-sourced prices "
+                     f"(Agricome/WFP data is older):")
+        for r in web_filled:
+            lines.append(f"     {r['commodity']:<20} web price {r['days_stale']} days old | "
+                         f"Agricome/WFP {r['days_since_agricome_or_wfp']} days old")
 
     if not alerts and not warns and not no_data:
         lines.append(f"  ✅ All {len(results)} commodities within {WARN_DAYS} days — no issues.")

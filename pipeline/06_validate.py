@@ -35,7 +35,11 @@ warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES
 
-REAL_SOURCES = {"Agricome", "Agrolinking_primary", "WFP"}
+REAL_SOURCES = {"Agricome", "Agrolinking_primary", "WFP", "Web_search"}
+# Reference price is taken from the latest real/web-sourced price in master
+# when it is at most this many days old; otherwise validation falls back to
+# the hand-entered MANUAL_PRICES / WEB_REFERENCE_PRICES below.
+FRESH_REFERENCE_DAYS = 21
 
 logger.remove()
 logger.add(sys.stdout,
@@ -130,17 +134,54 @@ EXTREME_BLEND_RATIO = 0.96  # >50% error:   92% reference (model just sets direc
 # GET BEST REFERENCE PRICE
 # ─────────────────────────────────────────────────────────────────────────────
 
+_master_for_reference = None
+
+def latest_fresh_real_price(commodity: str, today=None):
+    """
+    Latest price in master from a real source (Agricome/WFP/primary) or an
+    accepted web-sourced price (Web_search), if at most FRESH_REFERENCE_DAYS
+    old. Real sources win over web-sourced when both are fresh.
+    Returns (price, source_description) or (None, None).
+    """
+    global _master_for_reference
+    try:
+        if _master_for_reference is None:
+            _master_for_reference = pd.read_csv(PATHS["master"], parse_dates=["date"])
+        m = _master_for_reference
+        today = pd.Timestamp(today or datetime.now().date())
+        sub = m[(m["commodity"] == commodity) & m["data_source"].isin(REAL_SOURCES)
+                & m["price_ngn_mt"].notna()]
+        sub = sub[(today - sub["date"]).dt.days <= FRESH_REFERENCE_DAYS]
+        if sub.empty:
+            return None, None
+        hq = sub[sub["data_source"] != "Web_search"]
+        row = (hq if len(hq) else sub).sort_values("date").iloc[-1]
+        label = "Web-sourced price" if row["data_source"] == "Web_search" else f"{row['data_source']} real price"
+        return float(row["price_ngn_mt"]), f"{label} ({row['date'].date()})"
+    except Exception as e:
+        logger.debug(f"  [{commodity}] fresh real price lookup failed: {e}")
+        return None, None
+
+
 def get_reference_price(commodity: str) -> tuple[float, str]:
     """
     Get the best available reference price for a commodity.
-    Priority: Manual (fresh Agricom post) > Web research anchors
+    Priority:
+      1. Latest real price from master (Agricome/WFP/primary, or an accepted
+         web-sourced price) if at most FRESH_REFERENCE_DAYS old
+      2. Hand-entered MANUAL_PRICES (fallback — goes stale unless edited)
+      3. WEB_REFERENCE_PRICES anchors
     Returns (price, source_description)
     """
-    # 1. Manual price (freshest — from latest Agricom post you entered)
+    price, source = latest_fresh_real_price(commodity)
+    if price is not None:
+        return price, source
+
+    # 2. Manual price (hand-entered fallback)
     if commodity in MANUAL_PRICES and MANUAL_PRICES[commodity] is not None:
         return float(MANUAL_PRICES[commodity]), "Agricom manual entry"
 
-    # 2. Web research anchor
+    # 3. Web research anchor
     if commodity in WEB_REFERENCE_PRICES:
         return float(WEB_REFERENCE_PRICES[commodity]), "Web research (NGX/WFP/Market data)"
 

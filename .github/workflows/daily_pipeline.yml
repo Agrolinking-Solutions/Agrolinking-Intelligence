@@ -54,6 +54,30 @@ jobs:
         continue-on-error: true
         run: python pipeline/11_external_factors.py
 
+      # Web price search (formerly step 10). Writes only to the isolated
+      # web_price_estimates Postgres table. Runs BEFORE ingest so the
+      # promotion step below can use today's results. Skips cleanly (exit 0)
+      # if ANTHROPIC_API_KEY isn't set.
+      - name: 00b - Web price search
+        continue-on-error: true
+        env:
+          TSDB_URL: ${{ secrets.TSDB_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
+        run: python pipeline/10_web_price_search.py
+
+      # Fills stale commodities: promotes web prices that pass the safety
+      # checks (source named + dated, confidence >= medium, within a sanity
+      # band of the last real price) into data/raw/web_prices.csv, which
+      # ingest reads as a low-priority "Web_search" source. Only touches
+      # commodities whose Agricome/WFP price is older than 10 days. Every
+      # decision is logged to outputs/logs/web_price_promotion.json.
+      - name: 00c - Promote web prices
+        continue-on-error: true
+        env:
+          TSDB_URL: ${{ secrets.TSDB_URL }}
+        run: python pipeline/14_promote_web_prices.py
+
       - name: 01 - Ingest
         run: python pipeline/01_ingest.py
 
@@ -120,17 +144,8 @@ jobs:
         continue-on-error: true
         run: python pipeline/09_staleness_check.py
 
-      # Writes only to the isolated web_price_estimates Postgres table —
-      # never touches master.csv, prices, or forecasts. Skips cleanly (exit
-      # 0) if ANTHROPIC_API_KEY isn't set, so this secret is opt-in: add it
-      # whenever ready, nothing breaks before then.
-      - name: 10 - Web price search
-        continue-on-error: true
-        env:
-          TSDB_URL: ${{ secrets.TSDB_URL }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
-        run: python pipeline/10_web_price_search.py
+      # (Step 10, the web price search, now runs at the start of the job as
+      # 00b, so the same day's web prices can fill stale commodities.)
 
       # ── Refuse to publish bad data ──────────────────────────────────
       # Individual steps can "succeed" while writing NaN forecasts (e.g.
@@ -145,7 +160,7 @@ jobs:
         run: |
           git config user.name "agrolinking-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv
+          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv data/raw/web_prices.csv
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
