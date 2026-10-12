@@ -21,6 +21,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180   # ARIMA order search + Prophet can be slow; generous ceiling
 
+    # The TSDB_URL secret has no password in it, so every Postgres step was
+    # failing with "fe_sendauth: no password supplied". libpq reads
+    # PGPASSWORD from the environment whenever the connection URL doesn't
+    # include one, so the password lives in its own secret (no URL-encoding
+    # pitfalls with special characters). Empty if the secret isn't set,
+    # which just reproduces the old behaviour.
+    env:
+      PGPASSWORD: ${{ secrets.PGPASSWORD }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4

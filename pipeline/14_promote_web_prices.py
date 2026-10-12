@@ -187,6 +187,14 @@ def promote(candidates, state, today):
     return rows, decisions
 
 
+def write_skip_log(reason):
+    """So a skipped run is visible in the repo, not only in the Actions log."""
+    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+    with open(LOG_PATH, "w") as f:
+        json.dump({"run_date": str(datetime.now(timezone.utc).date()), "skipped": reason,
+                   "accepted": 0, "decisions": []}, f, indent=2)
+
+
 def run_promotion():
     logger.info("=" * 60)
     logger.info("STEP 14 - PROMOTE WEB PRICES TO FILL STALE COMMODITIES")
@@ -195,12 +203,15 @@ def run_promotion():
     db_url = os.environ.get("TSDB_URL")
     if not db_url and not os.environ.get("PGHOST"):
         logger.warning("  TSDB_URL/PGHOST not set - skipping (web_price_estimates is Postgres-only)")
+        write_skip_log("no database configured (TSDB_URL/PGHOST not set)")
         return True
     try:
         import psycopg2
         conn = psycopg2.connect() if os.environ.get("PGHOST") else psycopg2.connect(db_url)
     except Exception as e:
         logger.warning(f"  Could not connect to Postgres - skipping this run: {e}")
+        reason = " | ".join(l.strip() for l in str(e).strip().splitlines() if l.strip())
+        write_skip_log(f"could not connect to Postgres: {reason[:300]}")
         return True
 
     today = datetime.now(timezone.utc).date()
