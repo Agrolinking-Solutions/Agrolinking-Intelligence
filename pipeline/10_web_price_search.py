@@ -34,6 +34,7 @@ from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import COMMODITIES
+from pipeline.pg_commodities import ensure_commodities
 
 logger.remove()
 logger.add(sys.stdout,
@@ -52,6 +53,17 @@ MAX_SEARCHES_PER_COMMODITY = 3   # caps cost per commodity per run
 # system already overloads that column for Eggs) — only the unit asked
 # for in the prompt changes.
 UNIT_LABEL = {"Eggs": "NGN per crate of 30 eggs (NGN/crate)"}
+
+# What to search for when the commodity name alone is ambiguous. Rice is split
+# by type because local and imported rice trade at very different prices
+# (local retail ran ~72% of imported in WFP data) - a search for plain "rice"
+# returned whichever one the source happened to quote.
+COMMODITY_DESCRIPTION = {
+    "Rice (local)":   "Nigerian local rice (domestically grown, milled; often sold in 50kg bags - "
+                      "multiply a 50kg bag price by 20 for NGN/MT). NOT imported/foreign rice, NOT paddy",
+    "Rice (foreign)": "imported (foreign) parboiled rice (often sold in 50kg bags - multiply a 50kg "
+                      "bag price by 20 for NGN/MT). NOT Nigerian local rice",
+}
 
 PROMPT_TEMPLATE = """Find the most recent real wholesale price for {commodity} in Nigeria, in {unit}.
 
@@ -91,7 +103,7 @@ def search_commodity_price(client, commodity: str) -> dict:
             # explicitly, which is enough to steer the search correctly.
         }],
         messages=[{"role": "user", "content": PROMPT_TEMPLATE.format(
-            commodity=commodity,
+            commodity=COMMODITY_DESCRIPTION.get(commodity, commodity),
             unit=UNIT_LABEL.get(commodity, "NGN per metric tonne (NGN/MT)"),
         )}],
     )
@@ -198,8 +210,12 @@ def run_web_price_search():
 
     try:
         with conn.cursor() as cur:
+            added = ensure_commodities(cur, COMMODITIES)
+            if added:
+                logger.info(f"  Added to commodities table: {added}")
             cur.execute("SELECT commodity_id, name FROM commodities")
             commodity_map = {name: cid for cid, name in cur.fetchall()}
+        conn.commit()
 
         for commodity in COMMODITIES:
             cid = commodity_map.get(commodity)

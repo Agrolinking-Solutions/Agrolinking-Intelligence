@@ -64,6 +64,35 @@ def get_latest_resource_info():
     return csv_resources[0]
 
 
+REQUIRED_COLUMNS = {"date", "market", "commodity", "unit", "pricetype", "price"}
+
+
+def check_download(content: bytes, current_path: str):
+    """Return None if the downloaded CSV is safe to use, else a reason string."""
+    import io
+    import pandas as pd
+    try:
+        new = pd.read_csv(io.BytesIO(content), low_memory=False)
+    except Exception as e:
+        return f"not a readable CSV ({e})"
+    missing = REQUIRED_COLUMNS - set(new.columns)
+    if missing:
+        return f"missing columns {sorted(missing)}"
+    if new["date"].astype(str).str.startswith("#").any():
+        return "contains HXL tag rows (#date ...) that 01_ingest.py can't parse"
+    try:
+        new_max = pd.to_datetime(new["date"]).max()
+    except Exception as e:
+        return f"unparseable dates ({e})"
+    if os.path.exists(current_path):
+        old = pd.read_csv(current_path, usecols=["date"], low_memory=False)
+        if len(new) < 0.9 * len(old):
+            return f"only {len(new):,} rows vs {len(old):,} in the current file"
+        if new_max < pd.to_datetime(old["date"]).max():
+            return f"latest date {new_max.date()} is older than the current file's"
+    return None
+
+
 def load_state():
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE) as f:
@@ -107,6 +136,13 @@ def run_refresh(force: bool = False):
         return False
 
     out_path = PATHS["raw_wfp"]
+    problem = check_download(csv_resp.content, out_path)
+    if problem:
+        # Keep the file we have: 01_ingest.py is not allowed to fail, and a
+        # broken or truncated download would stop the whole daily run.
+        logger.error(f"  Downloaded file rejected, keeping the current one: {problem}")
+        return False
+
     backup_path = out_path + f".backup_{datetime.now().strftime('%Y%m%d')}"
     if os.path.exists(out_path):
         os.replace(out_path, backup_path)

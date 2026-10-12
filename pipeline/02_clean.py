@@ -24,6 +24,12 @@ logger.add(sys.stdout,
 # Web_search = web prices that passed 14_promote_web_prices.py's checks
 # (only ever fills commodities whose Agricome/WFP price has gone stale).
 REAL_SOURCES = {"Agricome","WFP","Agrolinking_primary","Web_search"}
+# Rows that cleaning treats as fixed points (never purged, smoothed or
+# outlier-replaced, and used to interpolate gaps): real prices plus World Bank
+# estimates. Estimates only fill time not covered by Agricome/WFP data — see
+# the step that drops them where real coverage exists.
+ESTIMATE_SOURCES = {"WB_RTP_estimate"}
+ANCHOR_SOURCES = REAL_SOURCES | ESTIMATE_SOURCES
 
 HARD_BOUNDS = {
     "Sorghum":       {"floor":50_000,    "ceil":1_000_000},
@@ -59,6 +65,27 @@ def run_cleaning():
     removed = before - len(df)
     logger.info(f"  Duplicates removed: {removed}" if removed else "  No duplicates found")
 
+    # Estimates only fill time NOT covered by observed prices: drop any
+    # estimate dated on or before the commodity's last Agricome/WFP/primary
+    # price, or within ESTIMATE_SUPERSEDE_DAYS after it. Found when WFP's real
+    # livestock prices (to Jun 2026) were ingested: the World Bank estimates
+    # for Jun-Jul sat 16-32% below them, so following straight on from real
+    # data they'd drag the series down. Estimates stay only where real data
+    # has been missing for a long time (Maize/Rice since Jan 2023).
+    ESTIMATE_SUPERSEDE_DAYS = 120
+    hq_sources = REAL_SOURCES - {"Web_search"}
+    dropped_est = 0
+    for commodity in COMMODITIES:
+        hq_dates = df.loc[(df["commodity"] == commodity) & df["data_source"].isin(hq_sources), "date"]
+        if hq_dates.empty:
+            continue
+        mask = ((df["commodity"] == commodity) & df["data_source"].isin(ESTIMATE_SOURCES)
+                & (df["date"] <= hq_dates.max() + pd.Timedelta(days=ESTIMATE_SUPERSEDE_DAYS)))
+        dropped_est += int(mask.sum())
+        df = df[~mask]
+    if dropped_est:
+        logger.info(f"  Estimates superseded by real prices: {dropped_est} row(s) dropped")
+
     # ── PERMANENT CONTAMINATION FIX ──────────────────────────────────────────
     # Every time a commodity's real data (Agricome/WFP/Agrolinking_primary)
     # advances to a new, more recent date, any OLD "Interpolated" rows sitting
@@ -86,7 +113,7 @@ def run_cleaning():
     total_purged = 0
     for commodity in COMMODITIES:
         sub = df[df["commodity"] == commodity]
-        real_sub = sub[sub["data_source"].isin(REAL_SOURCES)]
+        real_sub = sub[sub["data_source"].isin(ANCHOR_SOURCES)]
         if len(real_sub) < 2:
             continue
         real_start, real_end = real_sub["date"].min(), real_sub["date"].max()
@@ -94,7 +121,7 @@ def run_cleaning():
             (df["commodity"] == commodity) &
             (df["date"] >= real_start) &
             (df["date"] <= real_end) &
-            (~df["data_source"].isin(REAL_SOURCES))
+            (~df["data_source"].isin(ANCHOR_SOURCES))
         )
         n = purge_mask.sum()
         if n:
@@ -111,7 +138,7 @@ def run_cleaning():
     # so they'd keep pulling the series toward a number we've withdrawn.
     orphaned = 0
     for commodity in COMMODITIES:
-        real_dates = df.loc[(df["commodity"] == commodity) & df["data_source"].isin(REAL_SOURCES), "date"]
+        real_dates = df.loc[(df["commodity"] == commodity) & df["data_source"].isin(ANCHOR_SOURCES), "date"]
         if real_dates.empty:
             continue
         mask = ((df["commodity"] == commodity) & (df["data_source"] == "Interpolated")
@@ -127,7 +154,7 @@ def run_cleaning():
     for commodity, bounds in HARD_BOUNDS.items():
         mask = (
             (df["commodity"]==commodity) &
-            (~df["data_source"].isin(REAL_SOURCES)) &
+            (~df["data_source"].isin(ANCHOR_SOURCES)) &
             (~df["outlier_flag"]) &
             ((df["price_ngn_mt"]<bounds["floor"]) | (df["price_ngn_mt"]>bounds["ceil"]))
         )
@@ -144,7 +171,7 @@ def run_cleaning():
         synthetic_mask = (
             (df["commodity"]==commodity) &
             (~df["outlier_flag"]) &
-            (~df["data_source"].isin(REAL_SOURCES))
+            (~df["data_source"].isin(ANCHOR_SOURCES))
         )
         prices = df.loc[synthetic_mask,"price_ngn_mt"].dropna()
         if len(prices)<10: continue
@@ -184,7 +211,7 @@ def run_cleaning():
     new_rows = []
     for commodity in COMMODITIES:
         sub      = df[df["commodity"]==commodity].sort_values("date")
-        real_sub = sub[sub["data_source"].isin(REAL_SOURCES)]
+        real_sub = sub[sub["data_source"].isin(ANCHOR_SOURCES)]
         if len(real_sub)<2: continue
         real_start, real_end = real_sub["date"].min(), real_sub["date"].max()
         expected = pd.date_range(real_start, real_end, freq="W-MON")
@@ -222,7 +249,7 @@ def run_cleaning():
     for commodity in COMMODITIES:
         mask = (
             (df["commodity"]==commodity) &
-            (~df["data_source"].isin(REAL_SOURCES))
+            (~df["data_source"].isin(ANCHOR_SOURCES))
         )
         if mask.sum()<3: continue
         df.loc[mask,"price_ngn_mt"] = (
@@ -238,7 +265,7 @@ def run_cleaning():
     for commodity in COMMODITIES:
         sub = df[(df["commodity"]==commodity)&(df["record_type"]=="historical")]
         if len(sub)==0: continue
-        real = sub[sub["data_source"].isin(REAL_SOURCES)]
+        real = sub[sub["data_source"].isin(ANCHOR_SOURCES)]
         logger.info(
             f"    {commodity:<20} {len(sub):>5} hist rows | "
             f"₦{sub['price_ngn_mt'].min():>12,.0f} – "

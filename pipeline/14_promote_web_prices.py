@@ -43,6 +43,9 @@ logger.add(sys.stdout,
 
 HIGH_QUALITY_SOURCES = {"Agricome", "WFP", "Agrolinking_primary"}
 ANY_REAL_SOURCES     = HIGH_QUALITY_SOURCES | {"Web_search"}
+# Baseline for the sanity band / "is it newer" checks: the latest known price,
+# which may be a World Bank estimate when no observed price is recent.
+BASELINE_SOURCES     = ANY_REAL_SOURCES | {"WB_RTP_estimate"}
 
 FRESH_DAYS           = 10     # Agricome/WFP price newer than this => no gap, don't touch
 LOOKBACK_DAYS        = 10     # how far back in web_price_estimates to look
@@ -123,16 +126,16 @@ def evaluate_candidate(cand, last_real_price, last_real_date, query_date, peers=
     if (query_date - sd).days > MAX_SOURCE_AGE_DAYS:
         return False, f"source is {(query_date - sd).days} days old (max {MAX_SOURCE_AGE_DAYS})", sd
     if last_real_date is not None and sd <= last_real_date:
-        return False, f"not newer than latest real price ({last_real_date})", sd
+        return False, f"not newer than latest known price ({last_real_date})", sd
     if last_real_price:
         days = (sd - last_real_date).days if last_real_date else 0
         band = allowed_band(days)
         dev = abs(price - last_real_price) / last_real_price
         if dev > band:
-            return False, (f"{dev:.0%} from last real price {last_real_price:,.0f} "
+            return False, (f"{dev:.0%} from last known price {last_real_price:,.0f} "
                            f"(allowed {band:.0%}) - needs human review"), sd
         if dev > CORROBORATE_ABOVE and not is_corroborated(cand, peers):
-            return False, (f"{dev:.0%} from last real price {last_real_price:,.0f} on a single "
+            return False, (f"{dev:.0%} from last known price {last_real_price:,.0f} on a single "
                            f"source - needs a second website agreeing within "
                            f"{CORROBORATION_TOLERANCE:.0%}, or human review"), sd
     return True, "accepted", sd
@@ -143,7 +146,7 @@ def load_master_state():
     df = pd.read_csv(PATHS["master"], parse_dates=["date"])
     out = {}
     for c in COMMODITIES:
-        sub = df[(df["commodity"] == c) & df["data_source"].isin(ANY_REAL_SOURCES)].sort_values("date")
+        sub = df[(df["commodity"] == c) & df["data_source"].isin(BASELINE_SOURCES)].sort_values("date")
         hq = sub[sub["data_source"].isin(HIGH_QUALITY_SOURCES)]
         out[c] = {
             "hq_date":    hq["date"].max().date() if len(hq) else None,

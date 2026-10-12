@@ -297,6 +297,8 @@ INSERT INTO commodities (name, category, unit) VALUES
     ('Maize (yellow)', 'agricultural', 'NGN/MT'),
     ('Wheat',          'agricultural', 'NGN/MT'),
     ('Rice',           'agricultural', 'NGN/MT'),
+    ('Rice (local)',   'agricultural', 'NGN/MT'),
+    ('Rice (foreign)', 'agricultural', 'NGN/MT'),
     ('Meat (beef)',    'livestock',    'NGN/MT'),
     ('Meat (goat)',    'livestock',    'NGN/MT'),
     ('Fish (dried)',   'livestock',    'NGN/MT'),

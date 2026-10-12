@@ -72,6 +72,16 @@ def load_agricome() -> pd.DataFrame:
 
     # Tag the source
     df["data_source"] = "Agricome"
+    # Some rows in this file are labelled "Agricom" but are World Bank
+    # Real-Time Prices model estimates (Rice/Maize 2023-26, livestock
+    # Mar-Jul 2026), or derived from them (Maize (yellow) = white x ratio).
+    # Their notes say so. They are estimates, not observed market prices, so
+    # tag them separately: they still fill gaps, but don't count as real data
+    # for freshness, validation references or accuracy scoring.
+    is_estimate = df["notes"].astype(str).str.contains("World Bank RTP|DERIVED:", regex=True)
+    df.loc[is_estimate, "data_source"] = "WB_RTP_estimate"
+    if is_estimate.any():
+        logger.info(f"  {int(is_estimate.sum())} rows tagged as World Bank estimates (not real prices)")
 
     logger.success(f"Agricome loaded: {len(df):,} rows | {df['commodity'].nunique()} commodities")
     logger.debug(f"  Commodities: {sorted(df['commodity'].unique())}")
@@ -112,6 +122,8 @@ WFP_UNIT_TO_MT = {
     "50 KG":   20,           # price/50kg × 20  = price/MT
     "2.5 KG":  400,          # price/2.5kg × 400 = price/MT
     "2.7 KG":  370.37,       # price/2.7kg × 370.37 ≈ price/MT
+    "2.8 KG":  1000 / 2.8,   # imported rice retail measure
+    "30 pcs":  1,            # Eggs: price per crate of 30 — the Eggs series is NGN/crate, not NGN/MT
     "L":       1_000,        # fuel: price/L × 1000 (kept as NGN/1000L for comparisons)
     "100 L":   10,
 }
@@ -127,9 +139,24 @@ WFP_COMMODITIES_WANTED = {
     "Sorghum":              "Sorghum",
     "Sorghum (white)":      "Sorghum",
     "Soybeans":             "Soybeans",
+    # Rice by type. Wholesale stops in Jan 2023, retail runs to date, so
+    # retail-only months are converted to a wholesale equivalent (see
+    # WHOLESALE_EQUIVALENT below).
+    "Rice (imported)":      "Rice (foreign)",
+    "Rice (local)":         "Rice (local)",
+    # Livestock/protein: WFP has real retail prices to date. These used to be
+    # loaded once by scripts/maintenance/add_livestock_to_pipeline.py and then
+    # topped up with World Bank estimates; reading them here keeps them current.
+    "Meat (beef)":          "Meat (beef)",
+    "Meat (goat)":          "Meat (goat)",
+    "Fish":                 "Fish (dried)",
+    "Eggs":                 "Eggs",
     "Fuel (diesel)":        "_fuel_diesel",      # external feature, not commodity forecast
     "Fuel (petrol-gasoline)": "_fuel_petrol",    # external feature
 }
+
+
+WHOLESALE_EQUIVALENT = {"Rice (local)", "Rice (foreign)"}
 
 
 def convert_wfp_to_ngn_mt(price: float, unit: str) -> float:
@@ -201,21 +228,63 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
     # ── Commodity prices ──────────────────────────────────────────────────────
     comm_df = wfp[~wfp["commodity_std"].str.startswith("_fuel", na=False)].copy()
 
-    # Use Wholesale price preferentially, fall back to Retail
-    # Group by date + commodity, pick wholesale mean, else retail mean
-    def agg_price(group):
-        w = group[group["pricetype"] == "Wholesale"]["price_ngn_mt"]
-        r = group[group["pricetype"] == "Retail"]["price_ngn_mt"]
-        if len(w) > 0:
-            return w.mean()
-        return r.mean()
-
-    comm_agg = (
-        comm_df.groupby(["date", "commodity_std"])
-        .apply(agg_price, include_groups=False)
+    # National average per month and price type, across markets
+    monthly = (
+        comm_df.groupby(["date", "commodity_std", "pricetype"])
+        .agg(price_ngn_mt=("price_ngn_mt", "mean"), n_markets=("market", "nunique"))
         .reset_index()
-        .rename(columns={"commodity_std": "commodity", 0: "price_ngn_mt"})
     )
+
+    # Drop months where market coverage collapsed. Found in the Jul 2026 file:
+    # every commodity had a single market (Rann, Borno, a conflict zone) after
+    # 13-18 markets the month before, so its "national average" was one
+    # market's price (Fish 500K/MT vs 2.26M the month before). Compared with
+    # the series' own recent coverage, so early years that always had few
+    # markets are kept.
+    monthly = monthly.sort_values("date")
+    monthly["recent_median"] = (
+        monthly.groupby(["commodity_std", "pricetype"])["n_markets"]
+        .transform(lambda s: s.shift(1).rolling(6, min_periods=3).median())
+    )
+    # Also catches a partial current month (WFP publishes a month while only
+    # 4-5 of ~23 markets have reported, e.g. Oct 2026 in the Oct 11 file).
+    thin = monthly["n_markets"] < 0.3 * monthly["recent_median"]
+    if thin.any():
+        for _, r in monthly[thin].iterrows():
+            logger.warning(f"  WFP: dropping {r['commodity_std']} {r['pricetype']} {r['date'].date()} "
+                           f"- {int(r['n_markets'])} market(s) vs ~{r['recent_median']:.0f} usually")
+        monthly = monthly[~thin]
+
+    # Use Wholesale preferentially, fall back to Retail. For commodities in
+    # WHOLESALE_EQUIVALENT, retail-only months are scaled by the median
+    # wholesale/retail ratio measured over months that have both, so the
+    # series doesn't jump when WFP stops reporting wholesale.
+    wide = monthly.pivot_table(index=["date", "commodity_std"], columns="pricetype",
+                               values="price_ngn_mt").reset_index()
+    for col in ("Wholesale", "Retail"):
+        if col not in wide.columns:
+            wide[col] = np.nan
+    wide["price_ngn_mt"] = wide["Wholesale"].fillna(wide["Retail"])
+    wide["notes"] = np.where(wide["Wholesale"].notna(), "WFP VAM data — converted to NGN/MT",
+                             "WFP VAM data (retail) — converted to NGN/MT")
+    for commodity in WHOLESALE_EQUIVALENT:
+        sel = wide["commodity_std"] == commodity
+        both = sel & wide["Wholesale"].notna() & wide["Retail"].notna()
+        if both.sum() < 24:
+            logger.warning(f"  WFP: {commodity} has only {int(both.sum())} months with both price "
+                           f"types - not converting retail to wholesale-equivalent")
+            continue
+        ratio = float((wide.loc[both, "Wholesale"] / wide.loc[both, "Retail"]).median())
+        retail_only = sel & wide["Wholesale"].isna() & wide["Retail"].notna()
+        wide.loc[retail_only, "price_ngn_mt"] = wide.loc[retail_only, "Retail"] * ratio
+        wide.loc[retail_only, "notes"] = (f"WFP VAM retail × {ratio:.3f} (median wholesale/retail "
+                                          f"ratio, {int(both.sum())} months) — wholesale-equivalent NGN/MT")
+        logger.info(f"  WFP: {commodity} retail-only months scaled by {ratio:.3f} "
+                    f"to wholesale-equivalent ({int(retail_only.sum())} months)")
+
+    comm_agg = (wide[["date", "commodity_std", "price_ngn_mt", "notes"]]
+                .dropna(subset=["price_ngn_mt"])
+                .rename(columns={"commodity_std": "commodity"}))
 
     # Round to weekly Monday
     comm_agg["date"] = pd.to_datetime(comm_agg["date"])
@@ -230,7 +299,6 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
     comm_agg["rainfall_index"]     = np.nan
     comm_agg["data_quality_score"] = 0.9
     comm_agg["is_validated"]       = True
-    comm_agg["notes"]              = "WFP VAM data — converted to NGN/MT"
     comm_agg["data_source"]        = "WFP"
 
     logger.success(
@@ -282,7 +350,7 @@ def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
 
     # Sort: Agricome first, WFP second, web-sourced last — so when we drop
     # duplicates, the higher-quality row is kept
-    source_priority = {"Agricome": 0, "WFP": 1, "Web_search": 2}
+    source_priority = {"Agricome": 0, "WFP": 1, "Web_search": 2, "WB_RTP_estimate": 3}
     combined["_priority"] = combined["data_source"].map(source_priority).fillna(9)
     combined = combined.sort_values(["commodity", "date", "_priority"])
 
@@ -344,8 +412,17 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         # Web-sourced rows are rebuilt from data/raw/web_prices.csv on every
         # ingest (they're in master_df), so that file is the single source
         # of truth: deleting a bad row there removes it from master too.
+        # Same for WFP rows of every commodity this ingest reads from the WFP
+        # file (so a month dropped for thin market coverage disappears), and
+        # for World Bank estimate rows that older ingests stored as "Agricome"
+        # (they come back from the raw file tagged WB_RTP_estimate).
+        wfp_rebuilt = set(master_df.loc[master_df["data_source"] == "WFP", "commodity"])
+        stale_wfp = (existing["data_source"] == "WFP") & existing["commodity"].isin(wfp_rebuilt)
+        mislabelled_estimate = ((existing["data_source"] == "Agricome")
+                                & existing["notes"].astype(str).str.contains("World Bank RTP|DERIVED:", regex=True))
         existing_historical = existing[(existing["record_type"] == "historical")
-                                       & (existing["data_source"] != "Web_search")]
+                                       & (existing["data_source"] != "Web_search")
+                                       & ~stale_wfp & ~mislabelled_estimate]
         forecast_rows = existing[existing["record_type"] == "forecast"]
         # Validated_actual rows — today's forecast, confirmed accurate by
         # 06_validate.py, appended so last_known_date advances daily.
@@ -365,11 +442,13 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         master_df["record_type"] = "historical"
         # highest priority — just ingested (web-sourced still ranks below any
         # real row, including Agrolinking_primary rows that live only in master)
-        master_df["_priority"] = np.where(master_df["data_source"] == "Web_search", 1.5, 0)
+        master_df["_priority"] = master_df["data_source"].map(
+            {"Web_search": 1.5, "WB_RTP_estimate": 1.8}).fillna(0)
 
         # Tag existing rows by source priority
         existing_historical["_priority"] = existing_historical["data_source"].map({
             "Agricome": 0, "Agrolinking_primary": 0, "WFP": 1, "Web_search": 1.5,
+            "WB_RTP_estimate": 1.8,
             "Synthetic (World Bank/FAO × FX)": 3,
             "Interpolated": 4, "Agrolinking_old": 5,
         }).fillna(6)

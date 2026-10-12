@@ -239,7 +239,7 @@ def compute_30day_outlook(validated_forecast):
             # Grains: max +/-15% in 30 days
             # Export crops: max +/-25% in 30 days
             # Livestock: max +/-10% in 30 days
-            GRAIN_CAPS    = ["Maize (white)","Maize (yellow)","Sorghum","Wheat","Rice",
+            GRAIN_CAPS    = ["Maize (white)","Maize (yellow)","Sorghum","Wheat","Rice","Rice (local)","Rice (foreign)",
                              "Beans (white)","Beans (red)","Soybeans"]
             LIVESTOCK     = ["Meat (beef)","Meat (goat)","Fish (dried)","Eggs"]
             if commodity in GRAIN_CAPS:

@@ -39,7 +39,10 @@ REAL_SOURCES = {"Agricome", "Agrolinking_primary", "WFP", "Web_search"}
 # Reference price is taken from the latest real/web-sourced price in master
 # when it is at most this many days old; otherwise validation falls back to
 # the hand-entered MANUAL_PRICES / WEB_REFERENCE_PRICES below.
-FRESH_REFERENCE_DAYS = 21
+# 45, not 21: WFP is monthly (mid-month) and HDX publishes it ~4 weeks later,
+# so its newest real price is typically 25-40 days old - still far fresher
+# than the hand-entered fallbacks (e.g. Fish 1.2M vs WFP's real 2.4M, Sep 2026).
+FRESH_REFERENCE_DAYS = 45
 
 logger.remove()
 logger.add(sys.stdout,
@@ -73,6 +76,10 @@ MANUAL_PRICES = {
     "Maize (yellow)":  400_000,   # Market 2026
     "Wheat":           706_833,   # Agrolinking primary Apr 13 2026
     "Rice":          1_550_000,   # Market research May 2026
+    # Rice by type: WFP national average, Jun 2026, retail converted to
+    # wholesale-equivalent (x0.942 local, x0.898 imported) in 01_ingest.py
+    "Rice (local)":  1_056_000,   # ~N52.8k per 50kg bag
+    "Rice (foreign)": 1_378_000,  # ~N68.9k per 50kg bag
     # ── Livestock/protein — previously missing entirely, which forced
     # validation to always skip these four (status: "skipped", no
     # correction ever applied, no live accuracy check).
@@ -727,6 +734,10 @@ def write_to_postgres(validated: dict, run_date: datetime):
 
     try:
         with conn.cursor() as cur:
+            from pipeline.pg_commodities import ensure_commodities
+            added = ensure_commodities(cur, COMMODITIES)
+            if added:
+                logger.info(f"  [Postgres] Added to commodities table: {added}")
             cur.execute("SELECT commodity_id, name FROM commodities")
             commodity_map = {name: cid for cid, name in cur.fetchall()}
             cur.execute("SELECT location_id FROM locations WHERE state = 'National'")
