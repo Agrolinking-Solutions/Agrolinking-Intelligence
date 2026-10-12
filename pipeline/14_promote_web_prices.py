@@ -49,7 +49,14 @@ LOOKBACK_DAYS        = 10     # how far back in web_price_estimates to look
 MAX_SOURCE_AGE_DAYS  = 21     # a source price older than this (at search time) is rejected
 BASE_BAND            = 0.25   # allowed deviation from last real price...
 BAND_PER_DAY         = 0.003  # ...plus this per day since it, capped at MAX_BAND
-MAX_BAND             = 0.50
+MAX_BAND             = 0.40
+# A move bigger than this from the last real price is only accepted when a
+# second source (different website) agrees within CORROBORATION_TOLERANCE.
+# Found live on the first real run: single sources put Rice 44% and Maize
+# (yellow) 38% below their last Agricome price while Maize (white) rose 9% -
+# plausible-looking but very likely a different product grade or unit.
+CORROBORATE_ABOVE    = 0.15
+CORROBORATION_TOLERANCE = 0.10
 ACCEPT_CONFIDENCE    = {"high", "medium"}
 
 WEB_CSV_COLUMNS = ["commodity", "week_start_date", "price", "currency", "unit", "source",
@@ -76,9 +83,29 @@ def allowed_band(days_since_last_real):
     return min(MAX_BAND, BASE_BAND + BAND_PER_DAY * max(days_since_last_real, 0))
 
 
-def evaluate_candidate(cand, last_real_price, last_real_date, query_date):
+def source_site(url):
+    from urllib.parse import urlparse
+    host = urlparse(url or "").netloc.lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def is_corroborated(cand, peers):
+    """True if a peer from a different website, at medium+ confidence, agrees on price."""
+    site = source_site(cand.get("source_url"))
+    for p in peers:
+        if not p.get("price") or source_site(p.get("source_url")) in ("", site):
+            continue
+        if str(p.get("confidence") or "").strip().lower() not in ACCEPT_CONFIDENCE:
+            continue
+        if abs(p["price"] - cand["price"]) / cand["price"] <= CORROBORATION_TOLERANCE:
+            return True
+    return False
+
+
+def evaluate_candidate(cand, last_real_price, last_real_date, query_date, peers=()):
     """
     cand: dict with price, source_url, source_date, confidence.
+    peers: other candidates for the same commodity (for corroboration).
     Returns (accepted: bool, reason: str, source_date: date|None).
     """
     price = cand.get("price")
@@ -104,6 +131,10 @@ def evaluate_candidate(cand, last_real_price, last_real_date, query_date):
         if dev > band:
             return False, (f"{dev:.0%} from last real price {last_real_price:,.0f} "
                            f"(allowed {band:.0%}) - needs human review"), sd
+        if dev > CORROBORATE_ABOVE and not is_corroborated(cand, peers):
+            return False, (f"{dev:.0%} from last real price {last_real_price:,.0f} on a single "
+                           f"source - needs a second website agreeing within "
+                           f"{CORROBORATION_TOLERANCE:.0%}, or human review"), sd
     return True, "accepted", sd
 
 
@@ -171,7 +202,9 @@ def promote(candidates, state, today):
         if hq is not None and (today - hq).days <= FRESH_DAYS:
             d.update(accepted=False, reason=f"Agricome/WFP price is fresh ({hq}) - no gap to fill")
             decisions.append(d); continue
-        ok, reason, sd = evaluate_candidate(c, st.get("real_price"), st.get("real_date"), c["query_date"])
+        peers = [p for p in candidates if p is not c and p["commodity"] == com]
+        ok, reason, sd = evaluate_candidate(c, st.get("real_price"), st.get("real_date"),
+                                            c["query_date"], peers)
         if ok and (com, str(sd)) in seen:
             ok, reason = False, "already promoted"
         d.update(accepted=ok, reason=reason)

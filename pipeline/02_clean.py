@@ -105,6 +105,23 @@ def run_cleaning():
             df = df[~purge_mask]
     logger.info(f"  Total stale non-real rows purged: {total_purged}")
 
+    # Interpolated rows only ever belong BETWEEN two real prices. Any after
+    # the last real price were drawn toward a real point that no longer
+    # exists (e.g. a web-sourced price later removed from web_prices.csv),
+    # so they'd keep pulling the series toward a number we've withdrawn.
+    orphaned = 0
+    for commodity in COMMODITIES:
+        real_dates = df.loc[(df["commodity"] == commodity) & df["data_source"].isin(REAL_SOURCES), "date"]
+        if real_dates.empty:
+            continue
+        mask = ((df["commodity"] == commodity) & (df["data_source"] == "Interpolated")
+                & (df["date"] > real_dates.max()))
+        if mask.any():
+            orphaned += int(mask.sum())
+            df = df[~mask]
+    if orphaned:
+        logger.info(f"  Removed {orphaned} interpolated row(s) past the last real price")
+
     # Hard bounds — synthetic only
     hard_flagged = 0
     for commodity, bounds in HARD_BOUNDS.items():

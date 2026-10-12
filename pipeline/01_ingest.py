@@ -341,7 +341,11 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         if bad.any():
             logger.warning(f"  Dropping {int(bad.sum())} malformed rows from existing master")
             existing = existing[~bad].copy()
-        existing_historical = existing[existing["record_type"] == "historical"]
+        # Web-sourced rows are rebuilt from data/raw/web_prices.csv on every
+        # ingest (they're in master_df), so that file is the single source
+        # of truth: deleting a bad row there removes it from master too.
+        existing_historical = existing[(existing["record_type"] == "historical")
+                                       & (existing["data_source"] != "Web_search")]
         forecast_rows = existing[existing["record_type"] == "forecast"]
         # Validated_actual rows — today's forecast, confirmed accurate by
         # 06_validate.py, appended so last_known_date advances daily.
@@ -359,7 +363,9 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         # Merge strategy: preserve all existing data, layer fresh ingest on top.
         # Priority: new Agricome/WFP data > existing historical > synthetic/carry-forward
         master_df["record_type"] = "historical"
-        master_df["_priority"] = 0  # highest priority — just ingested
+        # highest priority — just ingested (web-sourced still ranks below any
+        # real row, including Agrolinking_primary rows that live only in master)
+        master_df["_priority"] = np.where(master_df["data_source"] == "Web_search", 1.5, 0)
 
         # Tag existing rows by source priority
         existing_historical["_priority"] = existing_historical["data_source"].map({
