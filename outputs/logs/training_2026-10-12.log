@@ -680,3 +680,344 @@
 2026-10-12 12:21:20.200 | INFO     | __main__:run_training:343 - ======================================================================
 2026-10-12 12:21:20.200 | SUCCESS  | __main__:run_training:345 - TRAINING COMPLETE — 17/17 commodities
 2026-10-12 12:21:20.200 | INFO     | __main__:run_training:346 - ======================================================================
+2026-10-12 13:06:45.141 | INFO     | __main__:run_training:305 - ============================================================
+2026-10-12 13:06:45.142 | INFO     | __main__:run_training:306 - STEP 4 — MODEL TRAINING
+2026-10-12 13:06:45.142 | INFO     | __main__:run_training:307 -   Commodities : 17
+2026-10-12 13:06:45.142 | INFO     | __main__:run_training:308 -   Models      : ARIMA + Prophet + XGBoost
+2026-10-12 13:06:45.142 | INFO     | __main__:run_training:309 - ============================================================
+2026-10-12 13:06:45.142 | INFO     | __main__:run_training:313 - 
+[1/17] Starting Hibiscus...
+2026-10-12 13:06:45.160 | DEBUG    | __main__:train_commodity:260 -   [Hibiscus] Real-data-only mode: 54 rows
+2026-10-12 13:06:45.160 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:06:45.160 | INFO     | __main__:train_commodity:264 -   Hibiscus  (54 rows | last: 2026-10-12)
+2026-10-12 13:06:45.161 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:06:45.161 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:06:47.160 | DEBUG    | __main__:train_arima:109 -   [Hibiscus] ARIMA order=(1, 0, 2) MAPE=13.2%
+2026-10-12 13:06:47.161 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:06:47.363 | DEBUG    | __main__:train_prophet:159 -   [Hibiscus] Prophet MAPE=9.7%
+2026-10-12 13:06:47.363 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:06:47.577 | DEBUG    | __main__:train_xgboost:215 -   [Hibiscus] XGBoost MAPE=18.0% | top: price_lag_1w
+2026-10-12 13:06:47.577 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.323 | prophet: 0.440 | xgboost: 0.238
+2026-10-12 13:06:47.578 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:06:47.578 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:06:47.578 | INFO     | __main__:train_commodity:291 -   arima         13.2%  ₦     339,859     0.323
+2026-10-12 13:06:47.578 | INFO     | __main__:train_commodity:291 -   prophet        9.7%  ₦     242,744     0.440
+2026-10-12 13:06:47.578 | INFO     | __main__:train_commodity:291 -   xgboost       18.0%  ₦     454,944     0.238
+2026-10-12 13:06:47.579 | INFO     | __main__:run_training:313 - 
+[2/17] Starting Sesame...
+2026-10-12 13:06:47.594 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:06:47.594 | INFO     | __main__:train_commodity:264 -   Sesame  (856 rows | last: 2026-10-12)
+2026-10-12 13:06:47.595 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:06:47.595 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:09:33.247 | DEBUG    | __main__:train_arima:109 -   [Sesame] ARIMA order=(2, 0, 1) MAPE=35.2%
+2026-10-12 13:09:33.247 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:09:33.491 | DEBUG    | __main__:train_prophet:159 -   [Sesame] Prophet MAPE=7.1%
+2026-10-12 13:09:33.491 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:09:33.959 | DEBUG    | __main__:train_xgboost:215 -   [Sesame] XGBoost MAPE=12.9% | top: fuel_diesel_ngn_litre
+2026-10-12 13:09:33.959 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.115 | prophet: 0.571 | xgboost: 0.314
+2026-10-12 13:09:33.959 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:09:33.959 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:09:33.959 | INFO     | __main__:train_commodity:291 -   arima         35.2%  ₦     469,412     0.115
+2026-10-12 13:09:33.960 | INFO     | __main__:train_commodity:291 -   prophet        7.1%  ₦      93,245     0.571
+2026-10-12 13:09:33.960 | INFO     | __main__:train_commodity:291 -   xgboost       12.9%  ₦     179,380     0.314
+2026-10-12 13:09:33.964 | INFO     | __main__:run_training:313 - 
+[3/17] Starting Ginger...
+2026-10-12 13:09:33.979 | DEBUG    | __main__:train_commodity:260 -   [Ginger] Real-data-only mode: 53 rows
+2026-10-12 13:09:33.979 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:09:33.979 | INFO     | __main__:train_commodity:264 -   Ginger  (53 rows | last: 2026-10-12)
+2026-10-12 13:09:33.979 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:09:33.980 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:09:34.180 | DEBUG    | __main__:train_arima:109 -   [Ginger] ARIMA order=(0, 1, 0) MAPE=17.6%
+2026-10-12 13:09:34.181 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:09:34.312 | DEBUG    | __main__:train_prophet:159 -   [Ginger] Prophet MAPE=37.2%
+2026-10-12 13:09:34.312 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:09:34.433 | DEBUG    | __main__:train_xgboost:215 -   [Ginger] XGBoost MAPE=8.7% | top: rolling_max_12w
+2026-10-12 13:09:34.434 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.284 | prophet: 0.135 | xgboost: 0.581
+2026-10-12 13:09:34.434 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:09:34.434 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:09:34.434 | INFO     | __main__:train_commodity:291 -   arima         17.6%  ₦   1,490,909     0.284
+2026-10-12 13:09:34.434 | INFO     | __main__:train_commodity:291 -   prophet       37.2%  ₦   3,308,189     0.135
+2026-10-12 13:09:34.434 | INFO     | __main__:train_commodity:291 -   xgboost        8.7%  ₦     743,874     0.581
+2026-10-12 13:09:34.435 | INFO     | __main__:run_training:313 - 
+[4/17] Starting Cocoa...
+2026-10-12 13:09:34.453 | DEBUG    | __main__:train_commodity:260 -   [Cocoa] Real-data-only mode: 57 rows
+2026-10-12 13:09:34.453 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:09:34.454 | INFO     | __main__:train_commodity:264 -   Cocoa  (57 rows | last: 2026-10-12)
+2026-10-12 13:09:34.454 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:09:34.454 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:09:34.723 | DEBUG    | __main__:train_arima:109 -   [Cocoa] ARIMA order=(0, 1, 0) MAPE=14.6%
+2026-10-12 13:09:34.723 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:09:34.902 | DEBUG    | __main__:train_prophet:159 -   [Cocoa] Prophet MAPE=39.6%
+2026-10-12 13:09:34.903 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:09:35.002 | DEBUG    | __main__:train_xgboost:215 -   [Cocoa] XGBoost MAPE=41.5% | top: rolling_max_4w
+2026-10-12 13:09:35.003 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.581 | prophet: 0.214 | xgboost: 0.204
+2026-10-12 13:09:35.003 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:09:35.003 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:09:35.003 | INFO     | __main__:train_commodity:291 -   arima         14.6%  ₦     886,742     0.581
+2026-10-12 13:09:35.003 | INFO     | __main__:train_commodity:291 -   prophet       39.6%  ₦   2,296,001     0.214
+2026-10-12 13:09:35.003 | INFO     | __main__:train_commodity:291 -   xgboost       41.5%  ₦   2,242,030     0.204
+2026-10-12 13:09:35.004 | INFO     | __main__:run_training:313 - 
+[5/17] Starting Soybeans...
+2026-10-12 13:09:35.022 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:09:35.022 | INFO     | __main__:train_commodity:264 -   Soybeans  (1400 rows | last: 2026-10-12)
+2026-10-12 13:09:35.022 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:09:35.022 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:09:51.611 | DEBUG    | __main__:train_arima:109 -   [Soybeans] ARIMA order=(1, 1, 2) MAPE=2.4%
+2026-10-12 13:09:51.611 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:09:51.989 | DEBUG    | __main__:train_prophet:159 -   [Soybeans] Prophet MAPE=11.0%
+2026-10-12 13:09:51.989 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:09:52.531 | DEBUG    | __main__:train_xgboost:215 -   [Soybeans] XGBoost MAPE=46.5% | top: rolling_mean_4w
+2026-10-12 13:09:52.531 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.789 | prophet: 0.171 | xgboost: 0.040
+2026-10-12 13:09:52.532 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:09:52.532 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:09:52.532 | INFO     | __main__:train_commodity:291 -   arima          2.4%  ₦      18,765     0.789
+2026-10-12 13:09:52.532 | INFO     | __main__:train_commodity:291 -   prophet       11.0%  ₦      86,490     0.171
+2026-10-12 13:09:52.532 | INFO     | __main__:train_commodity:291 -   xgboost       46.5%  ₦     335,265     0.040
+2026-10-12 13:09:52.533 | INFO     | __main__:run_training:313 - 
+[6/17] Starting Cashew Nuts...
+2026-10-12 13:09:52.545 | DEBUG    | __main__:train_commodity:260 -   [Cashew Nuts] Real-data-only mode: 57 rows
+2026-10-12 13:09:52.545 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:09:52.546 | INFO     | __main__:train_commodity:264 -   Cashew Nuts  (57 rows | last: 2026-10-12)
+2026-10-12 13:09:52.546 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:09:52.546 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:09:52.960 | DEBUG    | __main__:train_arima:109 -   [Cashew Nuts] ARIMA order=(2, 0, 0) MAPE=5.1%
+2026-10-12 13:09:52.960 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:09:53.131 | DEBUG    | __main__:train_prophet:159 -   [Cashew Nuts] Prophet MAPE=41.9%
+2026-10-12 13:09:53.132 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:09:53.186 | DEBUG    | __main__:train_xgboost:215 -   [Cashew Nuts] XGBoost MAPE=3.4% | top: season_dry
+2026-10-12 13:09:53.187 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.383 | prophet: 0.047 | xgboost: 0.571
+2026-10-12 13:09:53.187 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:09:53.187 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:09:53.187 | INFO     | __main__:train_commodity:291 -   arima          5.1%  ₦      97,921     0.383
+2026-10-12 13:09:53.187 | INFO     | __main__:train_commodity:291 -   prophet       41.9%  ₦     802,077     0.047
+2026-10-12 13:09:53.187 | INFO     | __main__:train_commodity:291 -   xgboost        3.4%  ₦      65,505     0.571
+2026-10-12 13:09:53.188 | INFO     | __main__:run_training:313 - 
+[7/17] Starting Sorghum...
+2026-10-12 13:09:53.204 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:09:53.205 | INFO     | __main__:train_commodity:264 -   Sorghum  (1294 rows | last: 2026-10-12)
+2026-10-12 13:09:53.205 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:09:53.205 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:10:10.217 | DEBUG    | __main__:train_arima:109 -   [Sorghum] ARIMA order=(2, 1, 1) MAPE=10.5%
+2026-10-12 13:10:10.218 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:10:10.659 | DEBUG    | __main__:train_prophet:159 -   [Sorghum] Prophet MAPE=16.1%
+2026-10-12 13:10:10.659 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:10:11.208 | DEBUG    | __main__:train_xgboost:215 -   [Sorghum] XGBoost MAPE=30.3% | top: price_lag_1w
+2026-10-12 13:10:11.208 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.502 | prophet: 0.325 | xgboost: 0.173
+2026-10-12 13:10:11.208 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:10:11.209 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:10:11.209 | INFO     | __main__:train_commodity:291 -   arima         10.5%  ₦      38,577     0.502
+2026-10-12 13:10:11.209 | INFO     | __main__:train_commodity:291 -   prophet       16.1%  ₦      59,418     0.325
+2026-10-12 13:10:11.209 | INFO     | __main__:train_commodity:291 -   xgboost       30.3%  ₦     164,784     0.173
+2026-10-12 13:10:11.210 | INFO     | __main__:run_training:313 - 
+[8/17] Starting Beans (white)...
+2026-10-12 13:10:11.225 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:10:11.226 | INFO     | __main__:train_commodity:264 -   Beans (white)  (1281 rows | last: 2026-07-13)
+2026-10-12 13:10:11.226 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:10:11.226 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:10:18.930 | DEBUG    | __main__:train_arima:109 -   [Beans (white)] ARIMA order=(0, 2, 1) MAPE=30.6%
+2026-10-12 13:10:18.930 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:10:19.359 | DEBUG    | __main__:train_prophet:159 -   [Beans (white)] Prophet MAPE=84.8%
+2026-10-12 13:10:19.359 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:10:19.895 | DEBUG    | __main__:train_xgboost:215 -   [Beans (white)] XGBoost MAPE=6.4% | top: rolling_min_4w
+2026-10-12 13:10:19.896 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.172 | xgboost: 0.828
+2026-10-12 13:10:19.896 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:10:19.896 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:10:19.896 | INFO     | __main__:train_commodity:291 -   arima         30.6%  ₦     283,175     0.172
+2026-10-12 13:10:19.896 | INFO     | __main__:train_commodity:291 -   prophet       84.8%  ₦     785,812     0.000
+2026-10-12 13:10:19.896 | INFO     | __main__:train_commodity:291 -   xgboost        6.4%  ₦      70,600     0.828
+2026-10-12 13:10:19.897 | INFO     | __main__:run_training:313 - 
+[9/17] Starting Beans (red)...
+2026-10-12 13:10:19.907 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:10:19.907 | INFO     | __main__:train_commodity:264 -   Beans (red)  (551 rows | last: 2026-07-13)
+2026-10-12 13:10:19.907 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:10:19.907 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:10:27.110 | DEBUG    | __main__:train_arima:109 -   [Beans (red)] ARIMA order=(0, 2, 1) MAPE=37.1%
+2026-10-12 13:10:27.110 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:10:27.278 | DEBUG    | __main__:train_prophet:159 -   [Beans (red)] Prophet MAPE=84.0%
+2026-10-12 13:10:27.278 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:10:27.451 | DEBUG    | __main__:train_xgboost:215 -   [Beans (red)] XGBoost MAPE=8.3% | top: rolling_min_4w
+2026-10-12 13:10:27.452 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.183 | xgboost: 0.817
+2026-10-12 13:10:27.452 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:10:27.452 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:10:27.452 | INFO     | __main__:train_commodity:291 -   arima         37.1%  ₦     365,168     0.183
+2026-10-12 13:10:27.452 | INFO     | __main__:train_commodity:291 -   prophet       84.0%  ₦     829,584     0.000
+2026-10-12 13:10:27.452 | INFO     | __main__:train_commodity:291 -   xgboost        8.3%  ₦     124,257     0.817
+2026-10-12 13:10:27.453 | INFO     | __main__:run_training:313 - 
+[10/17] Starting Maize (white)...
+2026-10-12 13:10:27.468 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:10:27.469 | INFO     | __main__:train_commodity:264 -   Maize (white)  (1292 rows | last: 2026-09-28)
+2026-10-12 13:10:27.469 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:10:27.469 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:10:34.445 | DEBUG    | __main__:train_arima:109 -   [Maize (white)] ARIMA order=(1, 2, 0) MAPE=1.1%
+2026-10-12 13:10:34.445 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:10:34.813 | DEBUG    | __main__:train_prophet:159 -   [Maize (white)] Prophet MAPE=8.3%
+2026-10-12 13:10:34.813 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:10:35.204 | DEBUG    | __main__:train_xgboost:215 -   [Maize (white)] XGBoost MAPE=45.6% | top: rolling_mean_4w
+2026-10-12 13:10:35.205 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.870 | prophet: 0.110 | xgboost: 0.020
+2026-10-12 13:10:35.205 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:10:35.205 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:10:35.205 | INFO     | __main__:train_commodity:291 -   arima          1.1%  ₦       6,630     0.870
+2026-10-12 13:10:35.206 | INFO     | __main__:train_commodity:291 -   prophet        8.3%  ₦      53,180     0.110
+2026-10-12 13:10:35.206 | INFO     | __main__:train_commodity:291 -   xgboost       45.6%  ₦     317,013     0.020
+2026-10-12 13:10:35.207 | INFO     | __main__:run_training:313 - 
+[11/17] Starting Maize (yellow)...
+2026-10-12 13:10:35.217 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:10:35.218 | INFO     | __main__:train_commodity:264 -   Maize (yellow)  (648 rows | last: 2026-09-21)
+2026-10-12 13:10:35.218 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:10:35.218 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:10:41.119 | DEBUG    | __main__:train_arima:109 -   [Maize (yellow)] ARIMA order=(0, 2, 0) MAPE=11.7%
+2026-10-12 13:10:41.119 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:10:41.327 | DEBUG    | __main__:train_prophet:159 -   [Maize (yellow)] Prophet MAPE=13.9%
+2026-10-12 13:10:41.327 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:10:41.645 | DEBUG    | __main__:train_xgboost:215 -   [Maize (yellow)] XGBoost MAPE=16.7% | top: headline_inflation_yoy
+2026-10-12 13:10:41.645 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.394 | prophet: 0.331 | xgboost: 0.275
+2026-10-12 13:10:41.645 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:10:41.645 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:10:41.645 | INFO     | __main__:train_commodity:291 -   arima         11.7%  ₦      59,130     0.394
+2026-10-12 13:10:41.646 | INFO     | __main__:train_commodity:291 -   prophet       13.9%  ₦      77,864     0.331
+2026-10-12 13:10:41.646 | INFO     | __main__:train_commodity:291 -   xgboost       16.7%  ₦     149,562     0.275
+2026-10-12 13:10:41.646 | INFO     | __main__:run_training:313 - 
+[12/17] Starting Wheat...
+2026-10-12 13:10:41.657 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:10:41.658 | INFO     | __main__:train_commodity:264 -   Wheat  (850 rows | last: 2026-04-13)
+2026-10-12 13:10:41.658 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:10:41.658 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:10:46.116 | DEBUG    | __main__:train_arima:109 -   [Wheat] ARIMA order=(0, 1, 0) MAPE=2.6%
+2026-10-12 13:10:46.116 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:10:46.327 | DEBUG    | __main__:train_prophet:159 -   [Wheat] Prophet MAPE=8.2%
+2026-10-12 13:10:46.327 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:10:46.554 | DEBUG    | __main__:train_xgboost:215 -   [Wheat] XGBoost MAPE=29.0% | top: weeks_since_start
+2026-10-12 13:10:46.555 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.712 | prophet: 0.224 | xgboost: 0.063
+2026-10-12 13:10:46.555 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:10:46.555 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:10:46.555 | INFO     | __main__:train_commodity:291 -   arima          2.6%  ₦      17,439     0.712
+2026-10-12 13:10:46.555 | INFO     | __main__:train_commodity:291 -   prophet        8.2%  ₦      55,513     0.224
+2026-10-12 13:10:46.556 | INFO     | __main__:train_commodity:291 -   xgboost       29.0%  ₦     187,024     0.063
+2026-10-12 13:10:46.557 | INFO     | __main__:run_training:313 - 
+[13/17] Starting Rice...
+2026-10-12 13:10:46.570 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:10:46.570 | INFO     | __main__:train_commodity:264 -   Rice  (1292 rows | last: 2026-09-28)
+2026-10-12 13:10:46.570 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:10:46.570 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:10:51.701 | DEBUG    | __main__:train_arima:109 -   [Rice] ARIMA order=(0, 2, 0) MAPE=12.8%
+2026-10-12 13:10:51.701 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:10:52.106 | DEBUG    | __main__:train_prophet:159 -   [Rice] Prophet MAPE=14.9%
+2026-10-12 13:10:52.107 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:10:52.586 | DEBUG    | __main__:train_xgboost:215 -   [Rice] XGBoost MAPE=49.5% | top: price_lag_1w
+2026-10-12 13:10:52.586 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.471 | prophet: 0.406 | xgboost: 0.122
+2026-10-12 13:10:52.587 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:10:52.587 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:10:52.587 | INFO     | __main__:train_commodity:291 -   arima         12.8%  ₦     169,824     0.471
+2026-10-12 13:10:52.587 | INFO     | __main__:train_commodity:291 -   prophet       14.9%  ₦     217,156     0.406
+2026-10-12 13:10:52.587 | INFO     | __main__:train_commodity:291 -   xgboost       49.5%  ₦     871,445     0.122
+2026-10-12 13:10:52.588 | INFO     | __main__:run_training:313 - 
+[14/17] Starting Meat (beef)...
+2026-10-12 13:10:52.597 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:10:52.597 | INFO     | __main__:train_commodity:264 -   Meat (beef)  (531 rows | last: 2026-07-27)
+2026-10-12 13:10:52.597 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:10:52.597 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:10:59.269 | DEBUG    | __main__:train_arima:109 -   [Meat (beef)] ARIMA order=(0, 1, 0) MAPE=7.9%
+2026-10-12 13:10:59.270 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:10:59.498 | DEBUG    | __main__:train_prophet:159 -   [Meat (beef)] Prophet MAPE=25.9%
+2026-10-12 13:10:59.498 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:10:59.925 | DEBUG    | __main__:train_xgboost:215 -   [Meat (beef)] XGBoost MAPE=34.2% | top: rolling_min_12w
+2026-10-12 13:10:59.926 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.652 | prophet: 0.198 | xgboost: 0.150
+2026-10-12 13:10:59.926 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:10:59.926 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:10:59.926 | INFO     | __main__:train_commodity:291 -   arima          7.9%  ₦     448,331     0.652
+2026-10-12 13:10:59.926 | INFO     | __main__:train_commodity:291 -   prophet       25.9%  ₦   1,476,355     0.198
+2026-10-12 13:10:59.926 | INFO     | __main__:train_commodity:291 -   xgboost       34.2%  ₦   1,954,812     0.150
+2026-10-12 13:10:59.927 | INFO     | __main__:run_training:313 - 
+[15/17] Starting Meat (goat)...
+2026-10-12 13:10:59.936 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:10:59.936 | INFO     | __main__:train_commodity:264 -   Meat (goat)  (553 rows | last: 2026-07-27)
+2026-10-12 13:10:59.937 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:10:59.937 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:11:11.707 | DEBUG    | __main__:train_arima:109 -   [Meat (goat)] ARIMA order=(0, 1, 2) MAPE=1.7%
+2026-10-12 13:11:11.707 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:11:12.122 | DEBUG    | __main__:train_prophet:159 -   [Meat (goat)] Prophet MAPE=4.7%
+2026-10-12 13:11:12.122 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:11:12.318 | DEBUG    | __main__:train_xgboost:215 -   [Meat (goat)] XGBoost MAPE=17.0% | top: rolling_min_4w
+2026-10-12 13:11:12.318 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.682 | prophet: 0.249 | xgboost: 0.069
+2026-10-12 13:11:12.319 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:11:12.319 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:11:12.319 | INFO     | __main__:train_commodity:291 -   arima          1.7%  ₦      98,040     0.682
+2026-10-12 13:11:12.319 | INFO     | __main__:train_commodity:291 -   prophet        4.7%  ₦     270,147     0.249
+2026-10-12 13:11:12.319 | INFO     | __main__:train_commodity:291 -   xgboost       17.0%  ₦     972,879     0.069
+2026-10-12 13:11:12.320 | INFO     | __main__:run_training:313 - 
+[16/17] Starting Fish (dried)...
+2026-10-12 13:11:12.329 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:11:12.330 | INFO     | __main__:train_commodity:264 -   Fish (dried)  (553 rows | last: 2026-07-27)
+2026-10-12 13:11:12.330 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:11:12.330 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:11:27.418 | DEBUG    | __main__:train_arima:109 -   [Fish (dried)] ARIMA order=(1, 1, 0) MAPE=15.2%
+2026-10-12 13:11:27.419 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:11:27.592 | DEBUG    | __main__:train_prophet:159 -   [Fish (dried)] Prophet MAPE=66.6%
+2026-10-12 13:11:27.593 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:11:28.197 | DEBUG    | __main__:train_xgboost:215 -   [Fish (dried)] XGBoost MAPE=13.3% | top: rolling_min_4w
+2026-10-12 13:11:28.198 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.467 | xgboost: 0.533
+2026-10-12 13:11:28.198 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:11:28.198 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:11:28.198 | INFO     | __main__:train_commodity:291 -   arima         15.2%  ₦     232,947     0.467
+2026-10-12 13:11:28.199 | INFO     | __main__:train_commodity:291 -   prophet       66.6%  ₦   1,022,638     0.000
+2026-10-12 13:11:28.199 | INFO     | __main__:train_commodity:291 -   xgboost       13.3%  ₦     200,185     0.533
+2026-10-12 13:11:28.211 | INFO     | __main__:run_training:313 - 
+[17/17] Starting Eggs...
+2026-10-12 13:11:28.218 | INFO     | __main__:train_commodity:263 - 
+───────────────────────────────────────────────────────
+2026-10-12 13:11:28.219 | INFO     | __main__:train_commodity:264 -   Eggs  (527 rows | last: 2026-07-27)
+2026-10-12 13:11:28.219 | INFO     | __main__:train_commodity:265 - ───────────────────────────────────────────────────────
+2026-10-12 13:11:28.219 | INFO     | __main__:train_commodity:269 -   [1/3] ARIMA...
+2026-10-12 13:11:37.879 | DEBUG    | __main__:train_arima:109 -   [Eggs] ARIMA order=(0, 2, 0) MAPE=6.4%
+2026-10-12 13:11:37.880 | INFO     | __main__:train_commodity:272 -   [2/3] Prophet...
+2026-10-12 13:11:38.128 | DEBUG    | __main__:train_prophet:159 -   [Eggs] Prophet MAPE=17.1%
+2026-10-12 13:11:38.128 | INFO     | __main__:train_commodity:275 -   [3/3] XGBoost...
+2026-10-12 13:11:38.737 | DEBUG    | __main__:train_xgboost:215 -   [Eggs] XGBoost MAPE=30.9% | top: headline_inflation_yoy
+2026-10-12 13:11:38.738 | INFO     | __main__:train_commodity:281 -   Ensemble weights: arima: 0.633 | prophet: 0.236 | xgboost: 0.131
+2026-10-12 13:11:38.738 | INFO     | __main__:train_commodity:283 -   Model          MAPE               MAE    Weight
+2026-10-12 13:11:38.738 | INFO     | __main__:train_commodity:284 -   --------------------------------------------------
+2026-10-12 13:11:38.738 | INFO     | __main__:train_commodity:291 -   arima          6.4%  ₦         417     0.633
+2026-10-12 13:11:38.738 | INFO     | __main__:train_commodity:291 -   prophet       17.1%  ₦       1,120     0.236
+2026-10-12 13:11:38.738 | INFO     | __main__:train_commodity:291 -   xgboost       30.9%  ₦       1,964     0.131
+2026-10-12 13:11:38.741 | INFO     | __main__:run_training:324 - 
+======================================================================
+2026-10-12 13:11:38.741 | INFO     | __main__:run_training:325 -   FINAL TRAINING SUMMARY
+2026-10-12 13:11:38.741 | INFO     | __main__:run_training:326 - ======================================================================
+2026-10-12 13:11:38.741 | INFO     | __main__:run_training:327 -   Commodity                 ARIMA   Prophet   XGBoost       Best
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:328 -   --------------------------------------------------------------
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Hibiscus                  13.2%      9.7%     18.0%    prophet
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Sesame                    35.2%      7.1%     12.9%    prophet
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Ginger                    17.6%     37.2%      8.7%    xgboost
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Cocoa                     14.6%     39.6%     41.5%      arima
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Soybeans                   2.4%     11.0%     46.5%      arima
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Cashew Nuts                5.1%     41.9%      3.4%    xgboost
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Sorghum                   10.5%     16.1%     30.3%      arima
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Beans (white)             30.6%     84.8%      6.4%    xgboost
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Beans (red)               37.1%     84.0%      8.3%    xgboost
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Maize (white)              1.1%      8.3%     45.6%      arima
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Maize (yellow)            11.7%     13.9%     16.7%      arima
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Wheat                      2.6%      8.2%     29.0%      arima
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Rice                      12.8%     14.9%     49.5%      arima
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Meat (beef)                7.9%     25.9%     34.2%      arima
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Meat (goat)                1.7%      4.7%     17.0%      arima
+2026-10-12 13:11:38.742 | INFO     | __main__:run_training:341 -   Fish (dried)              15.2%     66.6%     13.3%    xgboost
+2026-10-12 13:11:38.743 | INFO     | __main__:run_training:341 -   Eggs                       6.4%     17.1%     30.9%      arima
+2026-10-12 13:11:38.743 | INFO     | __main__:run_training:343 - ======================================================================
+2026-10-12 13:11:38.743 | SUCCESS  | __main__:run_training:345 - TRAINING COMPLETE — 17/17 commodities
+2026-10-12 13:11:38.743 | INFO     | __main__:run_training:346 - ======================================================================
