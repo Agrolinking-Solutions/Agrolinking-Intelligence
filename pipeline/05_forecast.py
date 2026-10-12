@@ -89,15 +89,31 @@ def load_external_future(start_date, n_weeks):
     fuel    = pd.read_csv(PATHS["fuel_prices"],      parse_dates=["date"])
     inf_    = pd.read_csv(PATHS["inflation"],        parse_dates=["date"])
 
-    for df_ext, cols in [
-        (seasons, [c for c in seasons.columns if c != "date"]),
-        (fx,      ["fx_rate_usd_ngn"]),
-        (fuel,    ["fuel_diesel_ngn_litre","fuel_petrol_ngn_litre"]),
-        (inf_,    ["headline_inflation_yoy","food_inflation_yoy"]),
+    # These files end on a fixed date (all four ended 2026-10-12). Merging
+    # only the future window and forward-filling inside it left every column
+    # empty once the forecast window started after that date, and Prophet
+    # then failed for every commodity ("Found NaN in column
+    # 'commodity_season_score'") from the 2026-10-12 runs on. Extend each
+    # series past its end instead: season flags repeat the same week of the
+    # previous year (they're calendar-driven), the others hold their last
+    # known value.
+    for df_ext, cols, seasonal in [
+        (seasons, [c for c in seasons.columns if c != "date"], True),
+        (fx,      ["fx_rate_usd_ngn"], False),
+        (fuel,    ["fuel_diesel_ngn_litre","fuel_petrol_ngn_litre"], False),
+        (inf_,    ["headline_inflation_yoy","food_inflation_yoy"], False),
     ]:
         df_ext["date"] = pd.to_datetime(df_ext["date"])
         df_ext["date"] = df_ext["date"] - pd.to_timedelta(df_ext["date"].dt.dayofweek, unit="D")
-        future = future.merge(df_ext[["date"]+cols], on="date", how="left")
+        ext = df_ext.drop_duplicates("date", keep="last").set_index("date")[cols].sort_index()
+        ext = ext.reindex(ext.index.union(dates))
+        if seasonal:
+            for d in ext.index[ext.isna().all(axis=1)]:
+                prev = d - pd.Timedelta(weeks=52)
+                if prev in ext.index:
+                    ext.loc[d] = ext.loc[prev]
+        ext = ext.ffill()
+        future = future.merge(ext.loc[dates].rename_axis("date").reset_index(), on="date", how="left")
 
     # Forward fill any remaining gaps
     for col in future.columns:
