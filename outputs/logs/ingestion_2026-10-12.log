@@ -1,0 +1,41 @@
+2026-10-12 11:41:24.462 | INFO     | __main__:run_ingestion:485 - ============================================================
+2026-10-12 11:41:24.463 | INFO     | __main__:run_ingestion:486 - STEP 1 — DATA INGESTION
+2026-10-12 11:41:24.463 | INFO     | __main__:run_ingestion:487 - ============================================================
+2026-10-12 11:41:24.463 | INFO     | __main__:load_agricome:37 - Loading Agricome raw data...
+2026-10-12 11:41:24.473 | SUCCESS  | __main__:load_agricome:76 - Agricome loaded: 1,616 rows | 16 commodities
+2026-10-12 11:41:24.473 | DEBUG    | __main__:load_agricome:77 -   Commodities: ['Beans (red)', 'Beans (white)', 'Cashew Nuts', 'Cocoa', 'Eggs', 'Fish (dried)', 'Ginger', 'Hibiscus', 'Maize (white)', 'Maize (yellow)', 'Meat (beef)', 'Meat (goat)', 'Rice', 'Sesame', 'Sorghum', 'Soybeans']
+2026-10-12 11:41:24.474 | DEBUG    | __main__:load_agricome:78 -   Date range:  2003-09-15 → 2026-10-12
+2026-10-12 11:41:24.474 | INFO     | __main__:load_wfp:150 - Loading WFP Nigeria data...
+2026-10-12 11:41:24.693 | SUCCESS  | __main__:load_wfp:199 - WFP fuel data: 110 weekly rows
+2026-10-12 11:41:25.073 | SUCCESS  | __main__:load_wfp:236 - WFP commodities loaded: 893 rows | 5 commodities
+2026-10-12 11:41:25.073 | DEBUG    | __main__:load_wfp:240 -   Commodities: ['Beans (red)', 'Beans (white)', 'Maize (white)', 'Maize (yellow)', 'Sorghum']
+2026-10-12 11:41:25.074 | DEBUG    | __main__:load_wfp:241 -   Date range:  2002-01-15 → 2026-07-15
+2026-10-12 11:41:25.076 | SUCCESS  | __main__:load_web_prices:99 - Web-sourced prices loaded: 0 rows | 0 commodities
+2026-10-12 11:41:25.076 | INFO     | __main__:merge_sources:261 - Merging Agricome and WFP data sources...
+2026-10-12 11:41:25.082 | INFO     | __main__:merge_sources:293 -   Deduplication: removed 684 overlapping rows (Agricome priority)
+2026-10-12 11:41:25.084 | SUCCESS  | __main__:merge_sources:303 - Merged dataset: 1,825 rows | 16 commodities
+2026-10-12 11:41:25.084 | INFO     | __main__:merge_sources:309 -   Coverage per commodity:
+2026-10-12 11:41:25.085 | INFO     | __main__:merge_sources:312 -     Beans (red)           208 rows | 2016-01-11 → 2026-07-13
+2026-10-12 11:41:25.085 | INFO     | __main__:merge_sources:312 -     Beans (white)         220 rows | 2002-01-14 → 2026-07-13
+2026-10-12 11:41:25.086 | INFO     | __main__:merge_sources:312 -     Cashew Nuts            53 rows | 2025-01-06 → 2026-10-12
+2026-10-12 11:41:25.086 | INFO     | __main__:merge_sources:312 -     Cocoa                  53 rows | 2025-01-06 → 2026-10-12
+2026-10-12 11:41:25.087 | INFO     | __main__:merge_sources:312 -     Eggs                    5 rows | 2026-03-30 → 2026-07-27
+2026-10-12 11:41:25.087 | INFO     | __main__:merge_sources:312 -     Fish (dried)            5 rows | 2026-03-30 → 2026-07-27
+2026-10-12 11:41:25.088 | INFO     | __main__:merge_sources:312 -     Ginger                 49 rows | 2025-01-06 → 2026-10-12
+2026-10-12 11:41:25.088 | INFO     | __main__:merge_sources:312 -     Hibiscus               48 rows | 2025-01-06 → 2026-10-12
+2026-10-12 11:41:25.089 | INFO     | __main__:merge_sources:312 -     Maize (white)         468 rows | 2002-01-14 → 2026-07-27
+2026-10-12 11:41:25.089 | INFO     | __main__:merge_sources:312 -     Maize (yellow)        234 rows | 2014-05-12 → 2026-07-27
+2026-10-12 11:41:25.089 | INFO     | __main__:merge_sources:312 -     Meat (beef)             5 rows | 2026-03-30 → 2026-07-27
+2026-10-12 11:41:25.090 | INFO     | __main__:merge_sources:312 -     Meat (goat)             5 rows | 2026-03-30 → 2026-07-27
+2026-10-12 11:41:25.090 | INFO     | __main__:merge_sources:312 -     Rice                   43 rows | 2023-01-30 → 2026-07-27
+2026-10-12 11:41:25.091 | INFO     | __main__:merge_sources:312 -     Sesame                 45 rows | 2025-06-09 → 2026-10-12
+2026-10-12 11:41:25.091 | INFO     | __main__:merge_sources:312 -     Sorghum               331 rows | 2002-01-14 → 2026-10-12
+2026-10-12 11:41:25.092 | INFO     | __main__:merge_sources:312 -     Soybeans               53 rows | 2025-01-06 → 2026-10-12
+2026-10-12 11:41:25.122 | INFO     | __main__:save_outputs:353 -   Existing master found: 16,240 rows (16,119 historical + 81 forecast + 40 validated_actual)
+2026-10-12 11:41:25.142 | INFO     | __main__:save_outputs:409 -   [DIAG] validated_actual: 40 entered dedup, 40 survived, 0 lost
+2026-10-12 11:41:25.228 | SUCCESS  | __main__:save_outputs:433 -   Master updated: 16,240 total rows → /home/runner/work/Agrolinking-Intelligence/Agrolinking-Intelligence/data/processed/agrolinking_master.csv
+2026-10-12 11:41:25.233 | SUCCESS  | __main__:save_outputs:458 -   Fuel prices updated: 141 rows → /home/runner/work/Agrolinking-Intelligence/Agrolinking-Intelligence/data/external/fuel_prices.csv
+2026-10-12 11:41:25.234 | INFO     | __main__:save_outputs:476 -   Ingestion metadata saved → /home/runner/work/Agrolinking-Intelligence/Agrolinking-Intelligence/outputs/logs/ingestion_meta.json
+2026-10-12 11:41:25.235 | INFO     | __main__:run_ingestion:495 - ============================================================
+2026-10-12 11:41:25.235 | SUCCESS  | __main__:run_ingestion:496 - INGESTION COMPLETE
+2026-10-12 11:41:25.235 | INFO     | __main__:run_ingestion:497 - ============================================================
