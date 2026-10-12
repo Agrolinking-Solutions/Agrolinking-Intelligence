@@ -43,9 +43,16 @@ logger.add(sys.stdout,
 
 HIGH_QUALITY_SOURCES = {"Agricome", "WFP", "Agrolinking_primary"}
 ANY_REAL_SOURCES     = HIGH_QUALITY_SOURCES | {"Web_search"}
-# Baseline for the sanity band / "is it newer" checks: the latest known price,
-# which may be a World Bank estimate when no observed price is recent.
-BASELINE_SOURCES     = ANY_REAL_SOURCES | {"WB_RTP_estimate"}
+# Baseline for the sanity band / "is it newer" checks: the latest Agricome/
+# WFP/primary price or World Bank estimate. Earlier web prices are NOT a
+# baseline: when two withdrawn web rows were still in master from the
+# previous run, the same prices came back the next day measured against
+# themselves (0% move) and were accepted again.
+BASELINE_SOURCES     = HIGH_QUALITY_SOURCES | {"WB_RTP_estimate"}
+# Prices a person has withdrawn after review. A candidate from the same
+# website for the same commodity within 1% of a withdrawn price is rejected,
+# so daily searches that keep finding the same page can't re-add it.
+WITHDRAWN_PATH       = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "web_prices_withdrawn.csv")
 
 FRESH_DAYS           = 10     # Agricome/WFP price newer than this => no gap, don't touch
 LOOKBACK_DAYS        = 10     # how far back in web_price_estimates to look
@@ -172,6 +179,23 @@ def fetch_candidates(conn, since):
              "notes": r[6], "confidence": r[7]} for r in rows]
 
 
+def load_withdrawn():
+    if not os.path.exists(WITHDRAWN_PATH):
+        return []
+    df = pd.read_csv(WITHDRAWN_PATH)
+    return [(r["commodity"], str(r["source_site"]).lower(), float(r["price"]), str(r.get("withdrawn_on", "")))
+            for _, r in df.iterrows()]
+
+
+def withdrawn_match(cand, withdrawn):
+    site = source_site(cand.get("source_url"))
+    for com, w_site, w_price, when in withdrawn:
+        if (com == cand["commodity"] and w_site == site and cand.get("price")
+                and abs(cand["price"] - w_price) / w_price <= 0.01):
+            return when or "earlier"
+    return None
+
+
 def existing_web_keys():
     path = PATHS["raw_web_prices"]
     if not os.path.exists(path):
@@ -194,6 +218,7 @@ def append_rows(rows):
 def promote(candidates, state, today):
     """Pure decision logic over already-fetched candidates. Returns (rows_to_append, decisions)."""
     seen = existing_web_keys()
+    withdrawn = load_withdrawn()
     decisions, rows = [], []
     for c in sorted(candidates, key=lambda x: (x["commodity"], x["query_date"])):
         com = c["commodity"]
@@ -204,6 +229,10 @@ def promote(candidates, state, today):
         hq = st.get("hq_date")
         if hq is not None and (today - hq).days <= FRESH_DAYS:
             d.update(accepted=False, reason=f"Agricome/WFP price is fresh ({hq}) - no gap to fill")
+            decisions.append(d); continue
+        when = withdrawn_match(c, withdrawn)
+        if when:
+            d.update(accepted=False, reason=f"withdrawn after review ({when}) - see web_prices_withdrawn.csv")
             decisions.append(d); continue
         peers = [p for p in candidates if p is not c and p["commodity"] == com]
         ok, reason, sd = evaluate_candidate(c, st.get("real_price"), st.get("real_date"),
