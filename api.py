@@ -1790,6 +1790,62 @@ def commodity_history(
     }
 
 
+@app.get("/accuracy", tags=["Accuracy"])
+def forecast_accuracy(
+    commodity: Optional[str] = Query(None, description="One commodity, e.g. Rice (local). Omit for all."),
+):
+    """
+    Measured forecast accuracy against REAL market prices (Agricome / WFP).
+
+    - backtest: the current forecasting method replayed over the last two
+      years of real prices (pipeline/13_select_forecaster.py), per horizon.
+    - live: the forecasts actually published each day, scored against the
+      real price that later arrived (pipeline/15_track_accuracy.py), split by
+      method ("ensemble" = the old ML ensemble, "champion" = the current one).
+
+    accuracy = 100 minus mean absolute percentage error. Use these instead of
+    the per-day validation error, which only compares today's price.
+    """
+    base = os.path.join(BASE_DIR, "outputs", "backtest")
+
+    def load(name):
+        try:
+            with open(os.path.join(base, name)) as f:
+                return json.load(f)
+        except Exception:
+            return {}
+
+    live, backtest = load("live_accuracy.json"), load("model_selection.json")
+    if commodity:
+        key = next((c for c in COMMODITIES if c.lower() == commodity.lower()), None)
+        if not key:
+            raise HTTPException(status_code=404,
+                                detail=f"Commodity '{commodity}' not found. Available: {COMMODITIES}")
+        names = [key]
+    else:
+        names = COMMODITIES
+
+    out = {}
+    for c in names:
+        b = backtest.get(c, {})
+        out[c] = {
+            "method": b.get("method"),
+            "backtest": {
+                "1_month":  b.get("accuracy_4w"),  "2_months": b.get("accuracy_8w"),
+                "3_months": b.get("accuracy_13w"), "6_months": b.get("accuracy_26w"),
+                "test_points": b.get("n_4w"), "updated": b.get("updated"),
+            },
+            "live": (live.get("by_commodity") or {}).get(c),
+        }
+    return {
+        "accuracy_definition": "100 minus mean absolute percentage error, against real Agricome/WFP prices",
+        "backtest_updated": next((v.get("updated") for v in backtest.values() if isinstance(v, dict)), None),
+        "live_updated": live.get("updated"),
+        "live_overall": live.get("overall"),
+        "commodities": out,
+    }
+
+
 @app.get("/history/compare", tags=["Historical Data"])
 def compare_commodities(
     commodities: str = Query(..., description="Comma-separated commodity names e.g. Rice,Maize (white)"),

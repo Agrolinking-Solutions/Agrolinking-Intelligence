@@ -144,6 +144,14 @@ jobs:
           TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/06_validate.py
 
+      # Scores every forecast published so far (outputs/forecasts/validated)
+      # against the real price that later arrived for its target date, and
+      # writes outputs/backtest/live_accuracy.json (served at /accuracy).
+      # Read-only on the data; continue-on-error so it can't block publishing.
+      - name: 06b - Live accuracy tracking
+        continue-on-error: true
+        run: python pipeline/15_track_accuracy.py
+
       # TSDB_URL was missing on these two steps — each step's env is
       # scoped to itself, not inherited from step 06, so the zonal and
       # intelligence dual-writes to Postgres have been silently failing
