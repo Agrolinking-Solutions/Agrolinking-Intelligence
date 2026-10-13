@@ -33,8 +33,11 @@ ANCHOR_SOURCES = REAL_SOURCES | ESTIMATE_SOURCES
 
 HARD_BOUNDS = {
     "Sorghum":       {"floor":50_000,    "ceil":1_000_000},
-    "Maize (white)": {"floor":20_000,    "ceil":600_000},
-    "Maize (yellow)":{"floor":20_000,    "ceil":600_000},
+    # Ceilings were 600K, below today's real-ish level (web 700K, Oct 2026;
+    # World Bank estimate 641K, Jul 2026), so valid estimates were being
+    # treated as outliers and replaced. 1.5M still catches unit errors.
+    "Maize (white)": {"floor":20_000,    "ceil":1_500_000},
+    "Maize (yellow)":{"floor":20_000,    "ceil":1_500_000},
     "Beans (white)": {"floor":100_000,   "ceil":2_000_000},
     "Beans (red)":   {"floor":100_000,   "ceil":2_500_000},
     "Ginger":        {"floor":1_000_000, "ceil":50_000_000},
@@ -149,6 +152,35 @@ def run_cleaning():
     if orphaned:
         logger.info(f"  Removed {orphaned} interpolated row(s) past the last real price")
 
+    # Redraw saved daily estimates (validated_actual) that sit between the
+    # last real price and the newest estimate. They were made before that
+    # real price was known — WFP publishes ~4 weeks late — so they can be far
+    # off it. Found 2026-10-12: Fish (dried) history read 2.40M (WFP, Sep 14),
+    # then 1.19M for three weeks of old estimates, then 2.35M once the real
+    # price was used. The newest estimate is kept as the end point (it's the
+    # forecast anchor); the ones in between become a straight line.
+    redrawn = 0
+    for commodity in COMMODITIES:
+        sub = df[df["commodity"] == commodity]
+        anchors = sub[sub["data_source"].isin(ANCHOR_SOURCES) & sub["price_ngn_mt"].notna()]
+        est = sub[(sub["record_type"] == "validated_actual") & sub["price_ngn_mt"].notna()].sort_values("date")
+        if anchors.empty or est.empty:
+            continue
+        a_date = anchors["date"].max()
+        a_price = float(anchors.loc[anchors["date"] == a_date, "price_ngn_mt"].iloc[-1])
+        after = est[est["date"] > a_date]
+        if len(after) < 2:
+            continue
+        end_date = after["date"].max()
+        end_price = float(after.loc[after["date"] == end_date, "price_ngn_mt"].iloc[-1])
+        mid = after[after["date"] < end_date]
+        frac = (mid["date"] - a_date).dt.days / (end_date - a_date).days
+        new = (a_price + (end_price - a_price) * frac).round(2)
+        redrawn += int(((new - mid["price_ngn_mt"]).abs() / mid["price_ngn_mt"] > 0.005).sum())
+        df.loc[mid.index, "price_ngn_mt"] = new.values
+    if redrawn:
+        logger.info(f"  Redrew {redrawn} saved estimate(s) between the last real price and the newest estimate")
+
     # Hard bounds — synthetic only
     hard_flagged = 0
     for commodity, bounds in HARD_BOUNDS.items():
@@ -247,9 +279,13 @@ def run_cleaning():
     # Selective smoothing — synthetic/interpolated only
     logger.info("  Applying selective smoothing (real data preserved)...")
     for commodity in COMMODITIES:
+        # Gap-filler rows only. Saved daily estimates (validated_actual) and
+        # forecast rows were being smoothed too, which moved the newest
+        # estimate - the forecast's starting point - toward its neighbours.
         mask = (
             (df["commodity"]==commodity) &
-            (~df["data_source"].isin(ANCHOR_SOURCES))
+            (~df["data_source"].isin(ANCHOR_SOURCES)) &
+            (df["record_type"]=="historical")
         )
         if mask.sum()<3: continue
         df.loc[mask,"price_ngn_mt"] = (

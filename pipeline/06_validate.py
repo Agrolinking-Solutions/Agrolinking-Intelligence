@@ -713,6 +713,42 @@ def extract_checkpoint_with_ci(fc_data: dict, h_name: str, h_days: int):
     return (price, lo[-1] if lo else None, hi[-1] if hi else None, date_str)
 
 
+HISTORY_SYNC_DAYS = 180
+
+def sync_recent_history(cur, commodity_map, national_id, execute_values):
+    """
+    Make Postgres' National price history for the last HISTORY_SYNC_DAYS an
+    exact copy of master.csv (historical + validated_actual rows, as the
+    original migrate_to_postgres.py backfill did). Without this, rows that
+    master later corrects or drops — redrawn estimates, withdrawn web
+    prices, World Bank estimates superseded by WFP — stayed in Postgres and
+    /history kept showing them. Runs inside the caller's transaction, so a
+    failure rolls back the delete too. Returns the number of rows written.
+    """
+    master = pd.read_csv(PATHS["master"], parse_dates=["date"])
+    start = pd.Timestamp(datetime.now().date()) - pd.Timedelta(days=HISTORY_SYNC_DAYS)
+    m = master[(master["date"] >= start)
+               & master["record_type"].isin(["historical", "validated_actual"])
+               & master["price_ngn_mt"].notna()
+               & master["commodity"].isin(list(commodity_map))]
+    m = m.drop_duplicates(subset=["date", "commodity", "data_source"], keep="last")
+    rows = [(d.to_pydatetime(), commodity_map[c], national_id, float(p), str(s))
+            for c, d, p, s in zip(m["commodity"], m["date"], m["price_ngn_mt"], m["data_source"])
+            if np.isfinite(p) and p > 0]
+    if not rows:
+        return 0
+    cids = sorted({r[1] for r in rows})
+    cur.execute("DELETE FROM prices WHERE location_id = %s AND commodity_id = ANY(%s) AND time >= %s",
+                (national_id, cids, start.to_pydatetime()))
+    execute_values(cur, """
+        INSERT INTO prices (time, commodity_id, location_id, price, source)
+        VALUES %s
+        ON CONFLICT (time, commodity_id, location_id, source)
+        DO UPDATE SET price = EXCLUDED.price
+    """, rows)
+    return len(rows)
+
+
 def write_to_postgres(validated: dict, run_date: datetime):
     db_url = os.environ.get("TSDB_URL")
     if not db_url and not os.environ.get("PGHOST"):
@@ -856,8 +892,10 @@ def write_to_postgres(validated: dict, run_date: datetime):
                     """,
                     forecast_rows,
                 )
+            synced = sync_recent_history(cur, commodity_map, national_id, execute_values)
         conn.commit()
-        logger.info(f"  [Postgres] Dual-write OK: {len(price_rows)} price rows, {len(forecast_rows)} forecast rows")
+        logger.info(f"  [Postgres] Dual-write OK: {len(price_rows)} price rows, {len(forecast_rows)} forecast rows, "
+                    f"{synced} history rows re-synced")
     except Exception as e:
         logger.warning(f"  [Postgres] Dual-write failed this run (CSV write already succeeded): {e}")
         conn.rollback()
