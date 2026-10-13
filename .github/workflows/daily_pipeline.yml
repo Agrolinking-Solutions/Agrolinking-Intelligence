@@ -129,7 +129,14 @@ jobs:
         continue-on-error: true
         run: python pipeline/13_select_forecaster.py
 
+      # Champion forecaster live (was "shadow" from 2026-10-09): each
+      # commodity's forecast comes from the method that scored best against
+      # real prices in 13_select_forecaster.py, not the ARIMA/Prophet/XGBoost
+      # ensemble, which scored ~77% vs ~93% and was showing moves like
+      # -31% in a week for Beans (white). Set to "shadow" to go back.
       - name: 05 - Forecast
+        env:
+          FORECAST_CHAMPION_MODE: live
         run: python pipeline/05_forecast.py
 
       - name: 06 - Validate
