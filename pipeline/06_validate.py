@@ -770,10 +770,16 @@ def write_to_postgres(validated: dict, run_date: datetime):
 
     try:
         with conn.cursor() as cur:
-            from pipeline.pg_commodities import ensure_commodities
+            from pipeline.pg_commodities import ensure_commodities, ensure_forecast_columns
             added = ensure_commodities(cur, COMMODITIES)
             if added:
                 logger.info(f"  [Postgres] Added to commodities table: {added}")
+            added_cols = ensure_forecast_columns(cur)
+            if added_cols:
+                logger.info(f"  [Postgres] Added missing forecasts columns: {added_cols}")
+        conn.commit()
+
+        with conn.cursor() as cur:
             cur.execute("SELECT commodity_id, name FROM commodities")
             commodity_map = {name: cid for cid, name in cur.fetchall()}
             cur.execute("SELECT location_id FROM locations WHERE state = 'National'")
@@ -852,6 +858,10 @@ def write_to_postgres(validated: dict, run_date: datetime):
                 if result:
                     add_row(day_offset, *result)
 
+        # Prices + history first, in their own transaction, so a problem with
+        # the forecasts table can't roll back today's price and the history
+        # correction too (it did on 2026-10-13: a missing forecasts column
+        # aborted the whole dual-write).
         with conn.cursor() as cur:
             if price_rows:
                 execute_values(
@@ -864,6 +874,11 @@ def write_to_postgres(validated: dict, run_date: datetime):
                     """,
                     price_rows,
                 )
+            synced = sync_recent_history(cur, commodity_map, national_id, execute_values)
+        conn.commit()
+        logger.info(f"  [Postgres] Prices OK: {len(price_rows)} today, {synced} history rows re-synced")
+
+        with conn.cursor() as cur:
             if forecast_rows:
                 execute_values(
                     cur,
@@ -892,10 +907,8 @@ def write_to_postgres(validated: dict, run_date: datetime):
                     """,
                     forecast_rows,
                 )
-            synced = sync_recent_history(cur, commodity_map, national_id, execute_values)
         conn.commit()
-        logger.info(f"  [Postgres] Dual-write OK: {len(price_rows)} price rows, {len(forecast_rows)} forecast rows, "
-                    f"{synced} history rows re-synced")
+        logger.info(f"  [Postgres] Dual-write OK: {len(forecast_rows)} forecast rows")
     except Exception as e:
         logger.warning(f"  [Postgres] Dual-write failed this run (CSV write already succeeded): {e}")
         conn.rollback()
@@ -976,7 +989,7 @@ def generate_validated_alert(validated: dict, run_date: datetime) -> str:
         f"Trend  = 30-day forecast direction",
         f"Source: Agrolinking Intelligence Platform",
         f"Next update: {(run_date + timedelta(days=1)).strftime('%d %b %Y')}",
-        f"API: agrolinking-intelligence.onrender.com",
+        f"API: pis-api.agrolinking.com",
     ]
     return "\n".join(lines)
 
