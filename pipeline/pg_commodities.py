@@ -50,3 +50,40 @@ def ensure_commodities(cur, commodities):
             (c, "livestock" if c in LIVESTOCK else "agricultural", UNITS.get(c, "NGN/MT")),
         )
     return missing
+
+
+def ensure_web_estimates_schema(cur):
+    """
+    Let web_price_estimates keep one row per commodity, day AND search focus
+    (the 3-hourly rotation searches the same commodity several ways a day).
+    Adds query_focus (existing rows become 'general') and swaps the unique key
+    (commodity_id, query_date) for (commodity_id, query_date, query_focus).
+    Idempotent; never deletes rows. Returns a list of what it changed.
+    """
+    changed = []
+    cur.execute("SELECT 1 FROM information_schema.columns "
+                "WHERE table_name = 'web_price_estimates' AND column_name = 'query_focus'")
+    if cur.fetchone() is None:
+        cur.execute("ALTER TABLE web_price_estimates "
+                    "ADD COLUMN IF NOT EXISTS query_focus TEXT NOT NULL DEFAULT 'general'")
+        changed.append("added query_focus")
+    cur.execute("""
+        SELECT con.conname, array_agg(att.attname::text ORDER BY att.attname)
+        FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        JOIN unnest(con.conkey) AS k(attnum) ON true
+        JOIN pg_attribute att ON att.attrelid = rel.oid AND att.attnum = k.attnum
+        WHERE rel.relname = 'web_price_estimates' AND con.contype = 'u'
+        GROUP BY con.conname
+    """)
+    uniques = {name: set(cols) for name, cols in cur.fetchall()}
+    for name, cols in uniques.items():
+        if cols == {"commodity_id", "query_date"}:
+            cur.execute(f'ALTER TABLE web_price_estimates DROP CONSTRAINT "{name}"')
+            changed.append(f"dropped unique {name}")
+    if not any(cols == {"commodity_id", "query_date", "query_focus"} for cols in uniques.values()):
+        cur.execute("ALTER TABLE web_price_estimates ADD CONSTRAINT "
+                    "web_price_estimates_commodity_date_focus_key "
+                    "UNIQUE (commodity_id, query_date, query_focus)")
+        changed.append("added unique (commodity_id, query_date, query_focus)")
+    return changed

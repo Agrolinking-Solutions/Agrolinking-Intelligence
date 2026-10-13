@@ -55,12 +55,9 @@ BASELINE_SOURCES     = HIGH_QUALITY_SOURCES | {"WB_RTP_estimate"}
 # so daily searches that keep finding the same page can't re-add it.
 WITHDRAWN_PATH       = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "web_prices_withdrawn.csv")
 
-FRESH_DAYS           = 10     # Agricome/primary price newer than this => no gap, don't touch
-# WFP is monthly and published ~4 weeks late, so a 10-day window made every
-# WFP commodity look like a gap and let web prices compete with real WFP
-# data (a single-source beef price 15% above WFP's put a spike in the
-# history, Oct 2026). Same window 06_validate.py uses for references.
-FRESH_DAYS_WFP       = 45
+# Freshness windows live in pipeline/freshness.py so this step and the
+# 3-hourly web search agree on which commodities are gaps.
+from pipeline.freshness import is_fresh
 LOOKBACK_DAYS        = 10     # how far back in web_price_estimates to look
 MAX_SOURCE_AGE_DAYS  = 21     # a source price older than this (at search time) is rejected
 BASE_BAND            = 0.25   # allowed deviation from last real price...
@@ -238,8 +235,7 @@ def promote(candidates, state, today):
              "confidence": c["confidence"]}
         hq = st.get("hq_date")
         direct, wfp = st.get("direct_date"), st.get("wfp_date")
-        fresh = ((direct is not None and (today - direct).days <= FRESH_DAYS)
-                 or (wfp is not None and (today - wfp).days <= FRESH_DAYS_WFP))
+        fresh = is_fresh(direct, wfp, today)
         if fresh:
             d.update(accepted=False, reason=f"Agricome/WFP price is fresh ({hq}) - no gap to fill")
             decisions.append(d); continue

@@ -264,6 +264,7 @@ CREATE TABLE IF NOT EXISTS web_price_estimates (
     estimate_id     SERIAL PRIMARY KEY,
     commodity_id    INT NOT NULL REFERENCES commodities(commodity_id),
     query_date      DATE NOT NULL,              -- the date this search ran
+    query_focus     TEXT NOT NULL DEFAULT 'general',  -- 'general' (daily sweep) or the 3-hourly focus: exchange|official|north|south|news
     price_ngn_mt    NUMERIC,                    -- NULL if the model found nothing usable
     source_url      TEXT,
     source_title    TEXT,
@@ -273,7 +274,9 @@ CREATE TABLE IF NOT EXISTS web_price_estimates (
     model_used      TEXT NOT NULL,
     raw_response    TEXT,                       -- full model output, for debugging bad extractions
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (commodity_id, query_date)
+    -- one row per commodity, day and search focus. Existing databases are
+    -- migrated by pipeline/pg_commodities.ensure_web_estimates_schema().
+    UNIQUE (commodity_id, query_date, query_focus)
 );
 
 -- ═══════════════════════════════════════════════════════════════════════

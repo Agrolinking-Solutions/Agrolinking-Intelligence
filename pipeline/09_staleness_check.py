@@ -112,11 +112,11 @@ def format_report(results, run_date):
 
     web_filled = [r for r in results if r.get("latest_is_web_sourced")]
     if web_filled:
-        lines.append(f"\n  ℹ️  {len(web_filled)} commodit(y/ies) currently filled by web-sourced prices "
-                     f"(Agricome/WFP data is older):")
+        lines.append(f"\n  ℹ️  {len(web_filled)} commodit(y/ies) whose latest REAL price came from the web "
+                     f"(partner data from Agricome/WFP is older):")
         for r in web_filled:
-            lines.append(f"     {r['commodity']:<20} web price {r['days_stale']} days old | "
-                         f"Agricome/WFP {r['days_since_agricome_or_wfp']} days old")
+            lines.append(f"     {r['commodity']:<20} latest real price {r['days_stale']} days old (web) | "
+                         f"last Agricome/WFP price {r['days_since_agricome_or_wfp']} days ago")
 
     if not alerts and not warns and not no_data:
         lines.append(f"  ✅ All {len(results)} commodities within {WARN_DAYS} days — no issues.")

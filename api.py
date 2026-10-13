@@ -1639,15 +1639,18 @@ SOURCE_CATEGORY = {
     "Interpolated": "interpolated",
 }
 SOURCE_RANK = {"real": 0, "web": 1, "model": 2, "estimate": 3, "interpolated": 4, "synthetic": 5, "other": 6}
+# "real" and "web" are both REAL observed market prices - they differ only in
+# where we got them. Everything else is an estimate of some kind.
 SOURCE_LEGEND = {
-    "real":         "Observed market price (Agricome, WFP, Agrolinking field data)",
-    "web":          "Observed price from a dated, named web source, checked against other sources",
-    "model":        "Platform's daily estimate, anchored to the latest real price",
-    "estimate":     "Third-party model estimate (World Bank Real-Time Prices) where no observed price exists",
-    "interpolated": "Filled in between two real prices",
-    "synthetic":    "Reconstructed from international prices x FX (no Nigerian market data for this period)",
+    "real":         "Real price - from our data partners (Agricome, WFP, Agrolinking field data)",
+    "web":          "Real price - published online by a named, dated source and cross-checked",
+    "model":        "Estimate - the platform's daily figure between real prices, anchored to the latest one",
+    "estimate":     "Estimate - World Bank Real-Time Prices model, where no real price exists",
+    "interpolated": "Estimate - filled in between two real prices",
+    "synthetic":    "Estimate - rebuilt from international prices x FX (no Nigerian market data for this period)",
     "other":        "Other",
 }
+OBSERVED = {"real", "web"}
 
 
 def source_category(data_source) -> str:
@@ -1732,7 +1735,7 @@ def commodity_history(
     sub = load_master_history(commodities=[key], start=start, end=end)
     sub = sub.sort_values("date")
     sub["source_rank"] = sub["data_source"].map(source_category).map(SOURCE_RANK)
-    raw_real = sub.loc[sub["source_rank"] == SOURCE_RANK["real"], "date"]
+    raw_real = sub.loc[sub["source_rank"] <= SOURCE_RANK["web"], "date"]   # real or web
     last_real_date = raw_real.max().strftime("%Y-%m-%d") if len(raw_real) else None
 
     # Resample (price averaged as before; source = strongest in the bucket)
@@ -1754,7 +1757,7 @@ def commodity_history(
     # Sparkline (last 7 points regardless of resolution)
     sparkline = [{"date": d, "price": round(p, 0), "source": src}
                  for d, p, src in zip(dates[-7:], prices[-7:], sources[-7:])]
-    real_dates = [d for d, src in zip(dates, sources) if src == "real"]
+    real_dates = [d for d, src in zip(dates, sources) if src in OBSERVED]
 
     # Stats
     pct_change_period = round((prices[-1] - prices[0]) / prices[0] * 100, 2) if len(prices) >= 2 else 0

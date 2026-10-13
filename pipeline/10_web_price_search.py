@@ -24,17 +24,26 @@ Requires ANTHROPIC_API_KEY (same precedence/soft-dependency pattern as
 TSDB_URL elsewhere in this pipeline — skips cleanly if not configured,
 never blocks the rest of the pipeline).
 
-Run: python pipeline/10_web_price_search.py
+Two modes:
+  python pipeline/10_web_price_search.py            # daily sweep: all commodities, general search
+  python pipeline/10_web_price_search.py --rotate   # 3-hourly job (web_price_stream.yml)
+
+--rotate searches every commodity that has no fresh Agricome/WFP price (see
+pipeline/freshness.py) plus ROTATING_EXTRA_PER_RUN others in turn, with a
+search focus that changes each run (exchange -> official -> northern markets
+-> southern markets -> news). Over a day each commodity gets looked up in
+several different places, which is what the promotion step's second-source
+rule needs. Each (commodity, day, focus) is its own row.
 """
 
-import os, sys, json, re
+import os, sys, json, re, argparse
 from datetime import datetime, timezone
 
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import COMMODITIES
-from pipeline.pg_commodities import ensure_commodities
+from pipeline.pg_commodities import ensure_commodities, ensure_web_estimates_schema
 
 logger.remove()
 logger.add(sys.stdout,
@@ -42,7 +51,32 @@ logger.add(sys.stdout,
     level="INFO")
 
 MODEL_NAME = "claude-sonnet-5"
-MAX_SEARCHES_PER_COMMODITY = 3   # caps cost per commodity per run
+MAX_SEARCHES_PER_COMMODITY = 3   # caps cost per commodity per run (daily sweep)
+ROTATING_MAX_SEARCHES      = 2   # focused 3-hourly searches need fewer
+ROTATING_EXTRA_PER_RUN     = 2   # non-gap commodities added to each 3-hourly run
+
+# Extra instruction per search focus. "general" is the daily sweep.
+FOCI = {
+    "general":  "",
+    "exchange": "Search specifically for commodity EXCHANGE prices: AFEX spot or trade prices, "
+                "including AFEX prices republished by Mansa Markets or quoted in the news.",
+    "official": "Search specifically for OFFICIAL or institutional price data: NBS Selected Food "
+                "Price Watch, a state Ministry of Agriculture price tracker (for example Lagos "
+                "State's), FEWS NET or WFP market monitors.",
+    "north":    "Search specifically for prices from named NORTHERN Nigerian wholesale markets, "
+                "e.g. Dawanau (Kano), Giwa or Saminaka (Kaduna), Mubi (Adamawa), Maiduguri "
+                "Monday Market, Gombe.",
+    "south":    "Search specifically for prices from named SOUTHERN Nigerian wholesale markets, "
+                "e.g. Mile 12 or Oyingbo (Lagos), Bodija (Ibadan), Ogbete (Enugu), Onitsha main "
+                "market, Oil Mill (Port Harcourt).",
+    "news":     "Search specifically for recent NEWS reports quoting a current wholesale price "
+                "(e.g. Nairametrics, BusinessDay, Punch, Vanguard, Daily Trust, Leadership, "
+                "Premium Times).",
+}
+ROTATION = ["exchange", "official", "north", "south", "news"]
+# Legacy "Rice" is being retired in favour of Rice (local) / Rice (foreign);
+# don't spend 3-hourly searches on it (the daily sweep still covers it).
+ROTATION_SKIP = {"Rice"}
 
 # Eggs are priced per crate (30 eggs) everywhere else in this system
 # (see api.py's price_per_kg()), not per metric tonne — found this the
@@ -94,7 +128,36 @@ Respond with ONLY a single JSON object, no other text, in exactly this shape:
 }}"""
 
 
-def search_commodity_price(client, commodity: str) -> dict:
+def build_prompt(commodity: str, focus: str = "general") -> str:
+    prompt = PROMPT_TEMPLATE.format(
+        commodity=COMMODITY_DESCRIPTION.get(commodity, commodity),
+        unit=UNIT_LABEL.get(commodity, "NGN per metric tonne (NGN/MT)"),
+    )
+    if FOCI.get(focus):
+        prompt += "\n\nFocus for this search: " + FOCI[focus]
+    return prompt
+
+
+def rotation_plan(now_utc, commodities, gaps):
+    """
+    (focus, commodities) for a 3-hourly run. The run number counts 3-hour
+    slots since a fixed date, so consecutive runs step through ROTATION and
+    through the non-gap commodities regardless of when the job starts.
+    """
+    run_no = now_utc.date().toordinal() * 8 + now_utc.hour // 3
+    focus = ROTATION[run_no % len(ROTATION)]
+    gaps = [c for c in gaps if c not in ROTATION_SKIP]
+    others = [c for c in commodities if c not in gaps and c not in ROTATION_SKIP]
+    extra = []
+    if others:
+        start = (run_no * ROTATING_EXTRA_PER_RUN) % len(others)
+        extra = [others[(start + i) % len(others)]
+                 for i in range(min(ROTATING_EXTRA_PER_RUN, len(others)))]
+    return focus, list(gaps) + extra
+
+
+def search_commodity_price(client, commodity: str, focus: str = "general",
+                           max_uses: int = MAX_SEARCHES_PER_COMMODITY) -> dict:
     """Raises on any API-level failure — caller logs and continues with the next commodity."""
     response = client.messages.create(
         model=MODEL_NAME,
@@ -106,16 +169,13 @@ def search_commodity_price(client, commodity: str) -> dict:
         tools=[{
             "type": "web_search_20250305",
             "name": "web_search",
-            "max_uses": MAX_SEARCHES_PER_COMMODITY,
+            "max_uses": max_uses,
             # No user_location — the API's country-code allowlist doesn't
             # include Nigeria ("Country code NG is not supported", found
             # testing this live). The prompt itself already says "Nigeria"
             # explicitly, which is enough to steer the search correctly.
         }],
-        messages=[{"role": "user", "content": PROMPT_TEMPLATE.format(
-            commodity=COMMODITY_DESCRIPTION.get(commodity, commodity),
-            unit=UNIT_LABEL.get(commodity, "NGN per metric tonne (NGN/MT)"),
-        )}],
+        messages=[{"role": "user", "content": build_prompt(commodity, focus)}],
     )
 
     # The final text block should be the JSON — but the model may still
@@ -141,7 +201,7 @@ def search_commodity_price(client, commodity: str) -> dict:
     return parsed
 
 
-def write_estimate(cur, commodity_id: int, query_date, parsed: dict):
+def write_estimate(cur, commodity_id: int, query_date, parsed: dict, focus: str = "general"):
     price = parsed.get("price_ngn_mt")
     if price is not None:
         try:
@@ -153,10 +213,10 @@ def write_estimate(cur, commodity_id: int, query_date, parsed: dict):
 
     cur.execute("""
         INSERT INTO web_price_estimates
-            (commodity_id, query_date, price_ngn_mt, source_url, source_title,
+            (commodity_id, query_date, query_focus, price_ngn_mt, source_url, source_title,
              source_date, source_snippet, model_confidence, model_used, raw_response)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (commodity_id, query_date)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (commodity_id, query_date, query_focus)
         DO UPDATE SET
             price_ngn_mt     = EXCLUDED.price_ngn_mt,
             source_url       = EXCLUDED.source_url,
@@ -168,15 +228,16 @@ def write_estimate(cur, commodity_id: int, query_date, parsed: dict):
             raw_response     = EXCLUDED.raw_response,
             created_at       = now()
     """, (
-        commodity_id, query_date, price,
+        commodity_id, query_date, focus, price,
         parsed.get("source_url"), parsed.get("source_title"), parsed.get("source_date"),
         parsed.get("notes"), parsed.get("confidence"), MODEL_NAME, parsed.get("_raw_response"),
     ))
 
 
-def run_web_price_search():
+def run_web_price_search(rotate: bool = False):
     logger.info("=" * 60)
-    logger.info("STEP 10 — WEB-SOURCED PRICE SEARCH (Claude API)")
+    logger.info("STEP 10 — WEB-SOURCED PRICE SEARCH (Claude API)"
+                + (" — 3-hourly rotation" if rotate else ""))
     logger.info("=" * 60)
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -215,33 +276,49 @@ def run_web_price_search():
     workspace_id = os.environ.get("ANTHROPIC_WORKSPACE_ID")
     extra_headers = {"anthropic-workspace-id": workspace_id} if workspace_id else {}
     client = anthropic.Anthropic(api_key=api_key, default_headers=extra_headers)
-    query_date = datetime.now(timezone.utc).date()
+    now = datetime.now(timezone.utc)
+    query_date = now.date()
     n_ok, n_null, n_failed = 0, 0, 0
+    if rotate:
+        from pipeline.freshness import gap_commodities
+        try:
+            gaps = gap_commodities(COMMODITIES, query_date)
+        except Exception as e:
+            logger.warning(f"  could not read freshness ({e}) - treating no commodity as a gap")
+            gaps = []
+        focus, to_search = rotation_plan(now, COMMODITIES, gaps)
+        max_uses = ROTATING_MAX_SEARCHES
+        logger.info(f"  focus: {focus} | gaps: {gaps} | searching: {to_search}")
+    else:
+        focus, to_search, max_uses = "general", list(COMMODITIES), MAX_SEARCHES_PER_COMMODITY
 
     try:
         with conn.cursor() as cur:
             added = ensure_commodities(cur, COMMODITIES)
             if added:
                 logger.info(f"  Added to commodities table: {added}")
+            changed = ensure_web_estimates_schema(cur)
+            if changed:
+                logger.info(f"  web_price_estimates schema: {changed}")
             cur.execute("SELECT commodity_id, name FROM commodities")
             commodity_map = {name: cid for cid, name in cur.fetchall()}
         conn.commit()
 
-        for commodity in COMMODITIES:
+        for commodity in to_search:
             cid = commodity_map.get(commodity)
             if cid is None:
                 logger.warning(f"  {commodity}: not found in commodities table, skipping")
                 continue
 
             try:
-                parsed = search_commodity_price(client, commodity)
+                parsed = search_commodity_price(client, commodity, focus, max_uses)
             except Exception as e:
                 logger.warning(f"  {commodity:<15} search failed: {e}")
                 n_failed += 1
                 continue
 
             with conn.cursor() as cur:
-                write_estimate(cur, cid, query_date, parsed)
+                write_estimate(cur, cid, query_date, parsed, focus)
             conn.commit()
 
             price = parsed.get("price_ngn_mt")
@@ -264,5 +341,8 @@ def run_web_price_search():
 
 
 if __name__ == "__main__":
-    ok = run_web_price_search()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--rotate", action="store_true",
+                    help="3-hourly mode: gap commodities + a rotating slice, rotating search focus")
+    ok = run_web_price_search(rotate=ap.parse_args().rotate)
     sys.exit(0 if ok else 1)
