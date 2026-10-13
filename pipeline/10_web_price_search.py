@@ -59,19 +59,29 @@ UNIT_LABEL = {"Eggs": "NGN per crate of 30 eggs (NGN/crate)"}
 # (local retail ran ~72% of imported in WFP data) - a search for plain "rice"
 # returned whichever one the source happened to quote.
 COMMODITY_DESCRIPTION = {
+    # Maize and wheat are usually quoted per bag; the 700K white maize price
+    # that was later withdrawn came from an undated aggregator page.
+    "Maize (white)":  "white maize grain (often quoted per 100kg bag - multiply by 10 for NGN/MT). "
+                      "NOT yellow maize, NOT maize flour",
+    "Maize (yellow)": "yellow maize grain (often quoted per 100kg bag - multiply by 10 for NGN/MT). "
+                      "NOT white maize, NOT maize flour",
+    "Wheat":          "wheat grain (often quoted per 50kg or 100kg bag). NOT wheat flour, NOT semolina",
     "Rice (local)":   "Nigerian local rice (domestically grown, milled; often sold in 50kg bags - "
                       "multiply a 50kg bag price by 20 for NGN/MT). NOT imported/foreign rice, NOT paddy",
     "Rice (foreign)": "imported (foreign) parboiled rice (often sold in 50kg bags - multiply a 50kg "
                       "bag price by 20 for NGN/MT). NOT Nigerian local rice",
 }
 
-PROMPT_TEMPLATE = """Find the most recent real wholesale price for {commodity} in Nigeria, in {unit}.
+PROMPT_TEMPLATE = """Find the most recent real wholesale price in Nigeria for: {commodity}.
+Report it in {unit}.
 
 Rules:
 - Only use a price you can attribute to a specific, named, dated source (a news article, market report, exchange price, or similar). Never estimate or infer a price from general knowledge.
 - Prefer the most recent date you can find. If nothing is available within roughly the last 60 days, return null rather than using an old or unclear figure.
 - If the source gives a price in a different unit (per kg, per bag, per crate, per litre, a different currency), convert it to {unit} yourself and show that conversion in "notes".
 - If you find conflicting prices from different sources, prefer the one that is most recent and most specific to a named Nigerian market or exchange.
+- Source preference, best first: (1) commodity exchange spot prices (AFEX, including AFEX prices republished by Mansa Markets or reported in the news); (2) official or institutional price trackers (NBS Selected Food Price Watch, a state Ministry of Agriculture price tracker, FEWS NET, WFP); (3) dated wholesale market reports naming a Nigerian market (e.g. Dawanau in Kano, Bodija in Ibadan, Mile 12 in Lagos).
+- Avoid undated "price list" pages, retail shops or e-commerce listings, and forum posts. Use one only if nothing better exists, and then set confidence to "low".
 
 Respond with ONLY a single JSON object, no other text, in exactly this shape:
 {{

@@ -1581,7 +1581,8 @@ def _load_history_from_postgres(commodities=None, start=None, end=None):
     import pandas as pd
     with db.get_conn() as conn, conn.cursor() as cur:
         sql = """
-            SELECT c.name AS commodity, p.time AS date, p.price AS price_ngn_mt
+            SELECT c.name AS commodity, p.time AS date, p.price AS price_ngn_mt,
+                   p.source AS data_source
             FROM prices p
             JOIN commodities c ON c.commodity_id = p.commodity_id
             JOIN locations   l ON l.location_id  = p.location_id
@@ -1600,8 +1601,9 @@ def _load_history_from_postgres(commodities=None, start=None, end=None):
         sql += " ORDER BY c.name, p.time"
         cur.execute(sql, params)
         rows = cur.fetchall()
-    df = pd.DataFrame(rows, columns=["commodity", "date", "price_ngn_mt"])
+    df = pd.DataFrame(rows, columns=["commodity", "date", "price_ngn_mt", "data_source"])
     df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
+    df["price_ngn_mt"] = df["price_ngn_mt"].astype(float)
     return df
 
 
@@ -1623,7 +1625,38 @@ def _load_history_from_csv(commodities=None, start=None, end=None):
         df = df[df["date"] >= start]
     if end:
         df = df[df["date"] <= end]
-    return df[["commodity", "date", "price_ngn_mt"]]
+    return df[["commodity", "date", "price_ngn_mt", "data_source"]]
+
+
+# What each stored data_source means for someone reading a price chart.
+# Lower rank = stronger evidence; a weekly/monthly point takes the strongest
+# source among the rows it averages.
+SOURCE_CATEGORY = {
+    "Agricome": "real", "WFP": "real", "Agrolinking_primary": "real",
+    "Web_search": "web",
+    "Agrolinking_validated": "model",
+    "WB_RTP_estimate": "estimate",
+    "Interpolated": "interpolated",
+}
+SOURCE_RANK = {"real": 0, "web": 1, "model": 2, "estimate": 3, "interpolated": 4, "synthetic": 5, "other": 6}
+SOURCE_LEGEND = {
+    "real":         "Observed market price (Agricome, WFP, Agrolinking field data)",
+    "web":          "Observed price from a dated, named web source, checked against other sources",
+    "model":        "Platform's daily estimate, anchored to the latest real price",
+    "estimate":     "Third-party model estimate (World Bank Real-Time Prices) where no observed price exists",
+    "interpolated": "Filled in between two real prices",
+    "synthetic":    "Reconstructed from international prices x FX (no Nigerian market data for this period)",
+    "other":        "Other",
+}
+
+
+def source_category(data_source) -> str:
+    s = str(data_source)
+    if s in SOURCE_CATEGORY:
+        return SOURCE_CATEGORY[s]
+    if s.startswith("Synthetic"):
+        return "synthetic"
+    return "other"
 
 
 def load_master_history(commodities=None, start=None, end=None):
@@ -1695,16 +1728,20 @@ def commodity_history(
     else:
         end = today
 
+    import pandas as pd
     sub = load_master_history(commodities=[key], start=start, end=end)
     sub = sub.sort_values("date")
+    sub["source_rank"] = sub["data_source"].map(source_category).map(SOURCE_RANK)
+    raw_real = sub.loc[sub["source_rank"] == SOURCE_RANK["real"], "date"]
+    last_real_date = raw_real.max().strftime("%Y-%m-%d") if len(raw_real) else None
 
-    # Resample
-    if resolution == "weekly":
-        sub = sub.set_index("date")["price_ngn_mt"].resample("W").mean().dropna().reset_index()
-        sub.columns = ["date", "price_ngn_mt"]
-    elif resolution == "monthly":
-        sub = sub.set_index("date")["price_ngn_mt"].resample("ME").mean().dropna().reset_index()
-        sub.columns = ["date", "price_ngn_mt"]
+    # Resample (price averaged as before; source = strongest in the bucket)
+    if resolution in ("weekly", "monthly"):
+        g = sub.set_index("date").resample("W" if resolution == "weekly" else "ME")
+        sub = pd.DataFrame({"price_ngn_mt": g["price_ngn_mt"].mean(),
+                            "source_rank": g["source_rank"].min()}).dropna(subset=["price_ngn_mt"]).reset_index()
+    rank_to_cat = {v: k for k, v in SOURCE_RANK.items()}
+    sources = [rank_to_cat.get(int(r), "other") if pd.notna(r) else "other" for r in sub["source_rank"]]
 
     if len(sub) == 0:
         raise HTTPException(status_code=404,
@@ -1715,8 +1752,9 @@ def commodity_history(
     per_kg, unit = price_per_kg(key, prices[-1] if prices else 0)
 
     # Sparkline (last 7 points regardless of resolution)
-    sparkline = [{"date": d, "price": round(p, 0)}
-                 for d, p in zip(dates[-7:], prices[-7:])]
+    sparkline = [{"date": d, "price": round(p, 0), "source": src}
+                 for d, p, src in zip(dates[-7:], prices[-7:], sources[-7:])]
+    real_dates = [d for d, src in zip(dates, sources) if src == "real"]
 
     # Stats
     pct_change_period = round((prices[-1] - prices[0]) / prices[0] * 100, 2) if len(prices) >= 2 else 0
@@ -1737,10 +1775,17 @@ def commodity_history(
         "max_price":          round(max(prices), 0),
         "avg_price":          round(sum(prices)/len(prices), 0),
         "sparkline":          sparkline,
+        # Where each point comes from - see source_legend. Lets the dashboard
+        # show observed prices differently from estimates and filled gaps.
+        "real_points":        len(real_dates),
+        "real_share_pct":     round(len(real_dates) / len(dates) * 100, 1) if dates else 0,
+        "last_real_date":     last_real_date,   # actual date, not the week/month bucket
+        "source_legend":      SOURCE_LEGEND,
         "series": [
             {"date": d, "price_ngn_mt": round(p, 0),
-             "price_per_unit": round(p/1000, 2) if key != "Eggs" else round(p, 0)}
-            for d, p in zip(dates, prices)
+             "price_per_unit": round(p/1000, 2) if key != "Eggs" else round(p, 0),
+             "source": src}
+            for d, p, src in zip(dates, prices, sources)
         ],
     }
 
