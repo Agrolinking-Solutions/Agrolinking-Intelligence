@@ -10,7 +10,8 @@ gone stale. Accepted prices are appended to data/raw/web_prices.csv, which
 Agricome/WFP for the same week.
 
 A web price is promoted only if ALL of these hold:
-  - the commodity's Agricome/WFP/primary price is older than FRESH_DAYS
+  - the commodity has no fresh real price: Agricome/primary older than
+    FRESH_DAYS and WFP older than FRESH_DAYS_WFP
   - the model's own confidence is "high" or "medium"
   - it names a source URL
   - its source date parses, is not in the future, and is at most
@@ -54,7 +55,12 @@ BASELINE_SOURCES     = HIGH_QUALITY_SOURCES | {"WB_RTP_estimate"}
 # so daily searches that keep finding the same page can't re-add it.
 WITHDRAWN_PATH       = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "web_prices_withdrawn.csv")
 
-FRESH_DAYS           = 10     # Agricome/WFP price newer than this => no gap, don't touch
+FRESH_DAYS           = 10     # Agricome/primary price newer than this => no gap, don't touch
+# WFP is monthly and published ~4 weeks late, so a 10-day window made every
+# WFP commodity look like a gap and let web prices compete with real WFP
+# data (a single-source beef price 15% above WFP's put a spike in the
+# history, Oct 2026). Same window 06_validate.py uses for references.
+FRESH_DAYS_WFP       = 45
 LOOKBACK_DAYS        = 10     # how far back in web_price_estimates to look
 MAX_SOURCE_AGE_DAYS  = 21     # a source price older than this (at search time) is rejected
 BASE_BAND            = 0.25   # allowed deviation from last real price...
@@ -157,6 +163,10 @@ def load_master_state():
         hq = sub[sub["data_source"].isin(HIGH_QUALITY_SOURCES)]
         out[c] = {
             "hq_date":    hq["date"].max().date() if len(hq) else None,
+            "wfp_date":   (hq.loc[hq["data_source"] == "WFP", "date"].max().date()
+                           if (hq["data_source"] == "WFP").any() else None),
+            "direct_date": (hq.loc[hq["data_source"] != "WFP", "date"].max().date()
+                            if (hq["data_source"] != "WFP").any() else None),
             "real_date":  sub["date"].iloc[-1].date() if len(sub) else None,
             "real_price": float(sub["price_ngn_mt"].iloc[-1]) if len(sub) else None,
         }
@@ -227,7 +237,10 @@ def promote(candidates, state, today):
              "source_url": c["source_url"], "source_date": c["source_date"],
              "confidence": c["confidence"]}
         hq = st.get("hq_date")
-        if hq is not None and (today - hq).days <= FRESH_DAYS:
+        direct, wfp = st.get("direct_date"), st.get("wfp_date")
+        fresh = ((direct is not None and (today - direct).days <= FRESH_DAYS)
+                 or (wfp is not None and (today - wfp).days <= FRESH_DAYS_WFP))
+        if fresh:
             d.update(accepted=False, reason=f"Agricome/WFP price is fresh ({hq}) - no gap to fill")
             decisions.append(d); continue
         when = withdrawn_match(c, withdrawn)
