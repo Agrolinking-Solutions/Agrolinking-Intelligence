@@ -212,19 +212,28 @@ def build_champion(commodity, hist_df, last_price, last_date, future_df):
     if CHAMPION_MODE == "off":
         return None
     try:
-        from pipeline.drift_models import weekly_growth, project
+        from pipeline.drift_models import forecast_path
         if _selection_cache is None:
             with open(SELECTION_PATH) as f:
                 _selection_cache = json.load(f)
         sel = _selection_cache.get(commodity)
         if not sel:
             return None
-        g = weekly_growth(sel["method"], hist_df)
-        weeks = np.maximum((pd.to_datetime(future_df["date"]) - pd.Timestamp(last_date)).dt.days / 7.0, 0)
-        values = project(last_price, g, weeks.values)
-        # interval half-width from the measured backtest error, widening with horizon
-        mape4 = sel.get("mape_4w") or 5.0
-        hw = np.clip(max(mape4, 2.0) / 100 * 1.6 * np.sqrt(np.maximum(weeks.values, 1) / 4.0), 0, 0.6)
+        values = forecast_path(sel["method"], hist_df, last_price, last_date, future_df["date"])
+        weeks = np.maximum((pd.to_datetime(future_df["date"]) - pd.Timestamp(last_date)).dt.days.values / 7.0, 0)
+        # Interval half-width from the backtest's measured error at 4/8/13/26
+        # weeks (interpolated between, scaled down below 4 weeks). 1.6 x mean
+        # absolute error is roughly an 80% band for normally distributed errors.
+        pts = [(h, 100 - sel[f"accuracy_{h}w"]) for h in (4, 8, 13, 26)
+               if sel.get(f"accuracy_{h}w") is not None]
+        if not pts:
+            pts = [(4, sel.get("mape_4w") or 5.0)]
+        pw, pm = zip(*pts)
+        # never narrower further out (Wheat's 26-week score rests on 17 test points)
+        pm = np.maximum.accumulate(np.array(pm, dtype=float))
+        mape_w = np.interp(weeks, pw, pm)
+        mape_w = np.where(weeks < pw[0], pm[0] * np.sqrt(np.maximum(weeks, 1) / pw[0]), mape_w)
+        hw = np.clip(np.maximum(mape_w, 2.0) / 100 * 1.6, 0, 0.6)
         return {"method": sel["method"], "values": values.tolist(),
                 "lower_ci": (values * (1 - hw)).tolist(), "upper_ci": (values * (1 + hw)).tolist(),
                 "accuracy_4w": sel.get("accuracy_4w"), "n_4w": sel.get("n_4w")}

@@ -28,7 +28,7 @@ from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES
-from pipeline.drift_models import CANDIDATES, weekly_growth, project
+from pipeline.drift_models import CANDIDATES, point_forecasts
 
 logger.remove()
 logger.add(sys.stdout,
@@ -41,8 +41,10 @@ OUT_DIR      = os.path.join(ROOT, "outputs", "backtest")
 SELECTION    = os.path.join(OUT_DIR, "model_selection.json")
 
 REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary"}
-HORIZONS     = (4, 8)
-HORIZON_W    = {4: 0.6, 8: 0.4}
+# 1, 2, 3 and 6 months ahead - the dashboard shows all of these, and
+# seasonal effects only show up beyond a few weeks. Nearer horizons weigh more.
+HORIZONS     = (4, 8, 13, 26)
+HORIZON_W    = {4: 0.4, 8: 0.3, 13: 0.2, 26: 0.1}
 WINDOW_WEEKS = 104
 MIN_TARGETS  = 6
 MIN_GAIN     = 0.3        # accuracy points a challenger must beat naive by
@@ -56,6 +58,9 @@ def score_commodity(commodity):
     path = os.path.join(FEATURES_DIR, f"features_{safe_name(commodity)}.csv")
     df = pd.read_csv(path, parse_dates=["date"]).sort_values("date")
     df = df.drop_duplicates("date", keep="last").reset_index(drop=True)
+    # Only what the forecasters read: slicing the full ~80-column feature
+    # table for every origin made this step take minutes instead of seconds.
+    df = df[[c for c in ("date", "price_ngn_mt", "data_source", "food_inflation_yoy") if c in df.columns]]
     real = df[df["data_source"].isin(REAL_SOURCES)]
     if real.empty:
         return None
@@ -68,10 +73,11 @@ def score_commodity(commodity):
             if len(hist) < 20:
                 continue
             last = float(hist["price_ngn_mt"].iloc[-1])
+            last_date = hist["date"].iloc[-1]
+            preds = point_forecasts(hist, last, last_date, t["date"])
             for m in CANDIDATES:
-                pred = float(project(last, weekly_growth(m, hist), h))
                 rows.append({"method": m, "h": h, "actual": float(t["price_ngn_mt"]),
-                             "pred": pred, "origin": last})
+                             "pred": float(preds[m]), "origin": last})
     return pd.DataFrame(rows) if rows else None
 
 
@@ -128,13 +134,17 @@ def run_selection():
             "mape_4w": one(best, 4, "mape"), "mape_8w": one(best, 8, "mape"),
             "accuracy_4w": None if one(best, 4, "mape") is None else round(100 - one(best, 4, "mape"), 1),
             "accuracy_8w": None if one(best, 8, "mape") is None else round(100 - one(best, 8, "mape"), 1),
+            "accuracy_13w": None if one(best, 13, "mape") is None else round(100 - one(best, 13, "mape"), 1),
+            "accuracy_26w": None if one(best, 26, "mape") is None else round(100 - one(best, 26, "mape"), 1),
+            "naive_accuracy_26w": None if one("naive", 26, "mape") is None else round(100 - one("naive", 26, "mape"), 1),
+            "weighted_mape": {m: (None if not np.isfinite(v) else round(float(v), 2)) for m, v in scores.items()},
             "naive_accuracy_4w": None if one("naive", 4, "mape") is None else round(100 - one("naive", 4, "mape"), 1),
             "direction_hit_4w": one(best, 4, "dir_hit"),
             "low_confidence": n4 < 12,
             "updated": today,
         }
-        logger.info(f"  {c:<16} -> {best:<10} acc4w={out[c]['accuracy_4w']}% "
-                    f"(naive {out[c]['naive_accuracy_4w']}%) n={n4}")
+        logger.info(f"  {c:<16} -> {best:<12} acc 4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "
+                    f"(naive {out[c]['naive_accuracy_4w']}% / {out[c]['naive_accuracy_26w']}%) n={n4}")
     with open(SELECTION, "w") as f:
         json.dump(out, f, indent=2)
     accs = [v["accuracy_4w"] for v in out.values() if v["accuracy_4w"] is not None]
