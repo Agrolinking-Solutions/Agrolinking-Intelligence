@@ -16,6 +16,7 @@ from loguru import logger
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES
+from pipeline.state_factors import load_factors, ESTIMATED
 
 logger.remove()
 logger.add(sys.stdout,
@@ -28,7 +29,6 @@ except Exception:
     pass
 
 BASE       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DIFF_PATH  = os.path.join(BASE, "data", "external", "state_price_differentials.csv")
 ZONES_PATH = os.path.join(BASE, "data", "external", "zones_config.json")
 VAL_DIR    = os.path.join(BASE, "outputs", "forecasts", "validated")
 ZONAL_DIR  = os.path.join(BASE, "outputs", "forecasts", "zonal")
@@ -173,10 +173,9 @@ def h_names_str(d0, d1):
 
 
 def load_all():
-    df   = pd.read_csv(DIFF_PATH)
-    diff = {}
-    for _, row in df.iterrows():
-        diff.setdefault(row["state"], {})[row["commodity"]] = float(row["price_factor"])
+    # {state: {commodity: (factor, source)}} - measured from WFP market
+    # prices where possible, else the estimated table (see state_factors.py)
+    diff = load_factors()
 
     with open(ZONES_PATH) as f:
         zones = json.load(f)
@@ -306,7 +305,8 @@ def build_zonal_output(forecast, diff, zones, run_date):
                 if anchor <= 0: continue
                 # Yesterday's national price from forecast curve (same as national anchor calc)
                 yest_national = national_anchors[commodity].get("yesterday_price", anchor)
-                factor     = diff.get(state, {}).get(commodity, zone_info["zone_default"])
+                factor, factor_source = diff.get(state, {}).get(
+                    commodity, (zone_info["zone_default"], ESTIMATED))
                 state_price = round(anchor * factor, 2)
                 prev_state  = round(yest_national * factor, 2)
                 day_chg     = round((state_price-prev_state)/prev_state*100, 2) if prev_state > 0 else 0
@@ -335,6 +335,7 @@ def build_zonal_output(forecast, diff, zones, run_date):
                     "national_price":  round(anchor, 2),
                     "state_price":     state_price,
                     "price_factor":    round(factor, 3),
+                    "factor_source":   factor_source,
                     "day_change_pct":  day_chg,
                     "is_primary":      commodity in primary,
                     "horizons":        horizons_out,

@@ -52,6 +52,7 @@ except ImportError:
 
 import db
 from config.settings import COMMODITIES
+from pipeline.state_factors import load_factors, zone_defaults, factor_for, MEASURED
 
 # ── Path configuration ─────────────────────────────────────────────────────
 BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
@@ -758,6 +759,7 @@ def commodity_zonal(commodity: str):
     if key and db.db_available():
         try:
             rows = _load_zonal_commodity_from_postgres(key)
+            factors, defaults = load_factors(), zone_defaults()
             run_date = ""
             national_row = None
             state_prices = {}
@@ -777,6 +779,8 @@ def commodity_zonal(commodity: str):
                     "unit_label":     unit,
                     "day_change_pct": float(day_chg) if day_chg is not None else 0,
                     "is_primary":     bool(is_primary),
+                    "price_basis":    price_basis(factor_for(state, key, factors, defaults)[1])
+                                      if state in defaults else "estimated",
                 }
             if national_row is None or not state_prices:
                 raise RuntimeError("incomplete zonal Postgres data")
@@ -812,6 +816,7 @@ def commodity_zonal(commodity: str):
                 "currency":              "NGN",
                 "best_sourcing":         best,
                 "state_prices":          state_prices,
+                "price_basis_note":      PRICE_BASIS_NOTE,
             }
         except Exception:
             pass  # fall through to JSON
@@ -835,6 +840,7 @@ def commodity_zonal(commodity: str):
                     "unit_label":     unit,
                     "day_change_pct": comm_data.get("day_change_pct", 0),
                     "is_primary":     comm_data.get("is_primary", False),
+                    "price_basis":    price_basis(comm_data.get("factor_source")),
                 }
     best = zonal.get("best_sourcing", zonal.get("best_market", {})).get(key, {})
     nat_price = anchors.get(key, {}).get("price", 0)
@@ -850,6 +856,7 @@ def commodity_zonal(commodity: str):
         "currency":              "NGN",
         "best_sourcing":         best,
         "state_prices":          state_prices,
+        "price_basis_note":      PRICE_BASIS_NOTE,
     }
 
 
@@ -1652,6 +1659,18 @@ SOURCE_LEGEND = {
 }
 OBSERVED = {"real", "web"}
 
+# State prices are the national price x a state price gap. Only some gaps are
+# measured from market data - say which, so an estimate isn't shown as fact.
+PRICE_BASIS_NOTE = {
+    "national":  "National price",
+    "measured":  "National price x this state's measured price gap (WFP wholesale market prices, 2019-2023)",
+    "estimated": "National price x an estimated price gap for this state (not yet measured from market data)",
+}
+
+
+def price_basis(source):
+    return "measured" if source == MEASURED else "estimated"
+
 
 def source_category(data_source) -> str:
     s = str(data_source)
@@ -1692,6 +1711,7 @@ def commodity_history(
     from_date: Optional[str] = Query(None, description="Start date YYYY-MM-DD"),
     to_date: Optional[str]   = Query(None, description="End date YYYY-MM-DD (default today)"),
     resolution: Optional[str] = Query("weekly", description="daily or weekly"),
+    state: Optional[str] = Query(None, description="Show one state's prices, e.g. Lagos - the same basis as that state's current price"),
 ):
     """
     Historical price series for one commodity from the master dataset.
@@ -1702,6 +1722,12 @@ def commodity_history(
       /history/Rice?days=90
       /history/Ginger?from_date=2026-01-01&to_date=2026-07-19
       /history/Maize%20(white)?days=30&resolution=daily
+      /history/Sesame?state=Lagos
+
+    With state, every price is the national price x that state's price gap,
+    so the chart matches the state's current price. price_basis says whether
+    the gap is measured or estimated; each point's source describes the
+    national price underneath.
     """
     # Resolve against the canonical commodity list (config.settings) rather
     # than deriving valid names from the dataset itself — avoids a full
@@ -1731,6 +1757,15 @@ def commodity_history(
     else:
         end = today
 
+    factor, basis = 1.0, "national"
+    if state:
+        found = factor_for(state, key)
+        if found is None:
+            raise HTTPException(status_code=404,
+                detail=f"State '{state}' not found. Available: {sorted(zone_defaults())}")
+        factor, basis = found[0], price_basis(found[1])
+        state = next(s for s in zone_defaults() if s.lower() == state.lower())
+
     import pandas as pd
     sub = load_master_history(commodities=[key], start=start, end=end)
     sub = sub.sort_values("date")
@@ -1750,7 +1785,7 @@ def commodity_history(
         raise HTTPException(status_code=404,
             detail=f"No data for '{key}' in the requested date range.")
 
-    prices = sub["price_ngn_mt"].tolist()
+    prices = (sub["price_ngn_mt"] * factor).tolist()
     dates  = sub["date"].dt.strftime("%Y-%m-%d").tolist()
     per_kg, unit = price_per_kg(key, prices[-1] if prices else 0)
 
@@ -1764,6 +1799,10 @@ def commodity_history(
 
     return {
         "commodity":          key,
+        "location":           state or "National",
+        "price_factor":       round(factor, 3),
+        "price_basis":        basis,
+        "price_basis_note":   PRICE_BASIS_NOTE[basis],
         "from_date":          dates[0] if dates else "",
         "to_date":            dates[-1] if dates else "",
         "resolution":         resolution,

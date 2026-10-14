@@ -12,9 +12,12 @@ Output: outputs/backtest/model_selection.json — read by 05_forecast.py.
   { commodity: { method, accuracy_4w, accuracy_8w, naive_accuracy_4w,
                  direction_hit_4w, n_4w, mape_4w, mape_8w, updated } }
 
-Rule: pick the lowest weighted MAPE (60% @4w, 40% @8w). A challenger must
+Rule: pick the lowest weighted MAPE across 4/8/13/26 weeks. A challenger must
 beat naive by MIN_GAIN points, otherwise naive stays champion — with small
-samples we don't switch on noise.
+samples we don't switch on noise. Tie-break: if naive wins but half-inflation
+drift scores within TIE_MARGIN of it, use the drift instead. The two are
+equally accurate on the record, and Nigerian prices drift up with inflation;
+a flat 6-month line reads as "no forecast" to customers.
 
 Run: python pipeline/13_select_forecaster.py
 """
@@ -48,6 +51,8 @@ HORIZON_W    = {4: 0.4, 8: 0.3, 13: 0.2, 26: 0.1}
 WINDOW_WEEKS = 104
 MIN_TARGETS  = 6
 MIN_GAIN     = 0.3        # accuracy points a challenger must beat naive by
+TIE_METHOD   = "infl@0.5"
+TIE_MARGIN   = 0.3        # ...and how close it must be to naive to win a tie
 
 
 def safe_name(c):
@@ -102,7 +107,11 @@ def choose(summ):
     best = min(scores, key=scores.get)
     if best != "naive" and scores["naive"] - scores[best] < MIN_GAIN:
         best = "naive"
-    return best, scores
+    tie_break = bool(best == "naive"
+                 and scores.get(TIE_METHOD, np.inf) - scores["naive"] <= TIE_MARGIN)
+    if tie_break:
+        best = TIE_METHOD
+    return best, scores, tie_break
 
 
 def run_selection():
@@ -121,9 +130,9 @@ def run_selection():
         n4 = int(summ[(summ.method == "naive") & (summ.h == 4)].n.sum())
         if n4 < MIN_TARGETS:
             logger.warning(f"  {c}: only {n4} real targets — keeping naive, low confidence")
-            best, scores = "naive", {}
+            best, scores, tie_break = "naive", {}, False
         else:
-            best, scores = choose(summ)
+            best, scores, tie_break = choose(summ)
         g = lambda m, h, col: summ[(summ.method == m) & (summ.h == h)][col]
         def one(m, h, col):
             s = g(m, h, col)
@@ -141,9 +150,10 @@ def run_selection():
             "naive_accuracy_4w": None if one("naive", 4, "mape") is None else round(100 - one("naive", 4, "mape"), 1),
             "direction_hit_4w": one(best, 4, "dir_hit"),
             "low_confidence": n4 < 12,
+            "tie_break": tie_break,
             "updated": today,
         }
-        logger.info(f"  {c:<16} -> {best:<12} acc 4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "
+        logger.info(f"  {c:<16} -> {best:<12}{' (tie)' if tie_break else ''} acc 4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "
                     f"(naive {out[c]['naive_accuracy_4w']}% / {out[c]['naive_accuracy_26w']}%) n={n4}")
     with open(SELECTION, "w") as f:
         json.dump(out, f, indent=2)
