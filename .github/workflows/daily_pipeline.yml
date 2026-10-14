@@ -188,6 +188,13 @@ jobs:
           TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/16_cross_check.py
 
+      # Plain-language summary of today's real data (gaps, web prices added
+      # or rejected and why, cross-check flags) at the top of this run's page.
+      - name: Real-data status
+        if: always()
+        continue-on-error: true
+        run: python pipeline/data_status.py
+
       # (Step 10, the web price search, now runs at the start of the job as
       # 00b, so the same day's web prices can fill stale commodities.)
 
