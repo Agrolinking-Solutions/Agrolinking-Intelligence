@@ -20,7 +20,10 @@ A web price is promoted only if ALL of these hold:
     MAX_SOURCE_AGE_DAYS old
   - it is newer than the latest real price we already hold
   - it is within a sanity band of that latest real price (wider the staler
-    that price is), so a wrong unit or a hallucinated number can't move us
+    that price is), so a wrong unit or a hallucinated number can't move us.
+    Where a commodity has no recent Agricome/WFP price of its own, the band
+    is centred on its latest accepted web price, else on a sibling
+    commodity's real price (SIBLING_YARDSTICK), not on a World Bank estimate
 
 Everything else is rejected with a reason. Every decision (accepted or
 rejected) is written to outputs/logs/web_price_promotion.json for review.
@@ -74,6 +77,16 @@ MAX_BAND             = 0.40
 CORROBORATE_ABOVE    = 0.15
 CORROBORATION_TOLERANCE = 0.10
 ACCEPT_CONFIDENCE    = {"high", "medium"}
+# Yardstick for commodities with no recent real price of their own: a sibling
+# commodity's latest real price x their measured price ratio. Yellow maize
+# trades ~2% above white maize (WFP wholesale, same market and month,
+# 2014-2023: median 1.023, IQR 1.00-1.07, 1,320 market-months). Without this
+# its yardstick was a World Bank estimate (691K, Jul 2026) - and World Bank
+# overstates maize by ~40% (white: 641K vs real 450K) - so a plausible 425.6K
+# wholesale price was rejected as 38% off.
+SIBLING_YARDSTICK    = {"Maize (yellow)": ("Maize (white)", 1.023)}
+OWN_REAL_MAX_DAYS    = 365    # an own Agricome/WFP/primary price newer than this keeps priority
+RECENT_REAL_DAYS     = 45     # an accepted web or sibling price must be this recent to be the yardstick
 ACCEPT_LEVELS        = {"wholesale", "exchange"}
 
 WEB_CSV_COLUMNS = ["commodity", "week_start_date", "price", "currency", "unit", "source",
@@ -160,8 +173,9 @@ def evaluate_candidate(cand, last_real_price, last_real_date, query_date, peers=
     return True, "accepted", sd
 
 
-def load_master_state():
+def load_master_state(today=None):
     """Per commodity: latest high-quality real date, and latest real price/date of any real source."""
+    today = today or datetime.now(timezone.utc).date()
     df = pd.read_csv(PATHS["master"], parse_dates=["date"])
     out = {}
     for c in COMMODITIES:
@@ -176,6 +190,27 @@ def load_master_state():
             "real_date":  sub["date"].iloc[-1].date() if len(sub) else None,
             "real_price": float(sub["price_ngn_mt"].iloc[-1]) if len(sub) else None,
         }
+    # No recent Agricome/WFP/primary price of its own: centre the band on a
+    # real price rather than a World Bank estimate (which overstates maize ~40%).
+    for c, st in out.items():
+        if st["hq_date"] and (today - st["hq_date"]).days <= OWN_REAL_MAX_DAYS:
+            continue
+        own_web = df[(df["commodity"] == c) & (df["data_source"] == "Web_search")].sort_values("date")
+        if len(own_web) and (today - own_web["date"].iloc[-1].date()).days <= RECENT_REAL_DAYS:
+            p, d = float(own_web["price_ngn_mt"].iloc[-1]), own_web["date"].iloc[-1].date()
+            st.update(real_price=p, real_date=d, yardstick=f"our latest accepted web price {p:,.0f} ({d})")
+            continue
+        if c not in SIBLING_YARDSTICK:
+            continue
+        sibling, ratio = SIBLING_YARDSTICK[c]
+        sib = df[(df["commodity"] == sibling) & df["data_source"].isin(ANY_REAL_SOURCES)].sort_values("date")
+        if sib.empty or (today - sib["date"].iloc[-1].date()).days > RECENT_REAL_DAYS:
+            continue
+        sib_price, sib_date = float(sib["price_ngn_mt"].iloc[-1]), sib["date"].iloc[-1].date()
+        st["real_price"] = sib_price * ratio
+        st["real_date"] = st["hq_date"]      # "newer than" still means newer than OUR last real price
+        st["yardstick"] = (f"{sibling} real price {sib_price:,.0f} ({sib_date}) x {ratio} "
+                           f"= {sib_price * ratio:,.0f}")
     return out
 
 
@@ -245,6 +280,8 @@ def promote(candidates, state, today):
              "source_url": c["source_url"], "source_date": c["source_date"],
              "confidence": c["confidence"], "price_level": c.get("price_level"),
              "market_location": c.get("market_location")}
+        if st.get("yardstick"):
+            d["yardstick"] = st["yardstick"]
         hq = st.get("hq_date")
         direct, wfp = st.get("direct_date"), st.get("wfp_date")
         fresh = is_fresh(direct, wfp, today)
@@ -310,7 +347,10 @@ def run_promotion():
     finally:
         conn.close()
 
-    state = load_master_state()
+    state = load_master_state(today)
+    for c, st in state.items():
+        if st.get("yardstick"):
+            logger.info(f"  {c}: no recent real price of its own - yardstick {st['yardstick']}")
     rows, decisions = promote(candidates, state, today)
     if rows:
         append_rows(rows)
