@@ -2190,53 +2190,111 @@ def check_alerts(email: str = Depends(get_current_user_email)):
 
 # ── Meta / platform stats ──────────────────────────────────────────────────
 
+# Where our REAL prices come from, counted from the data itself so the
+# dashboard's "N markets · N sources" can't drift from the truth. (This used to
+# be a hand-written list naming feeds we never ingested - NGX/LCFE, Market
+# Naija TV, FMARD/NAFDAC were only where a few one-off backup prices came from.)
+SOURCE_INFO = {
+    "Agricome":            {"name": "Agricome Africa", "type": "Weekly wholesale prices (Threads posts)",
+                            "url": "threads.net/@agricomeafrica"},
+    "WFP":                 {"name": "WFP Nigeria Food Price Monitor", "type": "Monthly market survey (published ~4 weeks late)",
+                            "url": "data.humdata.org/dataset/wfp-food-prices-for-nigeria"},
+    "Web_search":          {"name": "Web price search", "type": "Named, dated wholesale prices found online every 3 hours, checked before use"},
+    "Agrolinking_primary": {"name": "Agrolinking field collection", "type": "Field price collection"},
+}
+ACTIVE_SOURCE_DAYS = 90
+_meta_cache = {"key": None, "value": None}
+
+
+def _real_data_summary():
+    """Sources, markets and data points behind our real prices; cached until the files change."""
+    import pandas as pd
+    wfp_path = os.path.join(BASE_DIR, "data", "raw", "wfp_food_prices_nga.csv")
+    key = tuple(os.path.getmtime(p) if os.path.exists(p) else 0 for p in (MASTER_PATH, wfp_path))
+    if _meta_cache["key"] == key:
+        return _meta_cache["value"]
+    df = pd.read_csv(MASTER_PATH, parse_dates=["date"], usecols=["commodity", "date", "data_source"])
+    real = df[df["data_source"].isin(SOURCE_INFO)]
+    today = pd.Timestamp(datetime.now().date())
+    sources = []
+    for src, info in SOURCE_INFO.items():
+        sub = real[real["data_source"] == src]
+        if sub.empty:
+            continue
+        last = sub["date"].max()
+        recent = sub[sub["date"] >= today - pd.Timedelta(days=365)]
+        sources.append({**info,
+                        "commodities": sorted(recent["commodity"].unique().tolist()),
+                        "latest_price_date": last.strftime("%Y-%m-%d"),
+                        "active": bool((today - last).days <= ACTIVE_SOURCE_DAYS)})
+    markets, states = [], []
+    try:
+        w = pd.read_csv(wfp_path, usecols=["date", "admin1", "market"], low_memory=False)
+        w = w[w["date"].astype(str).str[:1].str.isdigit()]
+        w["date"] = pd.to_datetime(w["date"])
+        w = w[w["date"] >= w["date"].max() - pd.Timedelta(days=120)]
+        markets, states = sorted(w["market"].dropna().unique()), sorted(w["admin1"].dropna().unique())
+    except Exception as e:
+        logger.warning(f"meta: could not read WFP markets: {e}")
+    value = {
+        "sources": sources,
+        "active_sources": sum(s["active"] for s in sources),
+        "wfp_markets": len(markets), "wfp_states": states,
+        "real_price_points": int(len(real)),
+        "first_real_year": int(real["date"].min().year) if len(real) else None,
+    }
+    _meta_cache.update(key=key, value=value)
+    return value
+
+
 @app.get("/meta", tags=["Info"])
 def platform_meta():
     """
-    Real platform metadata — data sources, market counts, update frequency.
+    Platform metadata - data sources, market counts, update frequency, accuracy.
+    Counted from the data the platform actually holds, so it stays true.
     Use this for credibility stats in the sidebar and footer.
     """
     # Count actual intelligence files to get platform age
     intel_files = glob.glob(os.path.join(BASE_DIR, "outputs", "intelligence", "*.json"))
     val_files   = glob.glob(os.path.join(BASE_DIR, "outputs", "forecasts", "validated", "*.json"))
+    real = _real_data_summary()
+    try:
+        with open(os.path.join(BASE_DIR, "outputs", "backtest", "model_selection.json")) as f:
+            sel = json.load(f)
+        acc = [v["accuracy_4w"] for v in sel.values() if isinstance(v, dict) and v.get("accuracy_4w") is not None]
+    except Exception:
+        acc = []
 
     return {
         "platform":          "Agrolinking Commodity Intelligence",
         "version":           "2.1.0",
-        "commodities_tracked": 17,
+        "commodities_tracked": len(COMMODITIES),
         "forecast_horizons":  6,
         "zones":             6,
         "states":            12,
         "data_sources": {
-            "total_sources":    6,
-            "sources": [
-                {"name": "Agricome Africa", "type": "Weekly Instagram post",
-                 "commodities": 7, "url": "instagram.com/agricomeafrica"},
-                {"name": "WFP Nigeria Food Price Monitor", "type": "Monthly market survey",
-                 "commodities": 13, "markets_covered": 30,
-                 "url": "data.humdata.org/dataset/wfp-food-prices-for-nigeria"},
-                {"name": "NGX / LCFE Exchange", "type": "Weekly exchange data",
-                 "commodities": 2, "url": "ngxgroup.com"},
-                {"name": "Agrolinking Primary Collection", "type": "Weekly field data",
-                 "commodities": 3},
-                {"name": "Market Naija TV", "type": "Weekly market reports",
-                 "commodities": 1},
-                {"name": "FMARD / NAFDAC", "type": "Monthly government data",
-                 "commodities": 4},
-            ],
-            "total_markets_monitored": 42,
-            "data_points_total":       "18,000+",
-            "historical_depth":        "2016 to present",
+            # Sources that delivered a real price in the last 90 days.
+            "total_sources":    real["active_sources"],
+            "sources":          real["sources"],
+            # Markets with a WFP price in its latest 4 months (Agricome and
+            # web prices are national or name their own market).
+            "total_markets_monitored": real["wfp_markets"],
+            "wfp_states":              real["wfp_states"],
+            "data_points_total":       f"{real['real_price_points']:,} real prices",
+            "historical_depth":        f"{real['first_real_year']} to present" if real["first_real_year"] else None,
+            "price_basis":             "Wholesale, NGN per tonne (Eggs: per crate). Meat, fish and eggs are shop "
+                                       "prices until a wholesale source is available.",
         },
         "update_frequency": {
-            "prices":       "Daily (pipeline runs every morning)",
-            "models":       "Weekly retrain (Mondays)",
-            "validation":   "Daily cross-reference against live market sources",
+            "prices":       "Daily at 06:00 Lagos time; web price search every 3 hours",
+            "models":       "Forecast method re-chosen daily from its accuracy on real prices",
+            "validation":   "Daily check of our prices against independent web prices (/crosscheck)",
         },
         "accuracy": {
-            "within_3pct_target": "13/17 commodities (livestock added July 2026)",
-            "avg_model_error":    "1.5% post-correction",
-            "validation_method":  "WFP ALPS cross-reference",
+            "definition":            "100 minus mean absolute % error of 1-month-ahead forecasts, "
+                                     "tested on real Agricome/WFP prices (details: /accuracy)",
+            "mean_1_month_pct":      round(sum(acc) / len(acc), 1) if acc else None,
+            "commodities_at_95_pct": f"{sum(a >= 95 for a in acc)}/{len(acc)}" if acc else None,
         },
         "pipeline_runs": {
             "intelligence_files": len(intel_files),
