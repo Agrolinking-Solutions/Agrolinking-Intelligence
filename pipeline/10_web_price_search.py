@@ -106,10 +106,12 @@ COMMODITY_DESCRIPTION = {
                       "bag price by 20 for NGN/MT). NOT Nigerian local rice",
 }
 
-PROMPT_TEMPLATE = """Find the most recent real wholesale price in Nigeria for: {commodity}.
+PROMPT_TEMPLATE = """Find the most recent real WHOLESALE price in Nigeria for: {commodity}.
 Report it in {unit}.
 
 Rules:
+- We price everything at wholesale level (bulk trade: bags, tonnes, crates from farms or wholesalers, exchange prices). Say which level the price you found is in "price_level". If you can only find a retail (shop, market-stall per-unit, supermarket) price, you may still return it, but set price_level to "retail" - never present a retail price as wholesale.
+- Say where the price is from in "market_location": the named market and city/state (e.g. "Dawanau, Kano"), or "national" for a national average or exchange price.
 - Only use a price you can attribute to a specific, named, dated source (a news article, market report, exchange price, or similar). Never estimate or infer a price from general knowledge.
 - Prefer the most recent date you can find. If nothing is available within roughly the last 60 days, return null rather than using an old or unclear figure.
 - If the source gives a price in a different unit (per kg, per bag, per crate, per litre, a different currency), convert it to {unit} yourself and show that conversion in "notes".
@@ -123,6 +125,8 @@ Respond with ONLY a single JSON object, no other text, in exactly this shape:
   "source_url": "<url or null>",
   "source_title": "<page/article title or null>",
   "source_date": "<date the source price is from, as stated by the source, or null>",
+  "price_level": "<wholesale, exchange, retail, farm-gate, or unknown>",
+  "market_location": "<named market and city/state, or national, or null>",
   "confidence": "<high, medium, or low>",
   "notes": "<brief note: unit conversion shown if any, why confidence is what it is, or why null>"
 }}"""
@@ -214,8 +218,9 @@ def write_estimate(cur, commodity_id: int, query_date, parsed: dict, focus: str 
     cur.execute("""
         INSERT INTO web_price_estimates
             (commodity_id, query_date, query_focus, price_ngn_mt, source_url, source_title,
-             source_date, source_snippet, model_confidence, model_used, raw_response)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             source_date, source_snippet, model_confidence, model_used, raw_response,
+             price_level, market_location)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (commodity_id, query_date, query_focus)
         DO UPDATE SET
             price_ngn_mt     = EXCLUDED.price_ngn_mt,
@@ -226,11 +231,15 @@ def write_estimate(cur, commodity_id: int, query_date, parsed: dict, focus: str 
             model_confidence = EXCLUDED.model_confidence,
             model_used       = EXCLUDED.model_used,
             raw_response     = EXCLUDED.raw_response,
+            price_level      = EXCLUDED.price_level,
+            market_location  = EXCLUDED.market_location,
             created_at       = now()
     """, (
         commodity_id, query_date, focus, price,
         parsed.get("source_url"), parsed.get("source_title"), parsed.get("source_date"),
         parsed.get("notes"), parsed.get("confidence"), MODEL_NAME, parsed.get("_raw_response"),
+        (str(parsed.get("price_level") or "unknown").strip().lower() or "unknown"),
+        parsed.get("market_location"),
     ))
 
 
@@ -325,7 +334,8 @@ def run_web_price_search(rotate: bool = False):
             if price:
                 n_ok += 1
                 logger.info(f"  {commodity:<15} N{float(price):>12,.0f}  "
-                            f"({parsed.get('confidence','?')})  {parsed.get('source_url','')}")
+                            f"({parsed.get('confidence','?')}, {parsed.get('price_level','?')}, "
+                            f"{parsed.get('market_location') or '?'})  {parsed.get('source_url','')}")
             else:
                 n_null += 1
                 logger.info(f"  {commodity:<15} no usable price found — {parsed.get('notes','')[:60]}")

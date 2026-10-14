@@ -58,9 +58,19 @@ def ensure_web_estimates_schema(cur):
     (the 3-hourly rotation searches the same commodity several ways a day).
     Adds query_focus (existing rows become 'general') and swaps the unique key
     (commodity_id, query_date) for (commodity_id, query_date, query_focus).
+    Also adds price_level and market_location (NULL on older rows).
     Idempotent; never deletes rows. Returns a list of what it changed.
     """
     changed = []
+    # What kind of price was found (wholesale / exchange / retail / farm-gate)
+    # and where - the platform prices everything wholesale, so only wholesale
+    # and exchange prices are used (14_promote, 16_cross_check).
+    for col in ("price_level", "market_location"):
+        cur.execute("SELECT 1 FROM information_schema.columns "
+                    "WHERE table_name = 'web_price_estimates' AND column_name = %s", (col,))
+        if cur.fetchone() is None:
+            cur.execute(f"ALTER TABLE web_price_estimates ADD COLUMN IF NOT EXISTS {col} TEXT")
+            changed.append(f"added {col}")
     cur.execute("SELECT 1 FROM information_schema.columns "
                 "WHERE table_name = 'web_price_estimates' AND column_name = 'query_focus'")
     if cur.fetchone() is None:

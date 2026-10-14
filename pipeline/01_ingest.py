@@ -156,7 +156,15 @@ WFP_COMMODITIES_WANTED = {
 }
 
 
-WHOLESALE_EQUIVALENT = {"Rice (local)", "Rice (foreign)"}
+WHOLESALE_EQUIVALENT = {"Rice (local)", "Rice (foreign)", "Sorghum"}
+# The platform prices everything at wholesale. WFP has only ever published
+# RETAIL prices for beans (Borno/Yobe/Adamawa), but it published both retail
+# and wholesale for cowpeas - the same product family - in the same markets
+# and months (13 states, 2014-2023). Their median wholesale/retail ratio
+# (~0.90 brown, ~0.93 white) converts beans retail to a wholesale equivalent.
+WHOLESALE_PROXY = {"Beans (red)": "Cowpeas (brown)", "Beans (white)": "Cowpeas (white)"}
+# Meat, fish and eggs: WFP has retail only and no wholesale proxy, so these
+# stay retail and are labelled market_type "retail" (a known gap).
 
 
 def convert_wfp_to_ngn_mt(price: float, unit: str) -> float:
@@ -165,6 +173,22 @@ def convert_wfp_to_ngn_mt(price: float, unit: str) -> float:
     if factor is None:
         return np.nan
     return price * factor
+
+
+def wholesale_proxy_ratios(wfp: pd.DataFrame) -> dict:
+    """{commodity: (wholesale/retail ratio, market-months used, proxy)} for WHOLESALE_PROXY."""
+    out = {}
+    for commodity, proxy in WHOLESALE_PROXY.items():
+        p = wfp[wfp["commodity"] == proxy].copy()
+        p["mt"] = [convert_wfp_to_ngn_mt(pr, u) for pr, u in zip(p["price"], p["unit"])]
+        both = p.pivot_table(index=["market", "date"], columns="pricetype", values="mt",
+                             aggfunc="median").dropna(subset=["Wholesale", "Retail"])                if {"Wholesale", "Retail"} <= set(p["pricetype"]) else pd.DataFrame()
+        if len(both) < 100:
+            logger.warning(f"  WFP: only {len(both)} {proxy} market-months with both price types - "
+                           f"{commodity} stays retail")
+            continue
+        out[commodity] = (float((both["Wholesale"] / both["Retail"]).median()), len(both), proxy)
+    return out
 
 
 def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -182,6 +206,7 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
         raise FileNotFoundError(f"Missing: {path}")
 
     wfp = pd.read_csv(path, parse_dates=["date"])
+    proxy_ratios = wholesale_proxy_ratios(wfp)
 
     # Filter to only the commodities we need
     wfp = wfp[wfp["commodity"].isin(WFP_COMMODITIES_WANTED.keys())].copy()
@@ -282,7 +307,17 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
         logger.info(f"  WFP: {commodity} retail-only months scaled by {ratio:.3f} "
                     f"to wholesale-equivalent ({int(retail_only.sum())} months)")
 
-    comm_agg = (wide[["date", "commodity_std", "price_ngn_mt", "notes"]]
+    for commodity, (ratio, n_pairs, proxy) in proxy_ratios.items():
+        retail_only = (wide["commodity_std"] == commodity) & wide["Wholesale"].isna() & wide["Retail"].notna()
+        wide.loc[retail_only, "price_ngn_mt"] = wide.loc[retail_only, "Retail"] * ratio
+        wide.loc[retail_only, "notes"] = (f"WFP VAM retail × {ratio:.3f} (median wholesale/retail ratio "
+                                          f"of {proxy}, {n_pairs} market-months) — wholesale-equivalent NGN/MT")
+        logger.info(f"  WFP: {commodity} retail scaled by {ratio:.3f} ({proxy} wholesale/retail) "
+                    f"to wholesale-equivalent ({int(retail_only.sum())} months)")
+    wide["market_type"] = np.where(wide["notes"].str.contains(r"\(retail\)", regex=True),
+                                   "retail", "wholesale")
+
+    comm_agg = (wide[["date", "commodity_std", "price_ngn_mt", "notes", "market_type"]]
                 .dropna(subset=["price_ngn_mt"])
                 .rename(columns={"commodity_std": "commodity"}))
 
@@ -293,7 +328,6 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
     comm_agg["currency"]           = "NGN"
     comm_agg["unit"]               = "NGN/MT"
     comm_agg["source"]             = "WFP Nigeria Food Prices"
-    comm_agg["market_type"]        = "wholesale"
     comm_agg["region"]             = "National"
     comm_agg["fx_rate"]            = np.nan
     comm_agg["rainfall_index"]     = np.nan

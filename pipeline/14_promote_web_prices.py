@@ -13,6 +13,8 @@ A web price is promoted only if ALL of these hold:
   - the commodity has no fresh real price: Agricome/primary older than
     FRESH_DAYS and WFP older than FRESH_DAYS_WFP
   - the model's own confidence is "high" or "medium"
+  - it is a wholesale or exchange price (the platform's price basis);
+    retail, farm-gate and rows saved before the level was recorded are not
   - it names a source URL
   - its source date parses, is not in the future, and is at most
     MAX_SOURCE_AGE_DAYS old
@@ -36,6 +38,7 @@ from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES
+from pipeline.pg_commodities import ensure_web_estimates_schema
 
 logger.remove()
 logger.add(sys.stdout,
@@ -71,6 +74,7 @@ MAX_BAND             = 0.40
 CORROBORATE_ABOVE    = 0.15
 CORROBORATION_TOLERANCE = 0.10
 ACCEPT_CONFIDENCE    = {"high", "medium"}
+ACCEPT_LEVELS        = {"wholesale", "exchange"}
 
 WEB_CSV_COLUMNS = ["commodity", "week_start_date", "price", "currency", "unit", "source",
                    "market_type", "region", "fx_rate", "rainfall_index", "extraction_date",
@@ -110,6 +114,8 @@ def is_corroborated(cand, peers):
             continue
         if str(p.get("confidence") or "").strip().lower() not in ACCEPT_CONFIDENCE:
             continue
+        if str(p.get("price_level") or "").strip().lower() not in ACCEPT_LEVELS:
+            continue
         if abs(p["price"] - cand["price"]) / cand["price"] <= CORROBORATION_TOLERANCE:
             return True
     return False
@@ -126,6 +132,9 @@ def evaluate_candidate(cand, last_real_price, last_real_date, query_date, peers=
         return False, "no price", None
     if str(cand.get("confidence") or "").strip().lower() not in ACCEPT_CONFIDENCE:
         return False, f"confidence '{cand.get('confidence')}' below medium", None
+    level = str(cand.get("price_level") or "").strip().lower()
+    if level not in ACCEPT_LEVELS:
+        return False, f"price level '{level or 'not recorded'}' - we only use wholesale or exchange prices", None
     if not (cand.get("source_url") or "").strip():
         return False, "no source URL", None
     sd = parse_source_date(cand.get("source_date"))
@@ -174,7 +183,8 @@ def fetch_candidates(conn, since):
     with conn.cursor() as cur:
         cur.execute("""
             SELECT c.name, w.query_date, w.price_ngn_mt, w.source_url, w.source_title,
-                   w.source_date, w.source_snippet, w.model_confidence
+                   w.source_date, w.source_snippet, w.model_confidence,
+                   w.price_level, w.market_location
             FROM web_price_estimates w
             JOIN commodities c ON c.commodity_id = w.commodity_id
             WHERE w.query_date >= %s AND w.price_ngn_mt IS NOT NULL
@@ -183,7 +193,8 @@ def fetch_candidates(conn, since):
         rows = cur.fetchall()
     return [{"commodity": r[0], "query_date": r[1], "price": float(r[2]) if r[2] is not None else None,
              "source_url": r[3], "source_title": r[4], "source_date": r[5],
-             "notes": r[6], "confidence": r[7]} for r in rows]
+             "notes": r[6], "confidence": r[7], "price_level": r[8],
+             "market_location": r[9]} for r in rows]
 
 
 def load_withdrawn():
@@ -232,7 +243,8 @@ def promote(candidates, state, today):
         st = state.get(com, {})
         d = {"commodity": com, "query_date": str(c["query_date"]), "price": c["price"],
              "source_url": c["source_url"], "source_date": c["source_date"],
-             "confidence": c["confidence"]}
+             "confidence": c["confidence"], "price_level": c.get("price_level"),
+             "market_location": c.get("market_location")}
         hq = st.get("hq_date")
         direct, wfp = st.get("direct_date"), st.get("wfp_date")
         fresh = is_fresh(direct, wfp, today)
@@ -254,7 +266,8 @@ def promote(candidates, state, today):
             seen.add((com, str(sd)))
             # later candidates for the same commodity must beat this one
             st["real_date"], st["real_price"] = sd, c["price"]
-            note = (f"Web search (Claude API), {c['confidence']} confidence - source: "
+            note = (f"Web search (Claude API), {c['confidence']} confidence, {c.get('price_level')} "
+                    f"price ({c.get('market_location') or 'location not stated'}) - source: "
                     f"{c['source_title'] or 'untitled'} <{c['source_url']}> dated {sd}")
             rows.append([com, str(sd), f"{c['price']}", "NGN", "NGN/MT", "Web search", "wholesale",
                          "National", "", "", str(today), "0.7", "False", note, "historical"])
@@ -290,6 +303,9 @@ def run_promotion():
 
     today = datetime.now(timezone.utc).date()
     try:
+        with conn.cursor() as cur:
+            ensure_web_estimates_schema(cur)   # price_level / market_location columns
+        conn.commit()
         candidates = fetch_candidates(conn, today - timedelta(days=LOOKBACK_DAYS))
     finally:
         conn.close()

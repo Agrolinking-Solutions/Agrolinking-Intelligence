@@ -271,6 +271,8 @@ CREATE TABLE IF NOT EXISTS web_price_estimates (
     source_date     TEXT,                       -- date the model believes the source price is from, as found (not parsed/validated)
     source_snippet  TEXT,                       -- the text the price was extracted from, for audit
     model_confidence TEXT,                      -- the model's own stated confidence: high | medium | low
+    price_level     TEXT,                       -- wholesale | exchange | retail | farm-gate | unknown (NULL on rows before 2026-10-14)
+    market_location TEXT,                       -- named market and city/state, or 'national'
     model_used      TEXT NOT NULL,
     raw_response    TEXT,                       -- full model output, for debugging bad extractions
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),

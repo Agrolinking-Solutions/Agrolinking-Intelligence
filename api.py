@@ -1832,6 +1832,31 @@ def commodity_history(
     }
 
 
+@app.get("/crosscheck", tags=["Accuracy"])
+def price_crosscheck(
+    status: Optional[str] = Query(None, description="Only this status, e.g. disagree"),
+):
+    """
+    Daily check of our prices against independent web prices.
+
+    Everything is priced at wholesale (NGN per tonne; Eggs per crate). For each
+    commodity: our latest real price (source, date, and whether it is
+    wholesale, a wholesale equivalent, or a shop price), the wholesale and
+    exchange prices found on the web in the last two weeks (one per website),
+    and a status - agree (within 15%), check (15-30%), disagree (over 30%),
+    no web price, or our price is old. Built by pipeline/16_cross_check.py.
+    """
+    try:
+        with open(os.path.join(BASE_DIR, "outputs", "logs", "price_crosscheck.json")) as f:
+            rep = json.load(f)
+    except Exception:
+        raise HTTPException(status_code=404, detail="No cross-check yet - it runs with the daily pipeline.")
+    if status:
+        rep["commodities"] = {c: e for c, e in rep.get("commodities", {}).items()
+                              if e.get("status", "").lower() == status.lower()}
+    return rep
+
+
 @app.get("/accuracy", tags=["Accuracy"])
 def forecast_accuracy(
     commodity: Optional[str] = Query(None, description="One commodity, e.g. Rice (local). Omit for all."),

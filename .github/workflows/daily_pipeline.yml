@@ -178,6 +178,16 @@ jobs:
         continue-on-error: true
         run: python pipeline/09_staleness_check.py
 
+      # Compares each commodity's latest real price with the wholesale web
+      # prices found in the last two weeks and flags disagreements (>30%)
+      # for a person to check. Report only - never blocks publishing.
+      # Output: outputs/logs/price_crosscheck.json, served at /crosscheck.
+      - name: 09b - Price cross-check
+        continue-on-error: true
+        env:
+          TSDB_URL: ${{ secrets.TSDB_URL }}
+        run: python pipeline/16_cross_check.py
+
       # (Step 10, the web price search, now runs at the start of the job as
       # 00b, so the same day's web prices can fill stale commodities.)
 
