@@ -7,17 +7,45 @@ name: Daily Forecast Pipeline
 
 on:
   schedule:
-    # 05:00 UTC = 06:00 Lagos (WAT, UTC+1). Adjust if you want a
-    # different time of day — GitHub's cron can be a few minutes late
-    # during peak load, that's normal.
-    - cron: "0 5 * * *"
+    # GitHub delays or drops scheduled runs at busy times, worst on the hour
+    # and half hour: the 05:00 UTC slot ran 5 hours late on 14 Oct 2026 and
+    # not at all on 15 Oct. So: off-peak minutes, plus a backup slot that
+    # does nothing if the first one already ran (see the gate job).
+    - cron: "17 4 * * *"    # 05:17 Lagos (WAT, UTC+1)
+    - cron: "43 6 * * *"    # 07:43 Lagos - backup, skipped if today's run is done
   workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
 
 permissions:
   contents: write   # required so the workflow can commit + push results
 
+# A backup run that fires while the first is still going waits for it, then
+# its gate sees today's commit and stops.
+concurrency:
+  group: daily-pipeline
+  cancel-in-progress: false
+
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+      - id: check
+        run: |
+          today=$(date -u +'%Y-%m-%d')
+          if [ "${{ github.event_name }}" = "schedule" ] && git log -n 50 --format=%s | grep -q "Automated daily pipeline run - $today"; then
+            echo "Today's daily run already committed - nothing to do."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
   run-pipeline:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 180   # ARIMA order search + Prophet can be slow; generous ceiling
 

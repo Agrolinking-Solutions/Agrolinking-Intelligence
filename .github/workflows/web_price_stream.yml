@@ -13,9 +13,10 @@ name: Web Price Stream
 
 on:
   schedule:
-    # :30 past every third hour UTC (00:30, 03:30 ... 21:30) - clear of the
-    # 05:00 UTC daily pipeline start.
-    - cron: "30 */3 * * *"
+    # 41 minutes past every third hour UTC (00:41, 03:41 ... 21:41). Was :30,
+    # which GitHub often dropped at busy times - only ~4 of 8 runs happened
+    # on 14 Oct 2026.
+    - cron: "41 */3 * * *"
   workflow_dispatch: {}
 
 permissions:
