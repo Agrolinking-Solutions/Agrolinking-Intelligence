@@ -932,7 +932,7 @@ def generate_validated_alert(validated: dict, run_date: datetime) -> str:
         f"AGROLINKING COMMODITY INTELLIGENCE",
         f"Validated Daily Price Alert",
         f"{run_date.strftime('%A, %d %B %Y')}",
-        f"Cross-referenced: NGX | WFP | Agricome Africa | Market sources",
+        f"Checked against latest real prices: Agricome | WFP | named web sources",
         f"{'=' * 55}",
         f"{'Commodity':<22} {'Price (NGN/MT)':>15} {'vs Ref':>8}  {'Trend':>6}",
         f"{'-' * 55}",

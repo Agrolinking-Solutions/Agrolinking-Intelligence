@@ -268,10 +268,20 @@ def compute_30day_outlook(validated_forecast):
 
 def compute_confidence_scores(run_date):
     """
-    Derive model confidence directly from the validated forecast JSON.
-    Confidence = 100 - error_after_pct, floored at 0, capped at 99.
-    Reads from the validated forecast file, not a separate report file.
+    Model confidence per commodity = the forecast method's measured 1-month
+    accuracy on real prices (100 - mean abs % error, rolling backtest in
+    13_select_forecaster.py), capped at 99.
+
+    It used to be 100 - error_after_pct, the gap to the reference price AFTER
+    06_validate had blended the forecast toward that reference - about 99%
+    by construction, so it said nothing about forecast quality. That
+    validation gap is still reported as error_after_pct.
     """
+    try:
+        with open(os.path.join(BASE, "outputs", "backtest", "model_selection.json")) as f:
+            selection = json.load(f)
+    except Exception:
+        selection = {}
     # Load latest validated forecast
     val_files = sorted(glob.glob(os.path.join(VAL_DIR, "forecast_validated_*.json")))
     if not val_files:
@@ -295,9 +305,14 @@ def compute_confidence_scores(run_date):
         if err == 0 and not within and not vld:
             continue
 
-        score = round(max(0, min(99, 100 - err)), 1)
+        acc = (selection.get(commodity) or {}).get("accuracy_4w")
+        if acc is None:
+            continue    # no measured accuracy - don't invent a confidence
+        score = round(max(0, min(99, float(acc))), 1)
         scores[commodity] = {
             "confidence_pct":  score,
+            "measured_as":     "1-month forecast accuracy on real prices (backtest)",
+            "method":          (selection.get(commodity) or {}).get("method"),
             "error_after_pct": round(err, 2),
             "within_target":   within,
             "grade":           "A" if score >= 95 else

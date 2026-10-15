@@ -201,7 +201,10 @@ def forecast_arima(commodity, n_weeks):
         return None
 
 
-CHAMPION_MODE = os.environ.get("FORECAST_CHAMPION_MODE", "shadow").lower()
+# "live" is the production setting. It used to be set only in the GitHub
+# workflow, so a local run silently fell back to the old ML ensemble and
+# showed forecasts the website never shows (Cocoa -64% in 6 months, Oct 2026).
+CHAMPION_MODE = os.environ.get("FORECAST_CHAMPION_MODE", "live").lower()
 SELECTION_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                               "outputs", "backtest", "model_selection.json")
 _selection_cache = None
@@ -679,9 +682,6 @@ def forecast_commodity(commodity, run_date):
 
     # Blend
     ensemble = blend_forecasts(model_forecasts, weights, N_WEEKS)
-    if ensemble is None:
-        logger.warning(f"  [{commodity}] No forecasts available — skipping")
-        return None
 
     # ── Champion forecaster (backtest-selected, see 13_select_forecaster.py) ──
     # The ML ensemble lost to "last price carried forward" in the rolling
@@ -690,6 +690,11 @@ def forecast_commodity(commodity, run_date):
     # next to the live ensemble without changing what clients see; "live"
     # replaces the ensemble; "off" skips it. Set FORECAST_CHAMPION_MODE.
     champion = build_champion(commodity, hist_df, last_price, last_date, future_df)
+    # The champion needs no trained models, so in live mode a commodity
+    # without them (e.g. new Rice types before 04_train has run) still gets one.
+    if ensemble is None and not (champion and CHAMPION_MODE == "live"):
+        logger.warning(f"  [{commodity}] No forecasts available — skipping")
+        return None
     if champion and CHAMPION_MODE == "live":
         base = float(hist_df["price_ngn_mt"].iloc[-1])
         scale = base / last_price if last_price > 0 else 1.0
