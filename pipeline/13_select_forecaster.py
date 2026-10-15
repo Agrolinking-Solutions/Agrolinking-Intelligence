@@ -153,6 +153,14 @@ def run_selection():
             "tie_break": tie_break,
             "updated": today,
         }
+        if n4 < MIN_TARGETS:
+            # One or two real prices can't measure accuracy (Yellow maize had
+            # 1 AFEX price on 15 Oct 2026 and scored "99.1%"). Report none, so
+            # the dashboard confidence and the averages leave it out.
+            for k in ("mape_4w", "mape_8w", "accuracy_4w", "accuracy_8w", "accuracy_13w",
+                      "accuracy_26w", "naive_accuracy_4w", "naive_accuracy_26w", "direction_hit_4w"):
+                out[c][k] = None
+            out[c]["note"] = f"only {n4} real price(s) to test against - accuracy not measured yet"
         logger.info(f"  {c:<16} -> {best:<12}{' (tie)' if tie_break else ''} acc 4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "
                     f"(naive {out[c]['naive_accuracy_4w']}% / {out[c]['naive_accuracy_26w']}%) n={n4}")
     with open(SELECTION, "w") as f:

@@ -362,14 +362,24 @@ def summary():
     except Exception:
         pass
 
+    # Measured forecast accuracy on real prices (13_select_forecaster.py),
+    # not the post-correction validation gap above, which is ~100% by
+    # construction (06_validate pulls each forecast toward the reference).
+    acc = measured_accuracy()
+    try:
+        sources = [x["name"] for x in _real_data_summary()["sources"] if x["active"]]
+    except Exception:
+        sources = []
+
     return {
         "commodities_tracked":    len(forecast),
-        "verified_accuracy":      f"{within_target}/{total_validated}",
-        "verified_accuracy_pct":  round(within_target / total_validated * 100, 1) if total_validated > 0 else 0,
-        "avg_model_error_pct":    avg_error,
+        "verified_accuracy":      acc["at_95_label"],
+        "verified_accuracy_pct":  acc["mean_1_month_pct"],
+        "avg_model_error_pct":    acc["mean_1_month_error_pct"],
         "last_pipeline_run":      run_date,
-        "accuracy_target":        "within 3% of live market prices",
-        "data_sources":           ["Agricome Africa", "WFP Nigeria", "NGX", "Market Naija TV", "LCFE"],
+        "accuracy_target":        "1-month forecast accuracy, tested on real prices (goal 95%)",
+        "validation_gap_pct":     avg_error,          # today's price vs reference after correction
+        "data_sources":           sources,
         "zones":                  6,
         "states":                 12,
         "forecast_horizons":      VALID_HORIZONS,
@@ -1905,7 +1915,7 @@ def forecast_accuracy(
             "live": (live.get("by_commodity") or {}).get(c),
         }
     return {
-        "accuracy_definition": "100 minus mean absolute percentage error, against real Agricome/WFP prices",
+        "accuracy_definition": "100 minus mean absolute percentage error, against real prices (Agricome, WFP, FEWS NET, AFEX, field data)",
         "backtest_updated": next((v.get("updated") for v in backtest.values() if isinstance(v, dict)), None),
         "live_updated": live.get("updated"),
         "live_overall": live.get("overall"),
@@ -2190,6 +2200,22 @@ def check_alerts(email: str = Depends(get_current_user_email)):
 
 # ── Meta / platform stats ──────────────────────────────────────────────────
 
+def measured_accuracy():
+    """Mean 1-month accuracy on real prices and how many commodities reach 95%."""
+    try:
+        with open(os.path.join(BASE_DIR, "outputs", "backtest", "model_selection.json")) as f:
+            sel = json.load(f)
+    except Exception:
+        sel = {}
+    acc = [v["accuracy_4w"] for v in sel.values() if isinstance(v, dict) and v.get("accuracy_4w") is not None]
+    return {
+        "mean_1_month_pct":       round(sum(acc) / len(acc), 1) if acc else None,
+        "mean_1_month_error_pct": round(100 - sum(acc) / len(acc), 1) if acc else None,
+        "at_95": sum(a >= 95 for a in acc), "measured": len(acc),
+        "at_95_label": f"{sum(a >= 95 for a in acc)}/{len(acc)}" if acc else None,
+    }
+
+
 # Where our REAL prices come from, counted from the data itself so the
 # dashboard's "N markets · N sources" can't drift from the truth. (This used to
 # be a hand-written list naming feeds we never ingested - NGX/LCFE, Market
@@ -2270,12 +2296,7 @@ def platform_meta():
     intel_files = glob.glob(os.path.join(BASE_DIR, "outputs", "intelligence", "*.json"))
     val_files   = glob.glob(os.path.join(BASE_DIR, "outputs", "forecasts", "validated", "*.json"))
     real = _real_data_summary()
-    try:
-        with open(os.path.join(BASE_DIR, "outputs", "backtest", "model_selection.json")) as f:
-            sel = json.load(f)
-        acc = [v["accuracy_4w"] for v in sel.values() if isinstance(v, dict) and v.get("accuracy_4w") is not None]
-    except Exception:
-        acc = []
+    acc = measured_accuracy()
 
     return {
         "platform":          "Agrolinking Commodity Intelligence",
@@ -2304,9 +2325,9 @@ def platform_meta():
         },
         "accuracy": {
             "definition":            "100 minus mean absolute % error of 1-month-ahead forecasts, "
-                                     "tested on real Agricome/WFP prices (details: /accuracy)",
-            "mean_1_month_pct":      round(sum(acc) / len(acc), 1) if acc else None,
-            "commodities_at_95_pct": f"{sum(a >= 95 for a in acc)}/{len(acc)}" if acc else None,
+                                     "tested on real partner, exchange and market-monitor prices (details: /accuracy)",
+            "mean_1_month_pct":      acc["mean_1_month_pct"],
+            "commodities_at_95_pct": acc["at_95_label"],
         },
         "pipeline_runs": {
             "intelligence_files": len(intel_files),
