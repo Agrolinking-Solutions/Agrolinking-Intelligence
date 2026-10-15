@@ -252,7 +252,7 @@ def train_commodity(commodity):
     # train only on real data (last 2 years of Agricome/WFP).
     if commodity in REAL_DATA_ONLY:
         import pandas as pd
-        real_sources = {"Agricome", "WFP", "Agrolinking_primary"}
+        real_sources = {"Agricome", "WFP", "Agrolinking_primary", "AFEX"}
         if "data_source" in df.columns:
             real_df = df[df["data_source"].isin(real_sources)]
             if len(real_df) >= 20:

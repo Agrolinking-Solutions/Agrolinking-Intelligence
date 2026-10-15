@@ -43,7 +43,7 @@ FEATURES_DIR = os.path.join(os.path.dirname(PATHS["master"]), "features")
 OUT_DIR      = os.path.join(ROOT, "outputs", "backtest")
 SELECTION    = os.path.join(OUT_DIR, "model_selection.json")
 
-REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary"}
+REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "AFEX"}
 # 1, 2, 3 and 6 months ahead - the dashboard shows all of these, and
 # seasonal effects only show up beyond a few weeks. Nearer horizons weigh more.
 HORIZONS     = (4, 8, 13, 26)

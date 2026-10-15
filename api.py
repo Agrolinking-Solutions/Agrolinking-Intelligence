@@ -1639,7 +1639,7 @@ def _load_history_from_csv(commodities=None, start=None, end=None):
 # Lower rank = stronger evidence; a weekly/monthly point takes the strongest
 # source among the rows it averages.
 SOURCE_CATEGORY = {
-    "Agricome": "real", "WFP": "real", "Agrolinking_primary": "real",
+    "Agricome": "real", "WFP": "real", "Agrolinking_primary": "real", "AFEX": "real",
     "Web_search": "web",
     "Agrolinking_validated": "model",
     "WB_RTP_estimate": "estimate",
@@ -1649,7 +1649,7 @@ SOURCE_RANK = {"real": 0, "web": 1, "model": 2, "estimate": 3, "interpolated": 4
 # "real" and "web" are both REAL observed market prices - they differ only in
 # where we got them. Everything else is an estimate of some kind.
 SOURCE_LEGEND = {
-    "real":         "Real price - from our data partners (Agricome, WFP, Agrolinking field data)",
+    "real":         "Real price - from our data partners (Agricome, WFP, AFEX exchange, Agrolinking field data)",
     "web":          "Real price - published online by a named, dated source and cross-checked",
     "model":        "Estimate - the platform's daily figure between real prices, anchored to the latest one",
     "estimate":     "Estimate - World Bank Real-Time Prices model, where no real price exists",
@@ -2200,6 +2200,8 @@ SOURCE_INFO = {
     "WFP":                 {"name": "WFP Nigeria Food Price Monitor", "type": "Monthly market survey (published ~4 weeks late)",
                             "url": "data.humdata.org/dataset/wfp-food-prices-for-nigeria"},
     "Web_search":          {"name": "Web price search", "type": "Named, dated wholesale prices found online every 3 hours, checked before use"},
+    "AFEX":                {"name": "AFEX Commodities Exchange (via Mansa Markets)", "type": "Daily exchange prices",
+                            "url": "mansamarkets.com/commodities"},
     "Agrolinking_primary": {"name": "Agrolinking field collection", "type": "Field price collection"},
 }
 ACTIVE_SOURCE_DAYS = 90

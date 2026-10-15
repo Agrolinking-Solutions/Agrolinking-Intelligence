@@ -43,7 +43,7 @@ OUT_DIR       = os.path.join(ROOT, "outputs", "backtest")
 LOG_PATH      = os.path.join(OUT_DIR, "forecast_log.csv")
 SUMMARY_PATH  = os.path.join(OUT_DIR, "live_accuracy.json")
 
-REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary"}
+REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "AFEX"}
 HORIZONS     = {"weekly": "1 week", "monthly": "1 month", "3_months": "3 months", "6_months": "6 months"}
 # Real prices are weekly (Agricome) or monthly (WFP, stored on the nearest
 # Monday), so allow a few days either side of the target date.

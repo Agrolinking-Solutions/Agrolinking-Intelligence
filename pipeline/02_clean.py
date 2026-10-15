@@ -23,7 +23,7 @@ logger.add(sys.stdout,
 
 # Web_search = web prices that passed 14_promote_web_prices.py's checks
 # (only ever fills commodities whose Agricome/WFP price has gone stale).
-REAL_SOURCES = {"Agricome","WFP","Agrolinking_primary","Web_search"}
+REAL_SOURCES = {"Agricome","WFP","Agrolinking_primary","AFEX","Web_search"}
 # Rows that cleaning treats as fixed points (never purged, smoothed or
 # outlier-replaced, and used to interpolate gaps): real prices plus World Bank
 # estimates. Estimates only fill time not covered by Agricome/WFP data — see

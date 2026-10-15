@@ -48,7 +48,7 @@ logger.add(sys.stdout,
     format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
     level="INFO")
 
-HIGH_QUALITY_SOURCES = {"Agricome", "WFP", "Agrolinking_primary"}
+HIGH_QUALITY_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "AFEX"}
 ANY_REAL_SOURCES     = HIGH_QUALITY_SOURCES | {"Web_search"}
 # Baseline for the sanity band / "is it newer" checks: the latest Agricome/
 # WFP/primary price or World Bank estimate. Earlier web prices are NOT a

@@ -55,6 +55,7 @@ load_blocked_sites = _promote.load_blocked_sites
 # Our price = the latest REAL price the platform holds (what it validates
 # forecasts against), including web prices already promoted by step 14.
 PARTNER_SOURCES     = {"Agricome": "Agricome", "WFP": "WFP", "Agrolinking_primary": "Agrolinking field data",
+                       "AFEX": "AFEX exchange",
                        "Web_search": "a web price accepted earlier"}
 COMPARE_LEVELS      = {"wholesale", "exchange"}
 ACCEPT_CONFIDENCE   = {"high", "medium"}

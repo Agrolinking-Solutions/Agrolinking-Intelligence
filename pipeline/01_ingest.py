@@ -110,6 +110,43 @@ def load_web_prices() -> pd.DataFrame:
     return df[cols].copy()
 
 
+# AFEX commodity-exchange prices (data/raw/afex_prices.csv, read daily from
+# Mansa Markets by fetch_afex_prices.py) used as REAL prices, per commodity,
+# only where a person decided they fit. Yellow maize (John, 15 Oct 2026): no
+# real price since 2023; AFEX lists one "maize" price without saying white or
+# yellow, and the two trade within ~2% (WFP, 1,320 market-months).
+AFEX_AS_REAL = {"maize": ["Maize (yellow)"]}
+
+
+def load_afex_prices() -> pd.DataFrame:
+    """AFEX exchange rows for AFEX_AS_REAL, one per commodity and week (the latest)."""
+    cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",
+            "region", "fx_rate", "rainfall_index", "data_quality_score", "is_validated",
+            "notes", "data_source"]
+    path = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "afex_prices.csv")
+    if not os.path.exists(path):
+        return pd.DataFrame(columns=cols)
+    a = pd.read_csv(path, parse_dates=["as_of_date"])
+    a = a[(a["price_type"] == "exchange") & a["mansa_commodity"].isin(AFEX_AS_REAL)]
+    rows = []
+    for _, r in a.iterrows():
+        for ours in AFEX_AS_REAL[r["mansa_commodity"]]:
+            rows.append({"commodity": ours, "date": r["as_of_date"], "price_ngn_mt": float(r["price_ngn_mt"]),
+                         "currency": "NGN", "unit": "NGN/MT", "source": "AFEX via Mansa Markets",
+                         "market_type": "exchange", "region": "National", "fx_rate": np.nan,
+                         "rainfall_index": np.nan, "data_quality_score": 0.9, "is_validated": True,
+                         "notes": (f"AFEX exchange price, {r['price_as_shown']} as of "
+                                   f"{r['as_of_date'].date()} ({r['mansa_commodity']}, type not stated) - {r['url']}"),
+                         "data_source": "AFEX"})
+    if not rows:
+        return pd.DataFrame(columns=cols)
+    df = pd.DataFrame(rows)
+    df["week"] = df["date"] - pd.to_timedelta(df["date"].dt.dayofweek, unit="D")
+    df = df.sort_values("date").groupby(["commodity", "week"], as_index=False).last()
+    logger.success(f"AFEX exchange prices loaded: {len(df):,} rows | {sorted(df['commodity'].unique())}")
+    return df[cols].copy()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PART 2 — LOAD WFP + CONVERT UNITS → NGN/MT
 # ─────────────────────────────────────────────────────────────────────────────
@@ -384,7 +421,7 @@ def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
 
     # Sort: Agricome first, WFP second, web-sourced last — so when we drop
     # duplicates, the higher-quality row is kept
-    source_priority = {"Agricome": 0, "WFP": 1, "Web_search": 2, "WB_RTP_estimate": 3}
+    source_priority = {"Agricome": 0, "WFP": 1, "AFEX": 1.5, "Web_search": 2, "WB_RTP_estimate": 3}
     combined["_priority"] = combined["data_source"].map(source_priority).fillna(9)
     combined = combined.sort_values(["commodity", "date", "_priority"])
 
@@ -455,7 +492,7 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         mislabelled_estimate = ((existing["data_source"] == "Agricome")
                                 & existing["notes"].astype(str).str.contains("World Bank RTP|DERIVED:", regex=True))
         existing_historical = existing[(existing["record_type"] == "historical")
-                                       & (existing["data_source"] != "Web_search")
+                                       & ~existing["data_source"].isin(["Web_search", "AFEX"])
                                        & ~stale_wfp & ~mislabelled_estimate]
         forecast_rows = existing[existing["record_type"] == "forecast"]
         # Validated_actual rows — today's forecast, confirmed accurate by
@@ -477,11 +514,11 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         # highest priority — just ingested (web-sourced still ranks below any
         # real row, including Agrolinking_primary rows that live only in master)
         master_df["_priority"] = master_df["data_source"].map(
-            {"Web_search": 1.5, "WB_RTP_estimate": 1.8}).fillna(0)
+            {"AFEX": 1.2, "Web_search": 1.5, "WB_RTP_estimate": 1.8}).fillna(0)
 
         # Tag existing rows by source priority
         existing_historical["_priority"] = existing_historical["data_source"].map({
-            "Agricome": 0, "Agrolinking_primary": 0, "WFP": 1, "Web_search": 1.5,
+            "Agricome": 0, "Agrolinking_primary": 0, "WFP": 1, "AFEX": 1.2, "Web_search": 1.5,
             "WB_RTP_estimate": 1.8,
             "Synthetic (World Bank/FAO × FX)": 3,
             "Interpolated": 4, "Agrolinking_old": 5,
@@ -607,7 +644,7 @@ def run_ingestion() -> pd.DataFrame:
 
     agricome_df           = load_agricome()
     wfp_commodity_df, fuel_df = load_wfp()
-    web_df                = load_web_prices()
+    web_df                = pd.concat([load_web_prices(), load_afex_prices()], ignore_index=True)
     master_df             = merge_sources(agricome_df, wfp_commodity_df, web_df)
     save_outputs(master_df, fuel_df)
 

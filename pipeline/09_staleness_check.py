@@ -31,7 +31,7 @@ logger.add(sys.stdout,
     format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
     level="INFO")
 
-REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "Web_search"}
+REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "AFEX", "Web_search"}
 
 # Thresholds — tuned to how often each commodity's real source SHOULD
 # update. Agricome-native commodities are scraped weekly, so >45 days

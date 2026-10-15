@@ -35,7 +35,7 @@ warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES
 
-REAL_SOURCES = {"Agricome", "Agrolinking_primary", "WFP", "Web_search"}
+REAL_SOURCES = {"Agricome", "Agrolinking_primary", "WFP", "AFEX", "Web_search"}
 # Reference price is taken from the latest real/web-sourced price in master
 # when it is at most this many days old; otherwise validation falls back to
 # the hand-entered MANUAL_PRICES / WEB_REFERENCE_PRICES below.

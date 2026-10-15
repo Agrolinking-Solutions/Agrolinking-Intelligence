@@ -10,7 +10,7 @@ import pandas as pd
 
 from config.settings import PATHS
 
-DIRECT_SOURCES = {"Agricome", "Agrolinking_primary"}
+DIRECT_SOURCES = {"Agricome", "Agrolinking_primary", "AFEX"}
 FRESH_DAYS     = 10   # Agricome/primary price newer than this => no gap
 # WFP is monthly and published ~4 weeks late, so a 10-day window made every
 # WFP commodity look like a gap and let web prices compete with real WFP

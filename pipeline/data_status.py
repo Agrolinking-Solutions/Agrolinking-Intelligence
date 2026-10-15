@@ -106,7 +106,7 @@ def build():
     # 4. Shop prices still in use
     try:
         m = pd.read_csv(PATHS["master"], parse_dates=["date"])
-        real = m[m["data_source"].isin({"Agricome", "WFP", "Agrolinking_primary", "Web_search"})].sort_values("date")
+        real = m[m["data_source"].isin({"Agricome", "WFP", "Agrolinking_primary", "AFEX", "Web_search"})].sort_values("date")
         recent = real[real["date"] >= pd.Timestamp.now() - pd.Timedelta(days=90)]
         retail = [c for c in COMMODITIES
                   if not recent[recent.commodity == c].empty
