@@ -125,6 +125,13 @@ jobs:
         continue-on-error: true
         run: python pipeline/refresh_wfp_hdx.py
 
+      # AFEX commodity-exchange prices for Nigeria (daily, dated), read from
+      # Mansa Markets' public pages into data/raw/afex_prices.csv. Used by the
+      # cross-check (09b). Never blocks the run.
+      - name: 00e - AFEX exchange prices
+        continue-on-error: true
+        run: python pipeline/fetch_afex_prices.py
+
       - name: 01 - Ingest
         run: python pipeline/01_ingest.py
 
@@ -239,7 +246,7 @@ jobs:
         run: |
           git config user.name "agrolinking-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv data/raw/web_prices.csv data/raw/wfp_food_prices_nga.csv data/raw/.wfp_hdx_state.json
+          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv data/raw/web_prices.csv data/raw/wfp_food_prices_nga.csv data/raw/.wfp_hdx_state.json data/raw/afex_prices.csv
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else

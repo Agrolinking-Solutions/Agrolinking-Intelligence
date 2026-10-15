@@ -18,6 +18,8 @@ commodities where they disagree so a person checks them before customers do.
 Web prices only count if the model gave medium or high confidence, named a
 URL, and the source date parses and is at most MAX_SOURCE_AGE_DAYS old.
 Retail and unlabelled web prices are listed for context but not compared.
+AFEX exchange prices (data/raw/afex_prices.csv, read daily from Mansa Markets
+by fetch_afex_prices.py) are always included as one more website.
 
 Writes outputs/logs/price_crosscheck.json (served by the API at /crosscheck).
 Never blocks the pipeline; skips cleanly with no database.
@@ -117,6 +119,31 @@ def usable(cand, today):
     return True, sd
 
 
+AFEX_PATH = os.path.join(os.path.dirname(PATHS["master"]), "..", "raw", "afex_prices.csv")
+AFEX_NOTES = {
+    "maize":  "AFEX does not say whether its maize is white or yellow.",
+    "ginger": "AFEX ginger may be a different grade (fresh or unsplit) from Agricome's dried ginger.",
+}
+
+
+def afex_candidates(path=AFEX_PATH):
+    """Latest AFEX exchange price per Mansa commodity, as candidates for each mapped commodity."""
+    from pipeline.fetch_afex_prices import MANSA_TO_OURS
+    if not os.path.exists(path):
+        return []
+    df = pd.read_csv(path)
+    df = df[df["price_type"] == "exchange"].sort_values("as_of_date")
+    out = []
+    for slug, g in df.groupby("mansa_commodity"):
+        r = g.iloc[-1]
+        for ours in MANSA_TO_OURS.get(slug, []):
+            out.append({"commodity": ours, "query_date": r["as_of_date"], "price": float(r["price_ngn_mt"]),
+                        "source_url": r["url"], "source_date": r["as_of_date"], "confidence": "high",
+                        "price_level": "exchange", "market_location": "national (AFEX exchange)",
+                        "note": AFEX_NOTES.get(slug)})
+    return out
+
+
 def latest_per_site(cands):
     best = {}
     for c in cands:
@@ -183,6 +210,7 @@ def build_report(master, candidates, today, coverage=None):
                          f"nothing current to compare against.")
         if mine and mine["source"] == "Web_search":
             notes.append("Our latest price itself came from the web, so this compares web sources with each other.")
+        notes += sorted({p["note"] for p in compared if p.get("note")})
         if entry["web_prices"] and len(entry["web_prices"]) == 1:
             notes.append("Only one website - treat the comparison as a hint, not proof.")
         entry["notes"] = notes
@@ -229,26 +257,24 @@ def run_cross_check():
     logger.info("=" * 60)
     today = datetime.now(timezone.utc).date()
 
+    candidates = afex_candidates()
+    logger.info(f"  AFEX exchange prices: {len(candidates)} comparison(s)")
     db_url = os.environ.get("TSDB_URL")
     if not db_url and not os.environ.get("PGHOST"):
-        logger.warning("  TSDB_URL/PGHOST not set - skipping (web prices are in Postgres)")
-        return True
-    try:
-        import psycopg2
-        conn = psycopg2.connect() if os.environ.get("PGHOST") else psycopg2.connect(db_url)
-    except Exception as e:
-        logger.warning(f"  Could not connect to Postgres - skipping this run: {e}")
-        return True
-    try:
-        with conn.cursor() as cur:
-            ensure_web_estimates_schema(cur)
-        conn.commit()
-        candidates = fetch_candidates(conn, today - timedelta(days=LOOKBACK_DAYS))
-    except Exception as e:
-        logger.warning(f"  Could not read web prices - skipping this run: {e}")
-        return True
-    finally:
-        conn.close()
+        logger.warning("  TSDB_URL/PGHOST not set - web search prices skipped, AFEX only")
+    else:
+        try:
+            import psycopg2
+            conn = psycopg2.connect() if os.environ.get("PGHOST") else psycopg2.connect(db_url)
+            try:
+                with conn.cursor() as cur:
+                    ensure_web_estimates_schema(cur)
+                conn.commit()
+                candidates += fetch_candidates(conn, today - timedelta(days=LOOKBACK_DAYS))
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning(f"  Could not read web search prices - AFEX only this run: {e}")
 
     master = pd.read_csv(PATHS["master"], parse_dates=["date"])
     rep = build_report(master, candidates, today, wfp_coverage())
