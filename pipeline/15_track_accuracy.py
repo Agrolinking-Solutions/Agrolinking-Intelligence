@@ -30,7 +30,7 @@ import pandas as pd
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES
+from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES
 
 logger.remove()
 logger.add(sys.stdout,
@@ -43,7 +43,7 @@ OUT_DIR       = os.path.join(ROOT, "outputs", "backtest")
 LOG_PATH      = os.path.join(OUT_DIR, "forecast_log.csv")
 SUMMARY_PATH  = os.path.join(OUT_DIR, "live_accuracy.json")
 
-REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "AFEX"}
+REAL_SOURCES = PARTNER_SOURCES
 HORIZONS     = {"weekly": "1 week", "monthly": "1 month", "3_months": "3 months", "6_months": "6 months"}
 # Real prices are weekly (Agricome) or monthly (WFP, stored on the nearest
 # Monday), so allow a few days either side of the target date.

@@ -22,7 +22,7 @@ from datetime import datetime
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES
+from config.settings import PATHS, COMMODITIES, REAL_SOURCES
 
 LOGS = PATHS["logs_dir"]
 OUT_PATH = os.path.join(LOGS, "data_status.md")
@@ -106,7 +106,7 @@ def build():
     # 4. Shop prices still in use
     try:
         m = pd.read_csv(PATHS["master"], parse_dates=["date"])
-        real = m[m["data_source"].isin({"Agricome", "WFP", "Agrolinking_primary", "AFEX", "Web_search"})].sort_values("date")
+        real = m[m["data_source"].isin(REAL_SOURCES)].sort_values("date")
         recent = real[real["date"] >= pd.Timestamp.now() - pd.Timedelta(days=90)]
         retail = [c for c in COMMODITIES
                   if not recent[recent.commodity == c].empty

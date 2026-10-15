@@ -40,7 +40,7 @@ import pandas as pd
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES
+from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES
 from pipeline.pg_commodities import ensure_web_estimates_schema
 
 logger.remove()
@@ -48,7 +48,7 @@ logger.add(sys.stdout,
     format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
     level="INFO")
 
-HIGH_QUALITY_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "AFEX"}
+HIGH_QUALITY_SOURCES = set(PARTNER_SOURCES)
 ANY_REAL_SOURCES     = HIGH_QUALITY_SOURCES | {"Web_search"}
 # Baseline for the sanity band / "is it newer" checks: the latest Agricome/
 # WFP/primary price or World Bank estimate. Earlier web prices are NOT a

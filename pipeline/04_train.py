@@ -13,7 +13,7 @@ from loguru import logger
 
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES
+from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES
 
 logger.remove()
 logger.add(sys.stdout,
@@ -252,7 +252,7 @@ def train_commodity(commodity):
     # train only on real data (last 2 years of Agricome/WFP).
     if commodity in REAL_DATA_ONLY:
         import pandas as pd
-        real_sources = {"Agricome", "WFP", "Agrolinking_primary", "AFEX"}
+        real_sources = PARTNER_SOURCES
         if "data_source" in df.columns:
             real_df = df[df["data_source"].isin(real_sources)]
             if len(real_df) >= 20:

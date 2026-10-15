@@ -147,6 +147,53 @@ def load_afex_prices() -> pd.DataFrame:
     return df[cols].copy()
 
 
+# FEWS NET weekly WHOLESALE prices (via FAO's price API, saved by
+# fetch_fao_prices.py) used as REAL prices (John, 15 Oct 2026). The national
+# figure is the mean of a fixed set of markets that still report, so the
+# series doesn't jump when a market stops (Lagos and Giwa stopped Jan 2025).
+# Over 2015-2023 Agricome/WFP white maize ran 0.96-0.97x this mean and WFP
+# imported rice 1.03x, so they sit together without zigzags. Left out:
+# Sorghum (Agricome covers it; FEWS NET ~9% higher would zigzag) and Rice
+# (local) (one market, noisy, 0.92x WFP) - both stay comparison-only.
+FEWS_AS_REAL = {
+    "Maize (white)":  (["Kano", "Ibadan", "Kaura Namoda", "Maiduguri"], 3),   # markets, minimum reporting
+    "Rice (foreign)": (["Ibadan", "Kaura Namoda", "Maiduguri"], 2),
+}
+
+
+def load_fews_prices() -> pd.DataFrame:
+    """One FEWS NET row per commodity and week: the mean of FEWS_AS_REAL markets reporting."""
+    cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",
+            "region", "fx_rate", "rainfall_index", "data_quality_score", "is_validated",
+            "notes", "data_source"]
+    path = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "fao_fpma_prices.csv")
+    if not os.path.exists(path):
+        return pd.DataFrame(columns=cols)
+    f = pd.read_csv(path, parse_dates=["date"])
+    f = f[(f["price_type"] == "wholesale") & ~f["unit_suspect"].astype(bool)
+          & (f["periodicity"] == "weekly") & f["price_ngn_mt"].notna()]
+    out = []
+    for commodity, (markets, min_markets) in FEWS_AS_REAL.items():
+        s = f[(f["our_commodity"] == commodity) & f["market"].isin(markets)].copy()
+        s["date"] = s["date"] - pd.to_timedelta(s["date"].dt.dayofweek, unit="D")
+        piv = s.pivot_table(index="date", columns="market", values="price_ngn_mt", aggfunc="mean")
+        n = piv.notna().sum(axis=1)
+        piv = piv[n >= min_markets]
+        for week, row in piv.iterrows():
+            have = row.dropna()
+            out.append({"commodity": commodity, "date": week, "price_ngn_mt": float(have.mean()),
+                        "currency": "NGN", "unit": "NGN/MT", "source": "FEWS NET via FAO FPMA",
+                        "market_type": "wholesale", "region": "National", "fx_rate": np.nan,
+                        "rainfall_index": np.nan, "data_quality_score": 0.9, "is_validated": True,
+                        "notes": f"FEWS NET weekly wholesale, mean of {len(have)} markets ({', '.join(have.index)})",
+                        "data_source": "FEWS_NET"})
+    if not out:
+        return pd.DataFrame(columns=cols)
+    df = pd.DataFrame(out)
+    logger.success(f"FEWS NET wholesale prices loaded: {len(df):,} weekly rows | {sorted(df['commodity'].unique())}")
+    return df[cols].copy()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # PART 2 — LOAD WFP + CONVERT UNITS → NGN/MT
 # ─────────────────────────────────────────────────────────────────────────────
@@ -421,7 +468,7 @@ def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
 
     # Sort: Agricome first, WFP second, web-sourced last — so when we drop
     # duplicates, the higher-quality row is kept
-    source_priority = {"Agricome": 0, "WFP": 1, "AFEX": 1.5, "Web_search": 2, "WB_RTP_estimate": 3}
+    source_priority = {"Agricome": 0, "FEWS_NET": 0.8, "WFP": 1, "AFEX": 1.5, "Web_search": 2, "WB_RTP_estimate": 3}
     combined["_priority"] = combined["data_source"].map(source_priority).fillna(9)
     combined = combined.sort_values(["commodity", "date", "_priority"])
 
@@ -492,7 +539,7 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         mislabelled_estimate = ((existing["data_source"] == "Agricome")
                                 & existing["notes"].astype(str).str.contains("World Bank RTP|DERIVED:", regex=True))
         existing_historical = existing[(existing["record_type"] == "historical")
-                                       & ~existing["data_source"].isin(["Web_search", "AFEX"])
+                                       & ~existing["data_source"].isin(["Web_search", "AFEX", "FEWS_NET"])
                                        & ~stale_wfp & ~mislabelled_estimate]
         forecast_rows = existing[existing["record_type"] == "forecast"]
         # Validated_actual rows — today's forecast, confirmed accurate by
@@ -514,11 +561,11 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         # highest priority — just ingested (web-sourced still ranks below any
         # real row, including Agrolinking_primary rows that live only in master)
         master_df["_priority"] = master_df["data_source"].map(
-            {"AFEX": 1.2, "Web_search": 1.5, "WB_RTP_estimate": 1.8}).fillna(0)
+            {"FEWS_NET": 0.8, "WFP": 1, "AFEX": 1.2, "Web_search": 1.5, "WB_RTP_estimate": 1.8}).fillna(0)
 
         # Tag existing rows by source priority
         existing_historical["_priority"] = existing_historical["data_source"].map({
-            "Agricome": 0, "Agrolinking_primary": 0, "WFP": 1, "AFEX": 1.2, "Web_search": 1.5,
+            "Agricome": 0, "Agrolinking_primary": 0, "FEWS_NET": 0.8, "WFP": 1, "AFEX": 1.2, "Web_search": 1.5,
             "WB_RTP_estimate": 1.8,
             "Synthetic (World Bank/FAO × FX)": 3,
             "Interpolated": 4, "Agrolinking_old": 5,
@@ -644,7 +691,8 @@ def run_ingestion() -> pd.DataFrame:
 
     agricome_df           = load_agricome()
     wfp_commodity_df, fuel_df = load_wfp()
-    web_df                = pd.concat([load_web_prices(), load_afex_prices()], ignore_index=True)
+    web_df                = pd.concat([load_web_prices(), load_afex_prices(), load_fews_prices()],
+                                      ignore_index=True)
     master_df             = merge_sources(agricome_df, wfp_commodity_df, web_df)
     save_outputs(master_df, fuel_df)
 

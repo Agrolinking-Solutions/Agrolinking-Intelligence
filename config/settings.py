@@ -96,6 +96,17 @@ WFP_NAME_MAP = {
     "Eggs":             "Eggs",
 }
 
+# ─── PRICE SOURCES ───────────────────────────────────────────────────────────
+# data_source values in the master that are REAL observed prices. Every step
+# imports these instead of keeping its own list (they had drifted apart).
+#   PARTNER_SOURCES - partner, exchange and market-monitor data; what the
+#                     forecast backtests and accuracy scores are measured on
+#   REAL_SOURCES    - the above plus vetted web prices (still real, observed)
+# Everything else (Interpolated, Synthetic, WB_RTP_estimate,
+# Agrolinking_validated) is an estimate.
+PARTNER_SOURCES = frozenset({"Agricome", "WFP", "Agrolinking_primary", "AFEX", "FEWS_NET"})
+REAL_SOURCES    = PARTNER_SOURCES | {"Web_search"}
+
 # ─── FORECAST HORIZONS ───────────────────────────────────────────────────────
 FORECAST_HORIZONS = {
     "daily":    1,

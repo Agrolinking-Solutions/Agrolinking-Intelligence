@@ -24,14 +24,13 @@ import pandas as pd
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES
+from config.settings import PATHS, COMMODITIES, REAL_SOURCES
 
 logger.remove()
 logger.add(sys.stdout,
     format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
     level="INFO")
 
-REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "AFEX", "Web_search"}
 
 # Thresholds — tuned to how often each commodity's real source SHOULD
 # update. Agricome-native commodities are scraped weekly, so >45 days

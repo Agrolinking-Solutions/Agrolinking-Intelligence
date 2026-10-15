@@ -29,7 +29,7 @@ logging.getLogger("prophet").setLevel(logging.WARNING)
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES
+from config.settings import PATHS, COMMODITIES, REAL_SOURCES
 
 logger.remove()
 logger.add(sys.stdout,
@@ -626,7 +626,6 @@ def forecast_commodity(commodity, run_date):
     # == "forecast") are still never trusted as an anchor. Only rows that
     # either came from a real source or passed live validation
     # (record_type == "validated_actual") qualify.
-    REAL_SOURCES = {"Agricome", "Agrolinking_primary", "WFP", "AFEX", "Web_search"}
     master_df = pd.read_csv(PATHS["master"], parse_dates=["date"])
     comm_master = master_df[master_df["commodity"] == commodity].sort_values("date")
 

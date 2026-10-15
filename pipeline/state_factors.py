@@ -3,11 +3,16 @@ State price factors: how much dearer or cheaper each state is than the
 national price (Lagos maize at 1.16 = 16% above national).
 
 Two kinds, and every state price says which one it used:
-  measured  - from WFP's market-by-market WHOLESALE prices, Jan 2019 to Jan
-              2023: the last period WFP reported markets outside the North
-              East (Lagos, Oyo, Kano, Kaduna, ... stop in Jan 2023). For each
-              month, a state's median price over the median across all WFP
-              states; the factor is the median of those monthly ratios.
+  measured  - from FEWS NET's weekly WHOLESALE prices for named markets
+              (via FAO), Jan 2023 onwards: Kano, Ibadan (Oyo), Maiduguri
+              (Borno), plus Lagos and Giwa (Kaduna) until Jan 2025. Each
+              week, a market's price over the mean of the national markets
+              (the same ones the platform's national price uses); the factor
+              is the median of those weekly ratios.
+              Where FEWS NET has no market, WFP's market-by-market wholesale
+              prices, Jan 2019 to Jan 2023 (the last period WFP reported
+              outside the North East): a state's monthly median over the
+              median across WFP states, median of the monthly ratios.
   estimated - the fixed table data/external/state_price_differentials.csv
               (set up May 2026, not derived from market data), or the zone
               default where the table has no row.
@@ -31,7 +36,16 @@ MEASURED_PATH = os.path.join(BASE, "data", "external", "state_price_factors_meas
 WFP_PATH      = PATHS.get("raw_wfp", os.path.join(BASE, "data", "raw", "wfp_food_prices_nga.csv"))
 
 MEASURED = "measured_wfp_2019_2023"
+MEASURED_FEWS = "measured_fews_2023_2026"
 ESTIMATED = "estimated"
+FAO_PATH = os.path.join(BASE, "data", "raw", "fao_fpma_prices.csv")
+
+# FEWS NET market -> our state; national reference = mean of NATIONAL_MARKETS
+FEWS_MARKET_STATE = {"Kano": "Kano", "Ibadan": "Oyo", "Maiduguri": "Borno", "Lagos": "Lagos", "Giwa": "Kaduna"}
+NATIONAL_MARKETS = ["Kano", "Ibadan", "Kaura Namoda", "Maiduguri"]
+FEWS_COMMODITIES = ["Maize (white)", "Sorghum", "Rice (foreign)"]
+FEWS_SINCE = "2023-01-01"
+MIN_WEEKS = 26
 
 WFP_TO_OURS = {
     "Maize (white)":   "Maize (white)",
@@ -67,10 +81,39 @@ def build_measured(wfp_path=WFP_PATH, out_path=MEASURED_PATH):
            .agg(price_factor="median", months="size").reset_index()
            .rename(columns={"admin1": "state"}))
     f = f[(f["months"] >= MIN_MONTHS) & f["price_factor"].between(*SANE_RANGE)]
-    f["price_factor"] = f["price_factor"].round(3)
     f["source"] = MEASURED
+    fews = build_fews()
+    if len(fews):
+        f = f.merge(fews[["state", "commodity"]], how="left", indicator=True)
+        f = pd.concat([f[f["_merge"] == "left_only"].drop(columns="_merge"), fews], ignore_index=True)
+    f["price_factor"] = f["price_factor"].round(3)
+    f = f.sort_values(["state", "commodity"])
     f.to_csv(out_path, index=False)
     return f
+
+
+def build_fews(path=FAO_PATH):
+    """Measured factors from FEWS NET weekly wholesale prices (2023 onwards)."""
+    if not os.path.exists(path):
+        return pd.DataFrame(columns=["state", "commodity", "price_factor", "months", "source"])
+    w = pd.read_csv(path, parse_dates=["date"])
+    w = w[(w["price_type"] == "wholesale") & ~w["unit_suspect"].astype(bool) & (w["periodicity"] == "weekly")
+          & (w["date"] >= FEWS_SINCE) & w["our_commodity"].isin(FEWS_COMMODITIES) & w["price_ngn_mt"].notna()]
+    w["week"] = w["date"] - pd.to_timedelta(w["date"].dt.dayofweek, unit="D")
+    rows = []
+    for c, g in w.groupby("our_commodity"):
+        piv = g.pivot_table(index="week", columns="market", values="price_ngn_mt", aggfunc="mean")
+        nat_cols = [m for m in NATIONAL_MARKETS if m in piv.columns]
+        nat = piv[nat_cols].mean(axis=1).where(piv[nat_cols].notna().sum(axis=1) >= 3)
+        for market, state in FEWS_MARKET_STATE.items():
+            if market not in piv.columns:
+                continue
+            ratio = (piv[market] / nat).dropna()
+            if len(ratio) >= MIN_WEEKS:
+                rows.append({"state": state, "commodity": c, "price_factor": float(ratio.median()),
+                             "months": int(len(ratio)), "source": MEASURED_FEWS})
+    f = pd.DataFrame(rows)
+    return f[f["price_factor"].between(*SANE_RANGE)] if len(f) else f
 
 
 def load_factors():
@@ -81,7 +124,7 @@ def load_factors():
         out.setdefault(r.state, {})[r.commodity] = (float(r.price_factor), ESTIMATED)
     if os.path.exists(MEASURED_PATH):
         for r in pd.read_csv(MEASURED_PATH).itertuples():
-            out.setdefault(r.state, {})[r.commodity] = (float(r.price_factor), MEASURED)
+            out.setdefault(r.state, {})[r.commodity] = (float(r.price_factor), r.source)
     return out
 
 

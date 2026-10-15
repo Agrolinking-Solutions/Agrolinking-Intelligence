@@ -1639,7 +1639,7 @@ def _load_history_from_csv(commodities=None, start=None, end=None):
 # Lower rank = stronger evidence; a weekly/monthly point takes the strongest
 # source among the rows it averages.
 SOURCE_CATEGORY = {
-    "Agricome": "real", "WFP": "real", "Agrolinking_primary": "real", "AFEX": "real",
+    "Agricome": "real", "WFP": "real", "Agrolinking_primary": "real", "AFEX": "real", "FEWS_NET": "real",
     "Web_search": "web",
     "Agrolinking_validated": "model",
     "WB_RTP_estimate": "estimate",
@@ -1649,7 +1649,7 @@ SOURCE_RANK = {"real": 0, "web": 1, "model": 2, "estimate": 3, "interpolated": 4
 # "real" and "web" are both REAL observed market prices - they differ only in
 # where we got them. Everything else is an estimate of some kind.
 SOURCE_LEGEND = {
-    "real":         "Real price - from our data partners (Agricome, WFP, AFEX exchange, Agrolinking field data)",
+    "real":         "Real price - from our data partners (Agricome, WFP, FEWS NET, AFEX exchange, Agrolinking field data)",
     "web":          "Real price - published online by a named, dated source and cross-checked",
     "model":        "Estimate - the platform's daily figure between real prices, anchored to the latest one",
     "estimate":     "Estimate - World Bank Real-Time Prices model, where no real price exists",
@@ -1663,13 +1663,13 @@ OBSERVED = {"real", "web"}
 # measured from market data - say which, so an estimate isn't shown as fact.
 PRICE_BASIS_NOTE = {
     "national":  "National price",
-    "measured":  "National price x this state's measured price gap (WFP wholesale market prices, 2019-2023)",
+    "measured":  "National price x this state's measured price gap (FEWS NET 2023-26 or WFP 2019-23 wholesale market prices)",
     "estimated": "National price x an estimated price gap for this state (not yet measured from market data)",
 }
 
 
 def price_basis(source):
-    return "measured" if source == MEASURED else "estimated"
+    return "measured" if str(source or "").startswith("measured") else "estimated"
 
 
 def source_category(data_source) -> str:
@@ -2202,6 +2202,8 @@ SOURCE_INFO = {
     "Web_search":          {"name": "Web price search", "type": "Named, dated wholesale prices found online every 3 hours, checked before use"},
     "AFEX":                {"name": "AFEX Commodities Exchange (via Mansa Markets)", "type": "Daily exchange prices",
                             "url": "mansamarkets.com/commodities"},
+    "FEWS_NET":            {"name": "FEWS NET market monitor (via FAO)", "type": "Weekly wholesale prices, named markets",
+                            "url": "fpma.fao.org"},
     "Agrolinking_primary": {"name": "Agrolinking field collection", "type": "Field price collection"},
 }
 ACTIVE_SOURCE_DAYS = 90
@@ -2212,7 +2214,8 @@ def _real_data_summary():
     """Sources, markets and data points behind our real prices; cached until the files change."""
     import pandas as pd
     wfp_path = os.path.join(BASE_DIR, "data", "raw", "wfp_food_prices_nga.csv")
-    key = tuple(os.path.getmtime(p) if os.path.exists(p) else 0 for p in (MASTER_PATH, wfp_path))
+    fao_path = os.path.join(BASE_DIR, "data", "raw", "fao_fpma_prices.csv")
+    key = tuple(os.path.getmtime(p) if os.path.exists(p) else 0 for p in (MASTER_PATH, wfp_path, fao_path))
     if _meta_cache["key"] == key:
         return _meta_cache["value"]
     df = pd.read_csv(MASTER_PATH, parse_dates=["date"], usecols=["commodity", "date", "data_source"])
@@ -2229,15 +2232,22 @@ def _real_data_summary():
                         "commodities": sorted(recent["commodity"].unique().tolist()),
                         "latest_price_date": last.strftime("%Y-%m-%d"),
                         "active": bool((today - last).days <= ACTIVE_SOURCE_DAYS)})
-    markets, states = [], []
+    markets, states = set(), []
     try:
         w = pd.read_csv(wfp_path, usecols=["date", "admin1", "market"], low_memory=False)
         w = w[w["date"].astype(str).str[:1].str.isdigit()]
         w["date"] = pd.to_datetime(w["date"])
         w = w[w["date"] >= w["date"].max() - pd.Timedelta(days=120)]
-        markets, states = sorted(w["market"].dropna().unique()), sorted(w["admin1"].dropna().unique())
+        markets, states = set(w["market"].dropna()), sorted(w["admin1"].dropna().unique())
     except Exception as e:
         logger.warning(f"meta: could not read WFP markets: {e}")
+    try:   # FEWS NET wholesale markets reporting in the last 120 days
+        f = pd.read_csv(os.path.join(BASE_DIR, "data", "raw", "fao_fpma_prices.csv"),
+                        usecols=["date", "market", "price_type"], parse_dates=["date"])
+        f = f[(f["price_type"] == "wholesale") & (f["date"] >= today - pd.Timedelta(days=120))]
+        markets |= set(f["market"].dropna())
+    except Exception as e:
+        logger.warning(f"meta: could not read FEWS NET markets: {e}")
     value = {
         "sources": sources,
         "active_sources": sum(s["active"] for s in sources),
@@ -2278,8 +2288,8 @@ def platform_meta():
             # Sources that delivered a real price in the last 90 days.
             "total_sources":    real["active_sources"],
             "sources":          real["sources"],
-            # Markets with a WFP price in its latest 4 months (Agricome and
-            # web prices are national or name their own market).
+            # Markets with a WFP or FEWS NET price in the last 4 months
+            # (Agricome, AFEX and web prices are national or name their own).
             "total_markets_monitored": real["wfp_markets"],
             "wfp_states":              real["wfp_states"],
             "data_points_total":       f"{real['real_price_points']:,} real prices",

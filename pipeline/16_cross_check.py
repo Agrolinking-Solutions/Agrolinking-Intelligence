@@ -55,7 +55,7 @@ load_blocked_sites = _promote.load_blocked_sites
 # Our price = the latest REAL price the platform holds (what it validates
 # forecasts against), including web prices already promoted by step 14.
 PARTNER_SOURCES     = {"Agricome": "Agricome", "WFP": "WFP", "Agrolinking_primary": "Agrolinking field data",
-                       "AFEX": "AFEX exchange",
+                       "AFEX": "AFEX exchange", "FEWS_NET": "FEWS NET market monitor",
                        "Web_search": "a web price accepted earlier"}
 COMPARE_LEVELS      = {"wholesale", "exchange"}
 ACCEPT_CONFIDENCE   = {"high", "medium"}
@@ -141,7 +141,7 @@ def afex_candidates(path=AFEX_PATH):
             out.append({"commodity": ours, "query_date": r["as_of_date"], "price": float(r["price_ngn_mt"]),
                         "source_url": r["url"], "source_date": r["as_of_date"], "confidence": "high",
                         "price_level": "exchange", "market_location": "national (AFEX exchange)",
-                        "note": AFEX_NOTES.get(slug)})
+                        "note": AFEX_NOTES.get(slug), "is_afex": True})
     return out
 
 
@@ -169,6 +169,8 @@ def build_report(master, candidates, today, coverage=None):
         for cand in candidates:
             if cand["commodity"] != c:
                 continue
+            if cand.get("is_afex") and mine and mine["source"] == "AFEX":
+                continue    # our price IS the AFEX price - nothing to compare
             ok, sd = usable(cand, today)
             if ok and source_site(cand.get("source_url")) not in blocked:
                 pool.append({**cand, "_sd": sd})

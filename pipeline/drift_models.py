@@ -30,7 +30,7 @@ import pandas as pd
 CANDIDATES = ["naive", "infl@0.5", "infl@1.0", "trend@0.5", "mix",
               "season@0.5", "season@1.0", "season+infl"]
 MAX_WEEKLY_G = 0.015
-REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "AFEX"}
+from config.settings import PARTNER_SOURCES as REAL_SOURCES   # partner data only, no web prices
 MIN_SEASON_YEARS = 3
 
 _season_cache = {}

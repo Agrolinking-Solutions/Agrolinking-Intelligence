@@ -30,7 +30,7 @@ import pandas as pd
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES
+from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES
 from pipeline.drift_models import CANDIDATES, point_forecasts
 
 logger.remove()
@@ -43,7 +43,7 @@ FEATURES_DIR = os.path.join(os.path.dirname(PATHS["master"]), "features")
 OUT_DIR      = os.path.join(ROOT, "outputs", "backtest")
 SELECTION    = os.path.join(OUT_DIR, "model_selection.json")
 
-REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary", "AFEX"}
+REAL_SOURCES = PARTNER_SOURCES
 # 1, 2, 3 and 6 months ahead - the dashboard shows all of these, and
 # seasonal effects only show up beyond a few weeks. Nearer horizons weigh more.
 HORIZONS     = (4, 8, 13, 26)

@@ -14,7 +14,7 @@ import numpy as np
 from loguru import logger
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES
+from config.settings import PATHS, COMMODITIES, REAL_SOURCES
 
 logger.remove()
 logger.add(sys.stdout,
@@ -23,7 +23,6 @@ logger.add(sys.stdout,
 
 # Web_search = web prices that passed 14_promote_web_prices.py's checks
 # (only ever fills commodities whose Agricome/WFP price has gone stale).
-REAL_SOURCES = {"Agricome","WFP","Agrolinking_primary","AFEX","Web_search"}
 # Rows that cleaning treats as fixed points (never purged, smoothed or
 # outlier-replaced, and used to interpolate gaps): real prices plus World Bank
 # estimates. Estimates only fill time not covered by Agricome/WFP data — see
