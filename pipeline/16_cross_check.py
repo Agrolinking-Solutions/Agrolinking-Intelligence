@@ -48,6 +48,7 @@ _spec = importlib.util.spec_from_file_location(
 _promote = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_promote)
 parse_source_date, source_site = _promote.parse_source_date, _promote.source_site
+load_blocked_sites = _promote.load_blocked_sites
 
 # Our price = the latest REAL price the platform holds (what it validates
 # forecasts against), including web prices already promoted by step 14.
@@ -132,6 +133,7 @@ def status_for(gap):
 
 def build_report(master, candidates, today, coverage=None):
     ours = our_prices(master, coverage or {})
+    blocked = load_blocked_sites()
     report = {}
     for c in COMMODITIES:
         mine = ours.get(c)
@@ -140,11 +142,13 @@ def build_report(master, candidates, today, coverage=None):
             if cand["commodity"] != c:
                 continue
             ok, sd = usable(cand, today)
-            if ok:
+            if ok and source_site(cand.get("source_url")) not in blocked:
                 pool.append({**cand, "_sd": sd})
         level = lambda x: str(x.get("price_level") or "").strip().lower()
         compared = latest_per_site([p for p in pool if level(p) in COMPARE_LEVELS])
-        context = latest_per_site([p for p in pool if level(p) not in COMPARE_LEVELS])
+        compared_sites = {source_site(p["source_url"]) for p in compared}
+        context = latest_per_site([p for p in pool if level(p) not in COMPARE_LEVELS
+                                   and source_site(p["source_url"]) not in compared_sites])
 
         def show(p):
             return {"price": round(p["price"]), "site": source_site(p["source_url"]), "url": p["source_url"],

@@ -132,11 +132,27 @@ Respond with ONLY a single JSON object, no other text, in exactly this shape:
 }}"""
 
 
+def blocked_sites():
+    """Websites found unreliable after review (data/raw/web_sources_blocked.csv)."""
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "data", "raw", "web_sources_blocked.csv")
+    try:
+        import csv
+        with open(path, newline="", encoding="utf-8") as f:
+            return [r["site"].strip() for r in csv.DictReader(f) if r.get("site")]
+    except FileNotFoundError:
+        return []
+
+
 def build_prompt(commodity: str, focus: str = "general") -> str:
     prompt = PROMPT_TEMPLATE.format(
         commodity=COMMODITY_DESCRIPTION.get(commodity, commodity),
         unit=UNIT_LABEL.get(commodity, "NGN per metric tonne (NGN/MT)"),
     )
+    skip = blocked_sites()
+    if skip:
+        prompt += ("\n\nDo not use these websites - they were checked and found unreliable: "
+                   + ", ".join(skip) + ".")
     if FOCI.get(focus):
         prompt += "\n\nFocus for this search: " + FOCI[focus]
     return prompt

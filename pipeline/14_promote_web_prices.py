@@ -60,6 +60,10 @@ BASELINE_SOURCES     = HIGH_QUALITY_SOURCES | {"WB_RTP_estimate"}
 # website for the same commodity within 1% of a withdrawn price is rejected,
 # so daily searches that keep finding the same page can't re-add it.
 WITHDRAWN_PATH       = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "web_prices_withdrawn.csv")
+# Whole websites found unreliable after review (undated lists etc.): nothing
+# from them is promoted or used in the cross-check, and the search is told
+# to skip them.
+BLOCKED_SITES_PATH   = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "web_sources_blocked.csv")
 
 # Freshness windows live in pipeline/freshness.py so this step and the
 # 3-hourly web search agree on which commodities are gaps.
@@ -240,6 +244,14 @@ def load_withdrawn():
             for _, r in df.iterrows()]
 
 
+def load_blocked_sites():
+    """{site: reason} from web_sources_blocked.csv (empty if missing)."""
+    if not os.path.exists(BLOCKED_SITES_PATH):
+        return {}
+    df = pd.read_csv(BLOCKED_SITES_PATH)
+    return {str(r["site"]).strip().lower(): str(r.get("reason", "")) for _, r in df.iterrows()}
+
+
 def withdrawn_match(cand, withdrawn):
     site = source_site(cand.get("source_url"))
     for com, w_site, w_price, when in withdrawn:
@@ -272,6 +284,7 @@ def promote(candidates, state, today):
     """Pure decision logic over already-fetched candidates. Returns (rows_to_append, decisions)."""
     seen = existing_web_keys()
     withdrawn = load_withdrawn()
+    blocked = load_blocked_sites()
     decisions, rows = [], []
     for c in sorted(candidates, key=lambda x: (x["commodity"], x["query_date"])):
         com = c["commodity"]
@@ -287,6 +300,9 @@ def promote(candidates, state, today):
         fresh = is_fresh(direct, wfp, today)
         if fresh:
             d.update(accepted=False, reason=f"Agricome/WFP price is fresh ({hq}) - no gap to fill")
+            decisions.append(d); continue
+        if source_site(c.get("source_url")) in blocked:
+            d.update(accepted=False, reason="website blocked after review - see web_sources_blocked.csv")
             decisions.append(d); continue
         when = withdrawn_match(c, withdrawn)
         if when:
