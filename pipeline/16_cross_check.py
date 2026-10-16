@@ -201,9 +201,15 @@ def build_report(master, candidates, today, coverage=None):
         elif not compared:
             entry.update(status="no web price", web_median=None, gap_pct=None)
         else:
-            med = median(p["price"] for p in compared)
+            # The exchange price leads when we have one: averaging it with a
+            # single web article let one Lagos quote (800K) turn an AFEX
+            # agreement (-10%) into a "disagree" for white maize (16 Oct 2026).
+            afex = [p for p in compared if p.get("is_afex")]
+            ref = afex if afex else compared
+            med = median(p["price"] for p in ref)
             gap = med / mine["price"] - 1
-            entry.update(status=status_for(gap), web_median=round(med), gap_pct=round(gap * 100, 1))
+            entry.update(status=status_for(gap), web_median=round(med), gap_pct=round(gap * 100, 1),
+                         compared_with="AFEX exchange" if afex else f"web prices from {len(ref)} site(s)")
         notes = []
         if mine and mine["level"] == "retail":
             notes.append("Our price is a shop (retail) price: WFP publishes no wholesale price for this. "
@@ -214,6 +220,9 @@ def build_report(master, candidates, today, coverage=None):
         if mine and mine["source"] == "Web_search":
             notes.append("Our latest price itself came from the web, so this compares web sources with each other.")
         notes += sorted({p["note"] for p in compared if p.get("note")})
+        others = sum(1 for p in compared if not p.get("is_afex"))
+        if mine and others and any(p.get("is_afex") for p in compared):
+            notes.append(f"Status uses the AFEX price; {others} other web price(s) listed for reference.")
         if entry["web_prices"] and len(entry["web_prices"]) == 1:
             notes.append("Only one website - treat the comparison as a hint, not proof.")
         entry["notes"] = notes

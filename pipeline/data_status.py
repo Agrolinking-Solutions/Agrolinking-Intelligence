@@ -26,7 +26,7 @@ from config.settings import PATHS, COMMODITIES, REAL_SOURCES
 
 LOGS = PATHS["logs_dir"]
 OUT_PATH = os.path.join(LOGS, "data_status.md")
-GAP_COMMODITIES_WATCH = ["Maize (yellow)", "Wheat"]
+GAP_COMMODITIES_WATCH = ["Wheat"]   # Yellow maize closed 16 Oct 2026 (AFEX)
 
 
 def load(name):

@@ -192,4 +192,7 @@ def run_staleness_check():
 
 if __name__ == "__main__":
     ok = run_staleness_check()
-    sys.exit(0 if ok else 1)
+    # Report only by default: the daily run shows stale commodities in its
+    # status summary, and a non-zero exit put a red "error" on every run while
+    # Wheat had no source. Pass --strict to fail on stale data.
+    sys.exit(1 if (not ok and "--strict" in sys.argv) else 0)
