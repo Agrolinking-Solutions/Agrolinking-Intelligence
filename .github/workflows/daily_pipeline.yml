@@ -18,6 +18,12 @@ on:
     - cron: "23 8 * * *"    # 09:23 Lagos
     - cron: "37 10 * * *"   # 11:37 Lagos
   workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
+  # External daily trigger (e.g. a cron job on the VPS) - treated like a
+  # scheduled run, so it does nothing if today's run already committed:
+  #   POST https://api.github.com/repos/Agrolinking-Solutions/Agrolinking-Intelligence/dispatches
+  #   {"event_type": "daily-run"}
+  repository_dispatch:
+    types: [daily-run]
 
 permissions:
   contents: write   # required so the workflow can commit + push results
@@ -40,7 +46,8 @@ jobs:
       - id: check
         run: |
           today=$(date -u +'%Y-%m-%d')
-          if [ "${{ github.event_name }}" = "schedule" ] && git log -n 50 --format=%s | grep -q "Automated daily pipeline run - $today"; then
+          event="${{ github.event_name }}"
+          if { [ "$event" = "schedule" ] || [ "$event" = "repository_dispatch" ]; } && git log -n 50 --format=%s | grep -q "Automated daily pipeline run - $today"; then
             echo "Today's daily run already committed - nothing to do."
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
