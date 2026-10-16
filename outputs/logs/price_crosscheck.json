@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-15",
+  "run_date": "2026-10-16",
   "basis": "Wholesale, NGN per tonne (Eggs: NGN per crate of 30)",
   "thresholds": {
     "check_above_pct": 15.0,
@@ -8,11 +8,11 @@
     "max_source_age_days": 45
   },
   "summary": {
-    "no web price": 11,
-    "disagree": 2,
+    "no web price": 7,
+    "disagree": 3,
+    "agree": 5,
     "check": 2,
-    "agree": 1,
-    "our price is old": 3
+    "our price is old": 2
   },
   "commodities": {
     "Hibiscus": {
@@ -39,23 +39,13 @@
           "price": 2300000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/sesame",
-          "source_date": "2026-09-11",
+          "source_date": "2026-10-15",
           "level": "exchange",
-          "location": "national (AFEX Nigeria)",
+          "location": "national (AFEX exchange)",
           "confidence": "high"
         }
       ],
-      "other_web_prices": [
-        {
-          "price": 2300000,
-          "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/commodities/sesame",
-          "source_date": "2026-09-11",
-          "level": "not recorded",
-          "location": null,
-          "confidence": "high"
-        }
-      ],
+      "other_web_prices": [],
       "status": "disagree",
       "web_median": 2300000,
       "gap_pct": 64.3,
@@ -69,12 +59,25 @@
       "our_source": "Agricome",
       "our_level": "wholesale",
       "our_coverage": "Agricome",
-      "web_prices": [],
+      "web_prices": [
+        {
+          "price": 990000,
+          "site": "mansamarkets.com",
+          "url": "https://www.mansamarkets.com/commodities/ginger",
+          "source_date": "2026-10-15",
+          "level": "exchange",
+          "location": "national (AFEX exchange)",
+          "confidence": "high"
+        }
+      ],
       "other_web_prices": [],
-      "status": "no web price",
-      "web_median": null,
-      "gap_pct": null,
-      "notes": []
+      "status": "disagree",
+      "web_median": 990000,
+      "gap_pct": -87.6,
+      "notes": [
+        "AFEX ginger may be a different grade (fresh or unsplit) from Agricome's dried ginger.",
+        "Only one website - treat the comparison as a hint, not proof."
+      ]
     },
     "Cocoa": {
       "our_price": 6400000,
@@ -84,29 +87,19 @@
       "our_coverage": "Agricome",
       "web_prices": [
         {
-          "price": 4869230,
+          "price": 7250000,
           "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/commodities/cocoa/nigeria",
-          "source_date": "2026-09-29",
-          "level": "wholesale",
-          "location": "national",
+          "url": "https://www.mansamarkets.com/commodities/cocoa",
+          "source_date": "2026-10-15",
+          "level": "exchange",
+          "location": "national (AFEX exchange)",
           "confidence": "high"
         }
       ],
-      "other_web_prices": [
-        {
-          "price": 4869230,
-          "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/commodities/cocoa/nigeria",
-          "source_date": "2026-09-29",
-          "level": "not recorded",
-          "location": null,
-          "confidence": "high"
-        }
-      ],
-      "status": "check",
-      "web_median": 4869230,
-      "gap_pct": -23.9,
+      "other_web_prices": [],
+      "status": "agree",
+      "web_median": 7250000,
+      "gap_pct": 13.3,
       "notes": [
         "Only one website - treat the comparison as a hint, not proof."
       ]
@@ -117,12 +110,24 @@
       "our_source": "Agricome",
       "our_level": "wholesale",
       "our_coverage": "Agricome",
-      "web_prices": [],
+      "web_prices": [
+        {
+          "price": 645340,
+          "site": "mansamarkets.com",
+          "url": "https://www.mansamarkets.com/commodities/soybean",
+          "source_date": "2026-10-15",
+          "level": "exchange",
+          "location": "national (AFEX exchange)",
+          "confidence": "high"
+        }
+      ],
       "other_web_prices": [],
-      "status": "no web price",
-      "web_median": null,
-      "gap_pct": null,
-      "notes": []
+      "status": "check",
+      "web_median": 645340,
+      "gap_pct": -18.3,
+      "notes": [
+        "Only one website - treat the comparison as a hint, not proof."
+      ]
     },
     "Cashew Nuts": {
       "our_price": 1900000,
@@ -134,24 +139,14 @@
         {
           "price": 1719500,
           "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/blog/cashew-price-in-nigeria-today",
-          "source_date": "2026-10-12",
+          "url": "https://www.mansamarkets.com/commodities/cashew",
+          "source_date": "2026-10-15",
           "level": "exchange",
-          "location": "national (AFEX ComX exchange)",
-          "confidence": "medium"
-        }
-      ],
-      "other_web_prices": [
-        {
-          "price": 1719500,
-          "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/blog/cashew-price-in-nigeria-today",
-          "source_date": "2026-10-12",
-          "level": "not recorded",
-          "location": null,
+          "location": "national (AFEX exchange)",
           "confidence": "high"
         }
       ],
+      "other_web_prices": [],
       "status": "agree",
       "web_median": 1719500,
       "gap_pct": -9.5,
@@ -167,29 +162,19 @@
       "our_coverage": "Agricome",
       "web_prices": [
         {
-          "price": 750000,
-          "site": "currentaffairs.com.ng",
-          "url": "https://currentaffairs.com.ng/prices/",
-          "source_date": "2026-10-02",
-          "level": "wholesale",
-          "location": "national",
-          "confidence": "medium"
+          "price": 354790,
+          "site": "mansamarkets.com",
+          "url": "https://www.mansamarkets.com/commodities/sorghum",
+          "source_date": "2026-10-15",
+          "level": "exchange",
+          "location": "national (AFEX exchange)",
+          "confidence": "high"
         }
       ],
-      "other_web_prices": [
-        {
-          "price": 750000,
-          "site": "currentaffairs.com.ng",
-          "url": "https://currentaffairs.com.ng/prices/",
-          "source_date": "2026-10-02",
-          "level": "not recorded",
-          "location": null,
-          "confidence": "medium"
-        }
-      ],
-      "status": "disagree",
-      "web_median": 750000,
-      "gap_pct": 117.4,
+      "other_web_prices": [],
+      "status": "agree",
+      "web_median": 354790,
+      "gap_pct": 2.8,
       "notes": [
         "Only one website - treat the comparison as a hint, not proof."
       ]
@@ -209,6 +194,15 @@
           "level": "wholesale",
           "location": "Lagos, Nigeria",
           "confidence": "medium"
+        },
+        {
+          "price": 1050000,
+          "site": "naijanews.com",
+          "url": "https://www.naijanews.com/2026/09/01/price-of-bag-of-rice-beans-tomatoes-other-food-commodities-this-week-31/",
+          "source_date": "2026-09-01",
+          "level": "wholesale",
+          "location": "national",
+          "confidence": "medium"
         }
       ],
       "other_web_prices": [
@@ -222,12 +216,10 @@
           "confidence": "medium"
         }
       ],
-      "status": "check",
-      "web_median": 835800,
-      "gap_pct": -18.4,
-      "notes": [
-        "Only one website - treat the comparison as a hint, not proof."
-      ]
+      "status": "agree",
+      "web_median": 942900,
+      "gap_pct": -8.0,
+      "notes": []
     },
     "Beans (red)": {
       "our_price": 1097680,
@@ -235,7 +227,17 @@
       "our_source": "WFP",
       "our_level": "wholesale-equivalent",
       "our_coverage": "WFP markets in Borno, Yobe",
-      "web_prices": [],
+      "web_prices": [
+        {
+          "price": 1000000,
+          "site": "naijanews.com",
+          "url": "https://www.naijanews.com/2026/09/01/price-of-bag-of-rice-beans-tomatoes-other-food-commodities-this-week-31/",
+          "source_date": "2026-09-01",
+          "level": "wholesale",
+          "location": "national",
+          "confidence": "medium"
+        }
+      ],
       "other_web_prices": [
         {
           "price": 1761000,
@@ -247,10 +249,12 @@
           "confidence": "medium"
         }
       ],
-      "status": "no web price",
-      "web_median": null,
-      "gap_pct": null,
-      "notes": []
+      "status": "agree",
+      "web_median": 1000000,
+      "gap_pct": -8.9,
+      "notes": [
+        "Only one website - treat the comparison as a hint, not proof."
+      ]
     },
     "Maize (white)": {
       "our_price": 450000,
@@ -258,7 +262,26 @@
       "our_source": "Web_search",
       "our_level": "wholesale",
       "our_coverage": "a web price accepted earlier",
-      "web_prices": [],
+      "web_prices": [
+        {
+          "price": 406300,
+          "site": "mansamarkets.com",
+          "url": "https://www.mansamarkets.com/commodities/maize",
+          "source_date": "2026-10-15",
+          "level": "exchange",
+          "location": "national (AFEX exchange)",
+          "confidence": "high"
+        },
+        {
+          "price": 800000,
+          "site": "legit.ng",
+          "url": "https://www.legit.ng/business-economy/economy/1734109-food-prices-fall-10-popular-items-cheaper-nigeria/",
+          "source_date": "2026-09-01",
+          "level": "wholesale",
+          "location": "national (major Nigerian markets, unnamed)",
+          "confidence": "medium"
+        }
+      ],
       "other_web_prices": [
         {
           "price": 450000,
@@ -268,30 +291,22 @@
           "level": "not recorded",
           "location": null,
           "confidence": "high"
-        },
-        {
-          "price": 700000,
-          "site": "currentaffairs.com.ng",
-          "url": "https://currentaffairs.com.ng/prices/",
-          "source_date": "2026-10-02",
-          "level": "not recorded",
-          "location": null,
-          "confidence": "medium"
         }
       ],
-      "status": "no web price",
-      "web_median": null,
-      "gap_pct": null,
+      "status": "disagree",
+      "web_median": 603150,
+      "gap_pct": 34.0,
       "notes": [
-        "Our latest price itself came from the web, so this compares web sources with each other."
+        "Our latest price itself came from the web, so this compares web sources with each other.",
+        "AFEX does not say whether its maize is white or yellow."
       ]
     },
     "Maize (yellow)": {
-      "our_price": 227400,
-      "our_date": "2023-01-16",
-      "our_source": "Agricome",
-      "our_level": "retail",
-      "our_coverage": "Agricome",
+      "our_price": 406300,
+      "our_date": "2026-10-12",
+      "our_source": "AFEX",
+      "our_level": "wholesale",
+      "our_coverage": "AFEX exchange",
       "web_prices": [],
       "other_web_prices": [
         {
@@ -304,13 +319,10 @@
           "confidence": "medium"
         }
       ],
-      "status": "our price is old",
+      "status": "no web price",
       "web_median": null,
       "gap_pct": null,
-      "notes": [
-        "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
-        "Our latest real price is 1368 days old - nothing current to compare against."
-      ]
+      "notes": []
     },
     "Wheat": {
       "our_price": 706833,
@@ -324,7 +336,7 @@
       "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 185 days old - nothing current to compare against."
+        "Our latest real price is 186 days old - nothing current to compare against."
       ]
     },
     "Rice": {
@@ -339,7 +351,7 @@
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/blog/rice-price-in-nigeria-today",
           "source_date": "2026-10-14",
-          "level": "wholesale",
+          "level": "exchange",
           "location": "national",
           "confidence": "high"
         }
@@ -359,7 +371,7 @@
       "web_median": 482090,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 1375 days old - nothing current to compare against.",
+        "Our latest real price is 1376 days old - nothing current to compare against.",
         "Only one website - treat the comparison as a hint, not proof."
       ]
     },
@@ -369,7 +381,17 @@
       "our_source": "Web_search",
       "our_level": "wholesale",
       "our_coverage": "a web price accepted earlier",
-      "web_prices": [],
+      "web_prices": [
+        {
+          "price": 1270000,
+          "site": "parrotnigeria.com",
+          "url": "https://parrotnigeria.com/2026/10/10/inside-the-rice-price-dispute/",
+          "source_date": "2026-10-10",
+          "level": "wholesale",
+          "location": "national",
+          "confidence": "medium"
+        }
+      ],
       "other_web_prices": [
         {
           "price": 1090000,
@@ -386,15 +408,16 @@
           "url": "https://freedomonline.com.ng/rice-prices-fall-in-lagos-as-some-50kg-bags-drop-to-n55000/",
           "source_date": "2026-10-11",
           "level": "retail",
-          "location": "Lagos",
+          "location": "Lagos market tracker, Lagos",
           "confidence": "medium"
         }
       ],
-      "status": "no web price",
-      "web_median": null,
-      "gap_pct": null,
+      "status": "check",
+      "web_median": 1270000,
+      "gap_pct": 15.5,
       "notes": [
-        "Our latest price itself came from the web, so this compares web sources with each other."
+        "Our latest price itself came from the web, so this compares web sources with each other.",
+        "Only one website - treat the comparison as a hint, not proof."
       ]
     },
     "Rice (foreign)": {
@@ -420,7 +443,7 @@
           "url": "https://naijasabi.com.ng/rice-price-nigeria-today-2026/",
           "source_date": "2026-10-01",
           "level": "retail",
-          "location": "Lagos (Lagos State Ministry of Agriculture and Food Systems price tracker)",
+          "location": "Lagos, Lagos State",
           "confidence": "medium"
         },
         {
@@ -502,17 +525,7 @@
       "our_level": "retail",
       "our_coverage": "WFP markets in Borno, Yobe",
       "web_prices": [],
-      "other_web_prices": [
-        {
-          "price": 5500,
-          "site": "currentaffairs.com.ng",
-          "url": "https://currentaffairs.com.ng/prices/",
-          "source_date": "2026-10-02",
-          "level": "not recorded",
-          "location": null,
-          "confidence": "medium"
-        }
-      ],
+      "other_web_prices": [],
       "status": "no web price",
       "web_median": null,
       "gap_pct": null,
