@@ -732,21 +732,25 @@ def run_intelligence():
     fpi, fpi_breakdown = compute_food_price_index(national_anchors)
     logger.info(f"    FPI: {fpi} (base 2025=100)")
 
-    # MoM change: compare to 30 days ago
+    # MoM change: the same basket priced 30 days ago FROM TODAY'S DATA. It
+    # used to read last month's saved intelligence file, which was built on
+    # older (partly estimated) prices, so every data correction showed up as
+    # "inflation" (+17.4 MoM on 16 Oct 2026, mostly the switch to real WFP
+    # livestock and FEWS NET prices).
     fpi_30d_ago = None
     try:
-        old_date  = (run_date - timedelta(days=30)).strftime("%Y-%m-%d")
-        old_files = sorted(glob.glob(os.path.join(INTEL_DIR, "intelligence_*.json")))
-        for f in reversed(old_files):
-            if old_date[:7] in f:  # same month last month
-                with open(f) as fh:
-                    old = json.load(fh)
-                fpi_30d_ago = old.get("food_price_index", {}).get("value")
-                break
-    except Exception:
-        pass
+        master = pd.read_csv(MASTER_PATH, parse_dates=["date"])
+        hist = master[(master["record_type"] != "forecast") & master["price_ngn_mt"].notna()
+                      & (master["date"] <= pd.Timestamp(run_date - timedelta(days=30)))]
+        then = hist.sort_values("date").groupby("commodity")["price_ngn_mt"].last()
+        anchors_then = {c: {"price": float(then[c])} for c in national_anchors if c in then.index}
+        if anchors_then:
+            fpi_30d_ago, _ = compute_food_price_index(anchors_then)
+    except Exception as e:
+        logger.warning(f"    Could not price the basket 30 days ago: {e}")
 
     fpi_mom_change = round(fpi - fpi_30d_ago, 1) if fpi_30d_ago else None
+    fpi_mom_pct = round((fpi / fpi_30d_ago - 1) * 100, 1) if fpi_30d_ago else None
 
     # ── 3. Volatility Index ──────────────────────────────────────────────────
     logger.info("  Computing volatility index...")
@@ -818,7 +822,8 @@ def run_intelligence():
         "food_price_index": {
             "value":          fpi,
             "base":           "2025=100",
-            "mom_change":     fpi_mom_change,
+            "mom_change":     fpi_mom_change,        # index points vs 30 days ago, same data
+            "mom_change_pct": fpi_mom_pct,
             "interpretation": "above average" if fpi > 105 else
                               "below average" if fpi < 95 else "normal",
             "breakdown":      fpi_breakdown,
