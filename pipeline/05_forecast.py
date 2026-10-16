@@ -215,14 +215,16 @@ def build_champion(commodity, hist_df, last_price, last_date, future_df):
     if CHAMPION_MODE == "off":
         return None
     try:
-        from pipeline.drift_models import forecast_path
+        from pipeline.drift_models import blended_path
         if _selection_cache is None:
             with open(SELECTION_PATH) as f:
                 _selection_cache = json.load(f)
         sel = _selection_cache.get(commodity)
         if not sel:
             return None
-        values = forecast_path(sel["method"], hist_df, last_price, last_date, future_df["date"])
+        long_method = sel.get("long_method")
+        values = blended_path(sel["method"], long_method, hist_df, last_price, last_date, future_df["date"])
+        label = sel["method"] + (f">{long_method}" if long_method else "")
         weeks = np.maximum((pd.to_datetime(future_df["date"]) - pd.Timestamp(last_date)).dt.days.values / 7.0, 0)
         # Interval half-width from the backtest's measured error at 4/8/13/26
         # weeks (interpolated between, scaled down below 4 weeks). 1.6 x mean
@@ -237,7 +239,7 @@ def build_champion(commodity, hist_df, last_price, last_date, future_df):
         mape_w = np.interp(weeks, pw, pm)
         mape_w = np.where(weeks < pw[0], pm[0] * np.sqrt(np.maximum(weeks, 1) / pw[0]), mape_w)
         hw = np.clip(np.maximum(mape_w, 2.0) / 100 * 1.6, 0, 0.6)
-        return {"method": sel["method"], "values": values.tolist(),
+        return {"method": label, "values": values.tolist(),
                 "lower_ci": (values * (1 - hw)).tolist(), "upper_ci": (values * (1 + hw)).tolist(),
                 "accuracy_4w": sel.get("accuracy_4w"), "n_4w": sel.get("n_4w")}
     except FileNotFoundError:

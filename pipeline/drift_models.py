@@ -121,6 +121,34 @@ def forecast_path(method, hist, last_price, last_date, target_dates, season_idx=
     return float(last_price) * np.exp(log_shift)
 
 
+# Long-range blend: some methods win near term and others at 6 months
+# (white maize, Oct 2026: "price holds" 5.0% error at 1 month vs seasonal
+# 7.8%, but 31.5% vs 26.2% at 6 months). The forecast follows the short-range
+# champion up to BLEND_FROM_WEEKS, then moves linearly to the long-range one
+# by BLEND_TO_WEEKS, so measured accuracy at 4/8/13 weeks is the short
+# method's and at 26 weeks the long method's.
+BLEND_FROM_WEEKS = 13
+BLEND_TO_WEEKS = 26
+
+
+def blend_weight(weeks):
+    """0 up to BLEND_FROM_WEEKS, 1 from BLEND_TO_WEEKS, linear in between."""
+    w = (np.asarray(weeks, dtype=float) - BLEND_FROM_WEEKS) / (BLEND_TO_WEEKS - BLEND_FROM_WEEKS)
+    return np.clip(w, 0.0, 1.0)
+
+
+def blended_path(short_method, long_method, hist, last_price, last_date, target_dates):
+    """Short-range champion near term, long-range champion from 6 months; one path if no long method."""
+    short = forecast_path(short_method, hist, last_price, last_date, target_dates)
+    if not long_method or long_method == short_method:
+        return short
+    longp = forecast_path(long_method, hist, last_price, last_date, target_dates)
+    weeks = np.maximum((pd.to_datetime(pd.Series(target_dates)).reset_index(drop=True)
+                        - pd.Timestamp(last_date)).dt.days.values / 7.0, 0)
+    w = blend_weight(weeks)
+    return (1 - w) * short + w * longp
+
+
 def project(last_price, g, weeks):
     """Constant-growth projection (kept for callers that only need the trend part)."""
     weeks = np.asarray(weeks, dtype=float)

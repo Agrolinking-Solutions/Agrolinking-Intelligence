@@ -52,6 +52,8 @@ WINDOW_WEEKS = 104
 MIN_TARGETS  = 6
 MIN_GAIN     = 0.3        # accuracy points a challenger must beat naive by
 TIE_METHOD   = "infl@0.5"
+LONG_H        = 26       # the 6-month horizon a long-range method is judged on
+LONG_MIN_GAIN = 1.0      # error points it must beat the champion by there (avoid noise)
 TIE_MARGIN   = 0.3        # ...and how close it must be to naive to win a tie
 
 
@@ -114,6 +116,27 @@ def choose(summ):
     return best, scores, tie_break
 
 
+def choose_long(summ, short):
+    """A different method for months 4-6 if it beats the champion at 6 months by LONG_MIN_GAIN."""
+    s = summ[(summ.h == LONG_H) & (summ.n >= MIN_TARGETS)].set_index("method")["mape"]
+    if short not in s.index or len(s) < 2:
+        return None
+    # "naive" is never a long-range method: blending a drift into it bends the
+    # path back to today's price (rise for 3 months, then fall) - a shape no
+    # one expects; it only happened where the tie-break had picked the drift.
+    short_mape = s[short]
+    # ...nor anything that IS naive in practice: seasonal methods fall back to
+    # it when there is too little real history for a seasonal pattern.
+    by_h = summ.pivot_table(index="method", columns="h", values="mape")
+    same_as_naive = [m for m in by_h.index if m != "naive" and "naive" in by_h.index
+                     and np.allclose(by_h.loc[m].values, by_h.loc["naive"].values, equal_nan=True)]
+    s = s.drop(index=[m for m in ["naive", short, *same_as_naive] if m in s.index])
+    if s.empty:
+        return None
+    best = s.idxmin()
+    return best if short_mape - s[best] >= LONG_MIN_GAIN else None
+
+
 def run_selection():
     os.makedirs(OUT_DIR, exist_ok=True)
     out, today = {}, date.today().isoformat()
@@ -133,6 +156,7 @@ def run_selection():
             best, scores, tie_break = "naive", {}, False
         else:
             best, scores, tie_break = choose(summ)
+        long_method = choose_long(summ, best) if n4 >= MIN_TARGETS else None
         g = lambda m, h, col: summ[(summ.method == m) & (summ.h == h)][col]
         def one(m, h, col):
             s = g(m, h, col)
@@ -144,7 +168,11 @@ def run_selection():
             "accuracy_4w": None if one(best, 4, "mape") is None else round(100 - one(best, 4, "mape"), 1),
             "accuracy_8w": None if one(best, 8, "mape") is None else round(100 - one(best, 8, "mape"), 1),
             "accuracy_13w": None if one(best, 13, "mape") is None else round(100 - one(best, 13, "mape"), 1),
-            "accuracy_26w": None if one(best, 26, "mape") is None else round(100 - one(best, 26, "mape"), 1),
+            # 6 months is the long-range method's when there is one (see drift_models.blended_path)
+            "accuracy_26w": (None if one(long_method or best, 26, "mape") is None
+                             else round(100 - one(long_method or best, 26, "mape"), 1)),
+            "long_method": long_method,
+            "accuracy_26w_short_method": None if one(best, 26, "mape") is None else round(100 - one(best, 26, "mape"), 1),
             "naive_accuracy_26w": None if one("naive", 26, "mape") is None else round(100 - one("naive", 26, "mape"), 1),
             "weighted_mape": {m: (None if not np.isfinite(v) else round(float(v), 2)) for m, v in scores.items()},
             "naive_accuracy_4w": None if one("naive", 4, "mape") is None else round(100 - one("naive", 4, "mape"), 1),
@@ -158,10 +186,12 @@ def run_selection():
             # 1 AFEX price on 15 Oct 2026 and scored "99.1%"). Report none, so
             # the dashboard confidence and the averages leave it out.
             for k in ("mape_4w", "mape_8w", "accuracy_4w", "accuracy_8w", "accuracy_13w",
-                      "accuracy_26w", "naive_accuracy_4w", "naive_accuracy_26w", "direction_hit_4w"):
+                      "accuracy_26w", "accuracy_26w_short_method", "naive_accuracy_4w", "naive_accuracy_26w",
+                      "direction_hit_4w"):
                 out[c][k] = None
             out[c]["note"] = f"only {n4} real price(s) to test against - accuracy not measured yet"
-        logger.info(f"  {c:<16} -> {best:<12}{' (tie)' if tie_break else ''} acc 4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "
+        logger.info(f"  {c:<16} -> {best:<12}{' (tie)' if tie_break else ''}"
+                    f"{f' then {long_method} (6 mo)' if long_method else ''} acc 4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "
                     f"(naive {out[c]['naive_accuracy_4w']}% / {out[c]['naive_accuracy_26w']}%) n={n4}")
     with open(SELECTION, "w") as f:
         json.dump(out, f, indent=2)
