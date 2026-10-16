@@ -51,6 +51,19 @@ HORIZON_W    = {4: 0.4, 8: 0.3, 13: 0.2, 26: 0.1}
 WINDOW_WEEKS = 104
 MIN_TARGETS  = 6
 MIN_GAIN     = 0.3        # accuracy points a challenger must beat naive by
+# Rows that did not exist yet at a past forecast date: prices interpolated
+# towards the NEXT real price, and the platform's own model rows. Starting a
+# test forecast from them leaked the future into the score (white beans'
+# "price holds" looked 87.4% accurate vs 80.2% fairly; scripts/research/
+# forecast_audit.py, Oct 2026).
+NOT_KNOWN_YET = {"Interpolated", "Agrolinking_validated"}
+FRESH_WEEKS  = 4          # "fresh data": latest real price at most this old at the forecast date
+# The METHOD is chosen on test forecasts made in normal conditions (latest
+# real price at most GAP_WEEKS old): a handful made across a data gap (FEWS
+# NET's 2025 pause left white maize 10 months without a real price) swamped
+# the comparison. Reported accuracy still counts every test forecast, and
+# the forecast ranges widen when data is old (drift_models.range_halfwidth).
+GAP_WEEKS    = 12
 TIE_METHOD   = "infl@0.5"
 LONG_H        = 26       # the 6-month horizon a long-range method is judged on
 LONG_MIN_GAIN = 1.0      # error points it must beat the champion by there (avoid noise)
@@ -77,14 +90,18 @@ def score_commodity(commodity):
         for h in HORIZONS:
             o = t["date"] - pd.Timedelta(weeks=h)
             hist = df[df["date"] <= o]
-            if len(hist) < 20:
+            real_before = hist[hist["data_source"].isin(REAL_SOURCES)]
+            if len(hist) < 20 or real_before.empty:
                 continue
+            last_real = real_before["date"].max()
+            hist = hist[~(hist["data_source"].isin(NOT_KNOWN_YET) & (hist["date"] > last_real))]
             last = float(hist["price_ngn_mt"].iloc[-1])
             last_date = hist["date"].iloc[-1]
             preds = point_forecasts(hist, last, last_date, t["date"])
+            age = (o - last_real).days / 7.0
             for m in CANDIDATES:
                 rows.append({"method": m, "h": h, "actual": float(t["price_ngn_mt"]),
-                             "pred": float(preds[m]), "origin": last})
+                             "pred": float(preds[m]), "origin": last, "age_weeks": age})
     return pd.DataFrame(rows) if rows else None
 
 
@@ -96,6 +113,19 @@ def summarise(res):
         moved, (np.sign(res.pred - res.origin) == np.sign(res.actual - res.origin)).astype(float), np.nan)
     return res.groupby(["method", "h"]).agg(
         n=("ape", "size"), mape=("ape", "mean"), dir_hit=("dir_ok", "mean")).reset_index()
+
+
+def fresh_err(res, method, h=4):
+    """Mean error (%) of the test forecasts made with real data at most FRESH_WEEKS old."""
+    r = res[(res["method"] == method) & (res["h"] == h) & (res["age_weeks"] <= FRESH_WEEKS)]
+    if len(r) < MIN_TARGETS:
+        return None
+    return round(float(((r["pred"] - r["actual"]).abs() / r["actual"] * 100).mean()), 2)
+
+
+def fresh_acc(res, method):
+    e = fresh_err(res, method, 4)
+    return None if e is None else round(100 - e, 1)
 
 
 def choose(summ):
@@ -151,12 +181,17 @@ def run_selection():
             continue
         summ = summarise(res)
         n4 = int(summ[(summ.method == "naive") & (summ.h == 4)].n.sum())
+        normal = res[res["age_weeks"] <= GAP_WEEKS]
+        summ_choice = summarise(normal) if len(normal) else summ
+        if (summ_choice[(summ_choice.method == "naive") & (summ_choice.h == 4)].n.sum() < MIN_TARGETS
+                or summ_choice.h.nunique() < len(HORIZONS)):
+            summ_choice = summ
         if n4 < MIN_TARGETS:
             logger.warning(f"  {c}: only {n4} real targets — keeping naive, low confidence")
             best, scores, tie_break = "naive", {}, False
         else:
-            best, scores, tie_break = choose(summ)
-        long_method = choose_long(summ, best) if n4 >= MIN_TARGETS else None
+            best, scores, tie_break = choose(summ_choice)
+        long_method = choose_long(summ_choice, best) if n4 >= MIN_TARGETS else None
         g = lambda m, h, col: summ[(summ.method == m) & (summ.h == h)][col]
         def one(m, h, col):
             s = g(m, h, col)
@@ -178,6 +213,11 @@ def run_selection():
             "naive_accuracy_4w": None if one("naive", 4, "mape") is None else round(100 - one("naive", 4, "mape"), 1),
             "direction_hit_4w": one(best, 4, "dir_hit"),
             "low_confidence": n4 < 12,
+            # same, only where the latest real price was at most FRESH_WEEKS old
+            "accuracy_4w_fresh_data": fresh_acc(res, best),
+            # the forecast ranges' starting point when today's data is fresh (05_forecast)
+            "error_fresh_data_pct": {str(h): fresh_err(res, long_method if (h == LONG_H and long_method) else best, h)
+                                     for h in HORIZONS},
             "tie_break": tie_break,
             "updated": today,
         }
@@ -185,10 +225,11 @@ def run_selection():
             # One or two real prices can't measure accuracy (Yellow maize had
             # 1 AFEX price on 15 Oct 2026 and scored "99.1%"). Report none, so
             # the dashboard confidence and the averages leave it out.
-            for k in ("mape_4w", "mape_8w", "accuracy_4w", "accuracy_8w", "accuracy_13w",
+            for k in ("mape_4w", "mape_8w", "accuracy_4w", "accuracy_4w_fresh_data", "accuracy_8w", "accuracy_13w",
                       "accuracy_26w", "accuracy_26w_short_method", "naive_accuracy_4w", "naive_accuracy_26w",
                       "direction_hit_4w"):
                 out[c][k] = None
+            out[c]["error_fresh_data_pct"] = {}
             out[c]["note"] = f"only {n4} real price(s) to test against - accuracy not measured yet"
         logger.info(f"  {c:<16} -> {best:<12}{' (tie)' if tie_break else ''}"
                     f"{f' then {long_method} (6 mo)' if long_method else ''} acc 4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "

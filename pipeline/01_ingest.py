@@ -241,6 +241,7 @@ WFP_COMMODITIES_WANTED = {
 
 
 WHOLESALE_EQUIVALENT = {"Rice (local)", "Rice (foreign)", "Sorghum"}
+CBM_NAIRA_FROM = pd.Timestamp("2017-01-01")   # cross-border markets in CFA francs before this (see load_wfp)
 # The platform prices everything at wholesale. WFP has only ever published
 # RETAIL prices for beans (Borno/Yobe/Adamawa), but it published both retail
 # and wholesale for cowpeas - the same product family - in the same markets
@@ -290,6 +291,18 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
         raise FileNotFoundError(f"Missing: {path}")
 
     wfp = pd.read_csv(path, parse_dates=["date"])
+    # WFP's cross-border markets, "(CBM)" in the market name, reported in CFA
+    # francs until 2016 although the file says NGN: their prices ran ~3x the
+    # Nigerian markets', in line with the CFA/Naira rate (Jul 2005 maize: Mai
+    # Adoua 246/kg x 0.25 = N61 vs Kano Dawanau N60), and settled at ~1x from
+    # 2017. Averaged in, they doubled pre-2016 maize and sorghum and added 61%
+    # to imported rice (found 16 Oct 2026). Dropped before CBM_NAIRA_FROM.
+    cfa = (wfp["market"].astype(str).str.contains("(CBM)", regex=False)
+           & (pd.to_datetime(wfp["date"], errors="coerce") < CBM_NAIRA_FROM))
+    if cfa.any():
+        logger.info(f"  WFP: dropped {int(cfa.sum())} cross-border market rows before "
+                    f"{CBM_NAIRA_FROM:%Y} (prices in CFA francs)")
+        wfp = wfp[~cfa].copy()
     proxy_ratios = wholesale_proxy_ratios(wfp)
 
     # Filter to only the commodities we need
@@ -434,6 +447,49 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
 # PART 3 — MERGE & DEDUPLICATE
 # ─────────────────────────────────────────────────────────────────────────────
 
+LEGACY_WFP_SOURCE = "WFP Nigeria Food Prices"
+
+
+def place_legacy_wfp(agricome_df: pd.DataFrame, current: pd.DataFrame) -> pd.DataFrame:
+    """
+    The Agricome file's rows with source "WFP Nigeria Food Prices" are an older
+    extract of the WFP survey (national averages, retail; beans 2016-26, maize
+    2003-23), not Agricome posts. 85-89% of their months are also in the
+    current WFP/FEWS data, a week apart, so each series held the same survey
+    twice at two price levels - a monthly zigzag (found 16 Oct 2026).
+
+    Keep a legacy row only for a month the current data lacks, scaled by the
+    median legacy/current ratio over the months both have, and label it WFP.
+    If the ratio is unstable (IQR over 0.3) or rests on under 12 months, the
+    leftover months are dropped instead.
+    """
+    legacy = agricome_df["source"].astype(str) == LEGACY_WFP_SOURCE
+    if not legacy.any():
+        return agricome_df
+    cur = current[current["data_source"].isin(["WFP", "FEWS_NET"])]
+    keep = [agricome_df[~legacy]]
+    for c, g in agricome_df[legacy].groupby("commodity"):
+        cc = cur[cur["commodity"] == c]
+        cur_m = cc.groupby(cc["date"].dt.to_period("M"))["price_ngn_mt"].median()
+        months = g["date"].dt.to_period("M")
+        shared = months.isin(cur_m.index).values
+        ratios = g.loc[shared, "price_ngn_mt"].values / cur_m.loc[months[shared]].values
+        rest = g[~shared].copy()
+        if len(ratios) < 12 or np.subtract(*np.percentile(ratios, [75, 25])) > 0.3:
+            logger.info(f"  {c}: older WFP extract - {int(shared.sum())} months already in the current data, "
+                        f"{len(rest)} left over dropped (level vs current data not stable)")
+            continue
+        ratio = float(np.median(ratios))
+        rest["price_ngn_mt"] = rest["price_ngn_mt"] / ratio
+        rest["data_source"], rest["market_type"] = "WFP", "wholesale"
+        rest["notes"] = (f"Older WFP national extract, scaled by 1/{ratio:.3f} to the current WFP/FEWS level "
+                         f"(median over {len(ratios)} shared months)")
+        keep.append(rest)
+        logger.info(f"  {c}: older WFP extract - {int(shared.sum())} months already in the current data dropped, "
+                    f"{len(rest)} months kept (scaled x{1 / ratio:.3f})")
+    return pd.concat(keep, ignore_index=True)
+
+
 def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
                   web_df: pd.DataFrame = None) -> pd.DataFrame:
     """
@@ -459,10 +515,13 @@ def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
     )
 
     # Stack them
-    frames = [agricome_df, wfp_df]
     if web_df is not None and len(web_df) > 0:
         web_df["date"] = pd.to_datetime(web_df["date"])
         web_df["date"] = web_df["date"] - pd.to_timedelta(web_df["date"].dt.dayofweek, unit="D")
+    agricome_df = place_legacy_wfp(agricome_df, pd.concat([wfp_df] + ([web_df] if web_df is not None else []),
+                                                          ignore_index=True))
+    frames = [agricome_df, wfp_df]
+    if web_df is not None and len(web_df) > 0:
         frames.append(web_df)
     combined = pd.concat(frames, ignore_index=True)
 
@@ -538,9 +597,12 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         stale_wfp = (existing["data_source"] == "WFP") & existing["commodity"].isin(wfp_rebuilt)
         mislabelled_estimate = ((existing["data_source"] == "Agricome")
                                 & existing["notes"].astype(str).str.contains("World Bank RTP|DERIVED:", regex=True))
+        # the older WFP extract older ingests stored as "Agricome" (place_legacy_wfp rebuilds it)
+        legacy_wfp = ((existing["data_source"] == "Agricome")
+                      & (existing["source"].astype(str) == LEGACY_WFP_SOURCE))
         existing_historical = existing[(existing["record_type"] == "historical")
                                        & ~existing["data_source"].isin(["Web_search", "AFEX", "FEWS_NET"])
-                                       & ~stale_wfp & ~mislabelled_estimate]
+                                       & ~stale_wfp & ~mislabelled_estimate & ~legacy_wfp]
         forecast_rows = existing[existing["record_type"] == "forecast"]
         # Validated_actual rows — today's forecast, confirmed accurate by
         # 06_validate.py, appended so last_known_date advances daily.

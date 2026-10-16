@@ -149,6 +149,40 @@ def blended_path(short_method, long_method, hist, last_price, last_date, target_
     return (1 - w) * short + w * longp
 
 
+# Forecast ranges, calibrated on the fair backtest (scripts/research/
+# forecast_audit.py, 16 Oct 2026, ~2,300 fresh-data forecasts per horizon) so
+# the range holds the real price about 80% of the time. Half-width =
+#   fresh data (latest real price <= 4 weeks old): error measured on
+#     fresh-data test forecasts x RANGE_K(horizon)          -> held 78-80%
+#   older data: error on all test forecasts x RANGE_K x DATA_AGE
+#     (pooled over horizons: ~210 test forecasts per band)  -> held 68-87%
+# With the old 1.6 x error at every horizon, 6-month ranges held the real
+# price only 69% of the time.
+RANGE_K = ((4, 1.69), (8, 1.86), (13, 1.97), (26, 2.35))
+DATA_AGE = {            # extra width by age of the latest real price, at 4/8/13/26 weeks ahead
+    "fresh":  (1.0, 1.0, 1.0, 1.0),           # <= 4 weeks old
+    "recent": (1.26, 1.26, 1.26, 1.26),       # 5-12 weeks old
+    "old":    (3.15, 3.15, 3.15, 3.15),       # > 12 weeks old
+}
+RANGE_MAX = 0.8
+
+
+def range_halfwidth(error_pct, weeks, data_age_weeks=0.0):
+    """Fractional half-width of the forecast range (0.15 = +/-15%)."""
+    weeks = np.asarray(weeks, dtype=float)
+    hs = [h for h, _ in RANGE_K]
+    k = np.interp(weeks, hs, [v for _, v in RANGE_K])
+    band = "fresh" if data_age_weeks <= 4 else ("recent" if data_age_weeks <= 12 else "old")
+    age = np.interp(weeks, hs, DATA_AGE[band])
+    hw = np.clip(np.maximum(np.asarray(error_pct, dtype=float), 2.0) / 100 * k * age, 0, RANGE_MAX)
+    if hw.ndim:
+        # never narrower further out: the old-data widening is largest at short
+        # horizons, which made Wheat's 6-month range (16%) narrower than its 1-month (20%)
+        order = np.argsort(weeks, kind="stable")
+        hw[order] = np.maximum.accumulate(hw[order])
+    return hw
+
+
 def project(last_price, g, weeks):
     """Constant-growth projection (kept for callers that only need the trend part)."""
     weeks = np.asarray(weeks, dtype=float)

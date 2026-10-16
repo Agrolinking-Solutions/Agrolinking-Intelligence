@@ -27,6 +27,7 @@ on:
 
 permissions:
   contents: write   # required so the workflow can commit + push results
+  issues: write     # 09c opens/closes price-alert issues
 
 # A backup run that fires while the first is still going waits for it, then
 # its gate sees today's commit and stops.
@@ -253,6 +254,43 @@ jobs:
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/16_cross_check.py
+
+      # One GitHub issue (label price-alert) per commodity whose sources
+      # disagree by more than 30%; it emails everyone watching the repo,
+      # comments only if the gap moves 10+ points, and closes itself once
+      # the gap is under 25%. Never blocks publishing.
+      - name: 09c - Price alerts
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python pipeline/17_price_alerts.py
+
+      # Every commodity, every day: unit errors, one-off spikes, sources that
+      # disagree, shop prices in a wholesale series, data age, forecast sanity
+      # and accuracy against the 95% goal. Table on the run page; JSON at
+      # outputs/logs/data_checks.json (API /checks). Report only.
+      - name: 09d - Accuracy checks
+        if: always()
+        continue-on-error: true
+        run: python pipeline/data_checks.py
+
+      # Rule tests (ranges, method choice, cross-check, alerts, ingest) and
+      # data tests (no CFA-franc border prices, no duplicated WFP extract,
+      # no future-dated or non-positive real prices). A failure shows on the
+      # run page but does not stop today's data being published.
+      - name: Tests
+        if: always()
+        continue-on-error: true
+        run: |
+          pip install -q pytest
+          if python -m pytest tests/ -q -p no:cacheprovider > pytest.log 2>&1; then
+            echo "### Tests: all passed" >> "$GITHUB_STEP_SUMMARY"
+          else
+            { echo "### Tests: FAILED"; echo '```'; tail -40 pytest.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            cat pytest.log
+            exit 1
+          fi
+          tail -3 pytest.log
 
       # Plain-language summary of today's real data (gaps, web prices added
       # or rejected and why, cross-check flags) at the top of this run's page.

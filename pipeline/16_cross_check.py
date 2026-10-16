@@ -123,8 +123,13 @@ def usable(cand, today):
 AFEX_PATH = os.path.join(os.path.dirname(PATHS["master"]), "..", "raw", "afex_prices.csv")
 AFEX_NOTES = {
     "maize":  "AFEX does not say whether its maize is white or yellow.",
-    "ginger": "AFEX ginger may be a different grade (fresh or unsplit) from Agricome's dried ginger.",
+    "ginger": "AFEX ginger is a different grade (fresh or unsplit) from Agricome's dried split ginger, "
+              "so it is listed for reference but not compared.",
 }
+# AFEX prices for a different product than ours: listed, never compared. AFEX
+# ginger was 990K/tonne against Agricome's 8.0M dried split (16 Oct 2026) - the
+# usual fresh-to-dried ratio, not a price disagreement.
+AFEX_DIFFERENT_GRADE = {"ginger"}
 
 
 def afex_candidates(path=AFEX_PATH):
@@ -140,7 +145,8 @@ def afex_candidates(path=AFEX_PATH):
         for ours in MANSA_TO_OURS.get(slug, []):
             out.append({"commodity": ours, "query_date": r["as_of_date"], "price": float(r["price_ngn_mt"]),
                         "source_url": r["url"], "source_date": r["as_of_date"], "confidence": "high",
-                        "price_level": "exchange", "market_location": "national (AFEX exchange)",
+                        "price_level": "exchange, different grade" if slug in AFEX_DIFFERENT_GRADE else "exchange",
+                        "market_location": "national (AFEX exchange)",
                         "note": AFEX_NOTES.get(slug), "is_afex": True})
     return out
 
@@ -219,7 +225,7 @@ def build_report(master, candidates, today, coverage=None):
                          f"nothing current to compare against.")
         if mine and mine["source"] == "Web_search":
             notes.append("Our latest price itself came from the web, so this compares web sources with each other.")
-        notes += sorted({p["note"] for p in compared if p.get("note")})
+        notes += sorted({p["note"] for p in compared + context if p.get("note")})
         others = sum(1 for p in compared if not p.get("is_afex"))
         if mine and others and any(p.get("is_afex") for p in compared):
             notes.append(f"Status uses the AFEX price; {others} other web price(s) listed for reference.")

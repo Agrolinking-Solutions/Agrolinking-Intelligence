@@ -69,6 +69,9 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | 08b | `price_drivers.py` | Price-driver cards per commodity (weather, season, climate, fuel, exchange rate, inflation, world price), served at `/drivers` |
 | 09 | `09_staleness_check.py` | Flags commodities without a recent real price |
 | 09b | `16_cross_check.py` | Our prices vs AFEX and web wholesale prices (agree / check / disagree) |
+| 09c | `17_price_alerts.py` | Opens a GitHub issue (label `price-alert`) for each commodity whose sources disagree; closes it when they agree again |
+| 09d | `data_checks.py` | Daily accuracy checks for every commodity, served at `/checks` |
+| | `tests/` (pytest) | Rule and data tests; a failure shows on the run page without stopping publication |
 | | `data_status.py` | Plain-language real-data status at the top of the run page |
 | | `quality_gate.py` | Blocks publishing if outputs contain NaN, conflict markers or missing commodities |
 | | (commit) | Commits data and outputs to `main` |
@@ -82,11 +85,16 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 ## Forecasting
 
 - **Champion method per commodity (`13_select_forecaster.py`, `drift_models.py`).** The candidates are: price holds (naive), rise with food inflation, recent trend, a trend/inflation mix, and seasonal patterns (with or without inflation). Each is tested by rolling backtest on real prices at 1, 2, 3 and 6 months ahead. A challenger must beat "price holds" by 0.3 points to win. When "price holds" wins by less than 0.3 points, rising with half of food inflation is used instead, so that equally accurate forecasts don't show a flat line.
-- **Long-range blend.** Some methods win near term and others at 6 months. Where a real pattern (seasonal or trend) beats the champion at 6 months by at least 1 error point, the forecast follows the champion for 3 months and moves to that pattern by month 6. White maize, for example, holds through the harvest, then follows its lean-season rise. Its 6-month accuracy improved from 68.5% to 73.8%.
+- **Long-range blend.** Some methods win near term and others at 6 months. Where a real pattern (seasonal or trend) beats the champion at 6 months by at least 1 error point, the forecast follows the champion for 3 months and moves to that pattern by month 6. Imported rice, for example, holds near term, then follows its recent trend.
+- **Methods are chosen on normal conditions.** The choice uses test forecasts made when the latest real price was at most 12 weeks old, so a data gap (FEWS NET's 2025 pause left white maize 10 months without a real price) doesn't decide the method. Reported accuracy still counts every test forecast.
 - **Climate was tested and left out.** Adding this season's rainfall or the El Niño index made 3- and 6-month forecasts less accurate on real prices (6-month error 22.7% → 27.8%; see `scripts/research/climate_signal_backtest.py`). So climate is shown as context on the price-driver cards and is not used in the forecasts.
 - **Ranges** come from each commodity's measured error at each horizon.
 - **The ML ensemble** (ARIMA, Prophet, XGBoost) is still trained and stored for comparison. It is no longer published, because the backtest showed it lost to simpler methods. `FORECAST_CHAMPION_MODE` defaults to `live`.
-- **Accuracy is measured, not assumed.** Accuracy = 100 minus mean absolute % error against real prices. In the October 2026 backtest, mean 1-month accuracy is about 93%, and 9 of 19 commodities reach 95% or better. `/accuracy` serves the current backtest plus the live record of published forecasts.
+- **Accuracy is measured, not assumed.** Accuracy = 100 minus mean absolute % error against real prices. `/accuracy` serves the current backtest plus the live record of published forecasts. In October 2026:
+  - Daily selection (last two years): mean 1-month accuracy 92.7%, with 7 of 18 measured commodities at 95% or better; 93.2% when the latest real price is under 4 weeks old.
+  - Fair replay since 2016 (`scripts/research/forecast_audit.py`: past forecasts start from the latest real price known then, never a filled-in one, and the method is chosen only from results known then): 91.3%, and 91.9% over the last two years. Filled-in starting prices had flattered the old figures by 2-7 points for monthly series (white beans 87.4% vs 80.2%).
+  - Accuracy depends on how fresh the data is: 92.9% when the latest real price is under 4 weeks old, 87.8% at 5-12 weeks, and about 34% beyond 12 weeks (few cases, mostly white maize during the 2025 FEWS NET pause).
+- **Forecast ranges hold the real price about 80% of the time** at every horizon (`drift_models.range_halfwidth`, calibrated by the fair replay). With fresh data a range starts from the error measured on fresh-data test forecasts. It widens when the latest real price is older, never narrows further out, and is capped at ±80%. A commodity with no measured accuracy yet uses the typical error across commodities.
 
 ## Validation and data quality
 
@@ -95,7 +103,11 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 - **Human review lists:**
   - `data/raw/web_prices_withdrawn.csv` removes a specific bad web price.
   - `data/raw/web_sources_blocked.csv` blocks a whole website.
-- **Cross-check:** the daily `/crosscheck` report flags commodities where independent prices disagree with ours by more than 30%.
+- **Cross-check:** the daily `/crosscheck` report flags commodities where independent prices disagree with ours by more than 30%. AFEX ginger is a different grade (fresh, not dried split), so it is listed but not compared.
+- **Price alerts (step 09c):** each disagreement opens one GitHub issue labelled `price-alert`, which emails everyone watching the repository. The issue text updates daily. It emails again only if the gap moves by 10 points or more, and closes itself once the gap is under 25%. Click **Watch** on the repository to receive them.
+- **Daily accuracy checks (step 09d, `/checks`):** for every commodity, ok / check / problem on: unit errors (latest real price 2x or more from its recent median), one-off spikes that reverse, real sources that disagree by 25%+, shop prices mixed into a wholesale series, data age, share of filled-in weeks, whether the forecast starts from the price we held, forecast sanity (positive, inside its range, 1-month move within 3x the measured error), tested accuracy against the 95% goal, live accuracy, and the cross-check. The table is shown on each run page.
+- **Tests (`tests/`):** rule tests (ranges, method choice, cross-check, alerts, ingest) and data tests that fail if a known error comes back (CFA-franc border prices, the duplicated WFP extract, future-dated or non-positive real prices). They run in every daily pipeline.
+- **History fixes (October 2026):** WFP's cross-border markets reported in CFA francs until 2016, although the file labels them Naira, which inflated pre-2016 white maize and sorghum about 2x and imported rice by 61%; they are now dropped before 2017. An older WFP extract stored in the Agricome file duplicated about 99% of the current WFP/FEWS NET months, a week apart; only the months the current data lacks are kept, scaled to its level and labelled WFP.
 
 ## State prices
 
@@ -119,7 +131,7 @@ FastAPI, `api.py`. Interactive reference: [pis-api.agrolinking.com/docs](https:/
 | States and trade | `/zonal/latest`, `/zonal/{commodity}`, `/spreads`, `/arbitrage`, `/arbitrage/{commodity}`, `/routes`, `/routes/{origin}/{destination}`, `/supply`, `/supply/{zone}` |
 | Intelligence | `/intelligence/latest`, `/index/food`, `/index/volatility`, `/outlook/30d`, `/movers`, `/confidence`, `/alerts/early-warning`, `/shortage-surplus`, `/seasonality/{commodity}`, `/factors` |
 | Price drivers | `/drivers` (all commodities), `/drivers/{commodity}` (full cards with sources and dates). The older `/factors` is superseded |
-| Data quality | `/accuracy`, `/crosscheck` |
+| Data quality | `/accuracy`, `/checks`, `/crosscheck` |
 | Alerts | `/alerts/latest` (WhatsApp/email-ready text); `/alerts/saved` (GET, POST), `/alerts/saved/{alert_id}` (DELETE) and `/alerts/check`, which need a Google sign-in token |
 
 **Protections:**
@@ -203,7 +215,8 @@ python pipeline/quality_gate.py
 | **Use another exchange or market-monitor commodity as a real price** | Add it to `AFEX_AS_REAL` or `FEWS_AS_REAL` in `pipeline/01_ingest.py`, after checking how its level compares with existing real data. |
 | **Add a commodity** | Add it to `COMMODITIES` in `config/settings.py` and to its source mappings. New Postgres rows are created automatically. |
 | **Rebuild the Food Price Index base** | `python pipeline/build_fpi_base.py` rebuilds `data/external/fpi_base_2025.csv` from real 2025 prices. The base is fixed on purpose, so only rebuild it when the 2025 history itself changes. |
-| **Check today's data health** | Open the latest Daily Forecast Pipeline run on GitHub (status summary at the top), or call `/crosscheck` and `/accuracy`. |
+| **Check today's data health** | Open the latest Daily Forecast Pipeline run on GitHub (status summary and accuracy-check table at the top), or call `/checks`, `/crosscheck` and `/accuracy`. Open `price-alert` issues list current source disagreements. |
+| **Re-test forecast accuracy from scratch** | `python scripts/research/forecast_audit.py --rebuild` replays every commodity fairly (no filled-in starts, method chosen only from what was known then) and checks the ranges. It writes `outputs/backtest/forecast_audit.json`. |
 
 ## Deployment
 
@@ -225,7 +238,7 @@ outputs/             forecasts (raw, validated, zonal), intelligence, alerts, ba
 api.py, auth.py, db.py   API, Google sign-in check, database access
 docs/                ARCHITECTURE, API, OPERATIONAL_GUIDE, SECURITY, FIXES_AND_IMPROVEMENTS
 scripts/             Postgres migration, maintenance and research scripts
-tests/               smoke tests
+tests/               smoke tests, accuracy rule tests and data tests
 ```
 
 ## Known gaps (October 2026)

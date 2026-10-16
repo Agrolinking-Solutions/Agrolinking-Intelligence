@@ -1890,6 +1890,30 @@ def commodity_price_drivers(commodity: str):
     return {"as_of": rep.get("as_of"), "commodity": key, **rep["commodities"][key]}
 
 
+@app.get("/checks", tags=["Accuracy"])
+def accuracy_checks(
+    status: Optional[str] = Query(None, description="Only commodities with this status: ok, check or problem"),
+):
+    """
+    Today's accuracy checks for every commodity (pipeline/data_checks.py).
+
+    Each commodity has an overall status - ok (fine), check (a person should
+    look) or problem (likely wrong) - and the checks behind it: unit errors,
+    one-off spikes, sources that disagree, shop prices in a wholesale series,
+    data age, filled-in share, forecast start and sanity, tested and live
+    accuracy, and today's price cross-check.
+    """
+    try:
+        with open(os.path.join(BASE_DIR, "outputs", "logs", "data_checks.json")) as f:
+            rep = json.load(f)
+    except Exception:
+        raise HTTPException(status_code=404, detail="No checks yet - they run with the daily pipeline.")
+    if status:
+        rep["commodities"] = {c: e for c, e in rep.get("commodities", {}).items()
+                              if e.get("status", "").lower() == status.lower()}
+    return rep
+
+
 @app.get("/crosscheck", tags=["Accuracy"])
 def price_crosscheck(
     status: Optional[str] = Query(None, description="Only this status, e.g. disagree"),

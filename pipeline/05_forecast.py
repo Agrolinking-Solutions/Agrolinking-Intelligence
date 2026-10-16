@@ -215,7 +215,7 @@ def build_champion(commodity, hist_df, last_price, last_date, future_df):
     if CHAMPION_MODE == "off":
         return None
     try:
-        from pipeline.drift_models import blended_path
+        from pipeline.drift_models import blended_path, range_halfwidth
         if _selection_cache is None:
             with open(SELECTION_PATH) as f:
                 _selection_cache = json.load(f)
@@ -227,18 +227,35 @@ def build_champion(commodity, hist_df, last_price, last_date, future_df):
         label = sel["method"] + (f">{long_method}" if long_method else "")
         weeks = np.maximum((pd.to_datetime(future_df["date"]) - pd.Timestamp(last_date)).dt.days.values / 7.0, 0)
         # Interval half-width from the backtest's measured error at 4/8/13/26
-        # weeks (interpolated between, scaled down below 4 weeks). 1.6 x mean
-        # absolute error is roughly an 80% band for normally distributed errors.
-        pts = [(h, 100 - sel[f"accuracy_{h}w"]) for h in (4, 8, 13, 26)
-               if sel.get(f"accuracy_{h}w") is not None]
+        # weeks (interpolated between, scaled down below 4 weeks), times the
+        # multipliers in drift_models.range_halfwidth that make it an 80% range
+        # (calibrated in scripts/research/forecast_audit.py).
+        # wider when the latest REAL price is old (see drift_models.RANGE_K / DATA_AGE)
+        real_rows = hist_df[hist_df["data_source"].isin(REAL_SOURCES)] if "data_source" in hist_df else hist_df.iloc[0:0]
+        age_weeks = ((pd.Timestamp(last_date) - real_rows["date"].max()).days / 7.0) if len(real_rows) else 52.0
+        # With fresh data the range starts from the error measured on fresh-data
+        # test forecasts: White maize's all-history error includes the 2025 FEWS
+        # NET pause (13.7% vs 5.2% fresh), which made its 1-month range +-23%.
+        fresh = sel.get("error_fresh_data_pct") or {}
+        err = {h: (fresh.get(str(h)) if age_weeks <= 4 and fresh.get(str(h)) is not None
+                   else (None if sel.get(f"accuracy_{h}w") is None else 100 - sel[f"accuracy_{h}w"]))
+               for h in (4, 8, 13, 26)}
+        pts = [(h, e) for h, e in err.items() if e is not None]
         if not pts:
-            pts = [(4, sel.get("mape_4w") or 5.0)]
+            # accuracy not measured yet (Yellow maize: one real price): use the
+            # typical error across commodities, not a made-up 5% that made its
+            # range look as sure as the best-measured commodity's
+            pts = [(h, float(np.median(t))) for h in (4, 8, 13, 26)
+                   if (t := [100 - v[f"accuracy_{h}w"] for v in _selection_cache.values()
+                             if v.get(f"accuracy_{h}w") is not None])]
+        if not pts:
+            pts = [(4, 10.0)]
         pw, pm = zip(*pts)
         # never narrower further out (Wheat's 26-week score rests on 17 test points)
         pm = np.maximum.accumulate(np.array(pm, dtype=float))
         mape_w = np.interp(weeks, pw, pm)
         mape_w = np.where(weeks < pw[0], pm[0] * np.sqrt(np.maximum(weeks, 1) / pw[0]), mape_w)
-        hw = np.clip(np.maximum(mape_w, 2.0) / 100 * 1.6, 0, 0.6)
+        hw = range_halfwidth(mape_w, weeks, max(age_weeks, 0.0))
         return {"method": label, "values": values.tolist(),
                 "lower_ci": (values * (1 - hw)).tolist(), "upper_ci": (values * (1 + hw)).tolist(),
                 "accuracy_4w": sel.get("accuracy_4w"), "n_4w": sel.get("n_4w")}

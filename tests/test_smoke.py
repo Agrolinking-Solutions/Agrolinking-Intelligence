@@ -13,9 +13,9 @@ from config.settings import COMMODITIES, PATHS, MODEL_CONFIG
 
 
 def test_commodities_defined():
-    """Ensure all 17 commodities are defined."""
-    assert len(COMMODITIES) == 17, f"Expected 17 commodities, got {len(COMMODITIES)}"
-    assert "Rice" in COMMODITIES
+    """All 19 commodities: the 17 originals plus Rice (local) and Rice (foreign), split Oct 2026."""
+    assert len(COMMODITIES) == 19, f"Expected 19 commodities, got {len(COMMODITIES)}"
+    assert {"Rice", "Rice (local)", "Rice (foreign)"} <= set(COMMODITIES)
     assert "Meat (beef)" in COMMODITIES
 
 
