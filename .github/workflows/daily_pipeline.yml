@@ -139,6 +139,12 @@ jobs:
       # AFEX commodity-exchange prices for Nigeria (daily, dated), read from
       # Mansa Markets' public pages into data/raw/afex_prices.csv. Used by the
       # cross-check (09b). Never blocks the run.
+      # Real inflation and exchange rate (CBN API) and petrol (WFP) - these
+      # files used to continue as smooth projections after ~April 2026.
+      - name: 00g - Real macro data (CBN inflation and FX, WFP fuel)
+        continue-on-error: true
+        run: python pipeline/fetch_macro.py
+
       - name: 00e - AFEX exchange prices
         continue-on-error: true
         run: python pipeline/fetch_afex_prices.py
@@ -228,6 +234,12 @@ jobs:
       # but it shouldn't stop today's otherwise-valid forecasts from
       # publishing. The failure still shows up in the Actions run log
       # (yellow "!" on this step) and in outputs/logs/staleness_alert.json.
+      # Per-commodity cards: weather, season, fuel, exchange rate, inflation.
+      # Served at /drivers. Report only - never blocks publishing.
+      - name: 08b - Price drivers
+        continue-on-error: true
+        run: python pipeline/price_drivers.py
+
       - name: 09 - Staleness check
         continue-on-error: true
         run: python pipeline/09_staleness_check.py
@@ -265,7 +277,7 @@ jobs:
         run: |
           git config user.name "agrolinking-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv data/raw/web_prices.csv data/raw/wfp_food_prices_nga.csv data/raw/.wfp_hdx_state.json data/raw/afex_prices.csv data/raw/fao_fpma_prices.csv
+          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv data/raw/web_prices.csv data/raw/wfp_food_prices_nga.csv data/raw/.wfp_hdx_state.json data/raw/afex_prices.csv data/raw/fao_fpma_prices.csv data/external/inflation.csv data/external/fx_rates.csv data/external/fuel_prices.csv data/external/cbn_inflation_monthly.csv data/external/cbn_usd_daily.csv data/external/wfp_petrol_monthly.csv
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else

@@ -1846,6 +1846,50 @@ def commodity_history(
     }
 
 
+def load_latest_drivers():
+    files = sorted(glob.glob(os.path.join(BASE_DIR, "outputs", "intelligence", "drivers_*.json")))
+    if not files:
+        raise HTTPException(status_code=404, detail="No price drivers yet - they are built by the daily pipeline.")
+    with open(files[-1], encoding="utf-8") as f:
+        return json.load(f)
+
+
+@app.get("/drivers", tags=["Price Drivers"])
+def price_drivers_overview():
+    """
+    What is happening to the factors behind each commodity's price: weather
+    (14-day forecast vs normal in its growing zones), season (pattern
+    measured on real prices), fuel (WFP petrol), exchange rate and food
+    inflation (CBN). One row per commodity with a short summary and, per
+    factor: status (current / stale / not measured), relevance for that
+    commodity (high / medium / low), the factor's own direction, and a
+    price_effect only where it is measured (today: the season).
+    Full cards with readings, sources and dates: /drivers/{commodity}.
+    Built daily by pipeline/price_drivers.py.
+    """
+    rep = load_latest_drivers()
+    rows = {}
+    for c, e in rep.get("commodities", {}).items():
+        rows[c] = {"summary": e.get("summary"), "group": e.get("group"),
+                   "factors": {f: {k: card.get(k) for k in ("status", "relevance", "factor_direction",
+                                                            "price_effect", "reading")}
+                               for f, card in e.get("factors", {}).items()}}
+    return {"as_of": rep.get("as_of"), "commodities": rows,
+            "rules": "Price effects are shown only where measured on real prices; other factors show "
+                     "their own movement and why they matter for the commodity."}
+
+
+@app.get("/drivers/{commodity}", tags=["Price Drivers"])
+def commodity_price_drivers(commodity: str):
+    """Full factor cards for one commodity: reading, change, relevance, why it matters, source and date."""
+    rep = load_latest_drivers()
+    key = next((c for c in rep.get("commodities", {}) if c.lower() == commodity.lower()), None)
+    if not key:
+        raise HTTPException(status_code=404,
+                            detail=f"'{commodity}' not found. Available: {sorted(rep.get('commodities', {}))}")
+    return {"as_of": rep.get("as_of"), "commodity": key, **rep["commodities"][key]}
+
+
 @app.get("/crosscheck", tags=["Accuracy"])
 def price_crosscheck(
     status: Optional[str] = Query(None, description="Only this status, e.g. disagree"),
@@ -2384,6 +2428,9 @@ def forecast_factor_drivers(
     commodity: Optional[str] = Query(None, description="Filter by commodity e.g. Rice")
 ):
     """
+    Superseded by /drivers (real data, measured effects only, sources and
+    dates on every reading). Kept for existing frontend calls.
+
     Forecast factor drivers per commodity.
     Each factor rated High / Mid / Low with a direction signal.
 

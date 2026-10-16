@@ -35,7 +35,7 @@ Daily wholesale price intelligence and forecasts for Nigerian agricultural commo
 | **Web price search** (Claude API with web search) | Named, dated wholesale prices found online | Every 3 hours, plus a daily sweep | Real only after vetting (step 00c), and only for commodities with no fresh partner price |
 | **Agrolinking field collection** | Wheat, across 10 states | Stopped 13 April 2026 | Real |
 
-**Supporting data:** live FX and weather (step 00), fuel prices (from WFP), food inflation, and the Nigerian season calendar.
+**Supporting data, all real:** inflation and the official US$ rate from the **Central Bank of Nigeria** (step 00g), petrol prices from WFP, and weather (NASA POWER history plus a 16-day Open-Meteo forecast for 6 zones, step 00). After the latest real figure each series is carried forward flat, never projected. Until October 2026 these files ran on as smooth projections.
 
 **Estimates, always labelled:** World Bank Real-Time Prices model rows, prices interpolated between two real prices, synthetic rows rebuilt from international prices × FX, and the platform's own daily model price.
 
@@ -55,6 +55,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | 00d | `refresh_wfp_hdx.py` | Downloads and validates the latest WFP file |
 | 00e | `fetch_afex_prices.py` | AFEX exchange prices to `data/raw/afex_prices.csv` |
 | 00f | `fetch_fao_prices.py` | FEWS NET wholesale and NBS retail prices to `data/raw/fao_fpma_prices.csv` |
+| 00g | `fetch_macro.py` | CBN inflation and exchange rate, WFP petrol: rebuilds `inflation.csv`, `fx_rates.csv` and `fuel_prices.csv` |
 | 01 | `01_ingest.py` | Merges all sources into `data/processed/agrolinking_master.csv`, ranked by source priority |
 | 02 | `02_clean.py` | Fills gaps between real prices (labelled), drops outdated estimates; never edits real prices |
 | 03 | `03_features.py` | Per-commodity feature tables |
@@ -65,6 +66,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | 06b | `15_track_accuracy.py` | Scores past published forecasts against the real prices that arrived |
 | 07 | `07_zonal_forecast.py` | State and zone prices |
 | 08 | `08_intelligence.py` | Food price index, movers, early warnings, arbitrage, confidence |
+| 08b | `price_drivers.py` | Price-driver cards per commodity (weather, season, fuel, exchange rate, inflation), served at `/drivers` |
 | 09 | `09_staleness_check.py` | Flags commodities without a recent real price |
 | 09b | `16_cross_check.py` | Our prices vs AFEX and web wholesale prices (agree / check / disagree) |
 | | `data_status.py` | Plain-language real-data status at the top of the run page |
@@ -115,6 +117,7 @@ FastAPI, `api.py`. Interactive reference: [pis-api.agrolinking.com/docs](https:/
 | History | `/history/{commodity}` (`days`, `resolution`, `state`; each point labelled with its source), `/history/compare`, `/history/fpi` |
 | States and trade | `/zonal/latest`, `/zonal/{commodity}`, `/spreads`, `/arbitrage`, `/arbitrage/{commodity}`, `/routes`, `/routes/{origin}/{destination}`, `/supply`, `/supply/{zone}` |
 | Intelligence | `/intelligence/latest`, `/index/food`, `/index/volatility`, `/outlook/30d`, `/movers`, `/confidence`, `/alerts/early-warning`, `/shortage-surplus`, `/seasonality/{commodity}`, `/factors` |
+| Price drivers | `/drivers` (all commodities), `/drivers/{commodity}` (full cards with sources and dates). The older `/factors` is superseded |
 | Data quality | `/accuracy`, `/crosscheck` |
 | Alerts | `/alerts/latest` (WhatsApp/email-ready text); `/alerts/saved` (GET, POST), `/alerts/saved/{alert_id}` (DELETE) and `/alerts/check`, which need a Google sign-in token |
 

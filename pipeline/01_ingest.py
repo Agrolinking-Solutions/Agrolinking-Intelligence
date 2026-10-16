@@ -641,27 +641,14 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         master_df.to_csv(master_path, index=False)
         logger.success(f"  Master created: {len(master_df):,} rows → {master_path}")
 
-    # ── Save fuel data as external feature ───────────────────────────────────
-    # Merge WFP-derived fuel with any manually patched rows already in file.
-    # Manually patched rows (both diesel + petrol populated) win on conflict.
-    fuel_path = PATHS["fuel_prices"]
-    if os.path.exists(fuel_path):
-        existing_fuel = pd.read_csv(fuel_path, parse_dates=["date"])
-        combined_fuel = pd.concat([fuel_df, existing_fuel], ignore_index=True)
-        combined_fuel = combined_fuel.sort_values("date")
-        # Rows with both values populated are manually verified — keep those
-        combined_fuel["_complete"] = (
-            combined_fuel["fuel_diesel_ngn_litre"].notna() &
-            combined_fuel["fuel_petrol_ngn_litre"].notna()
-        )
-        combined_fuel = combined_fuel.sort_values(["date", "_complete"], ascending=[True, False])
-        combined_fuel = combined_fuel.drop_duplicates(subset=["date"], keep="first")
-        combined_fuel = combined_fuel.drop(columns=["_complete"]).reset_index(drop=True)
-        combined_fuel.to_csv(fuel_path, index=False)
-        logger.success(f"  Fuel prices updated: {len(combined_fuel):,} rows → {fuel_path}")
-    else:
-        fuel_df.to_csv(fuel_path, index=False)
-        logger.success(f"  Fuel prices saved: {len(fuel_df):,} rows → {fuel_path}")
+    # ── Fuel prices ───────────────────────────────────────────────────────────
+    # data/external/fuel_prices.csv is built by fetch_macro.py (step 00g) from
+    # WFP's real petrol prices. This step used to merge into it and kept any
+    # row with both diesel and petrol - which, once WFP stopped reporting
+    # diesel (2023), meant smooth projected rows always beat the real ones.
+    if not os.path.exists(PATHS["fuel_prices"]):
+        fuel_df.to_csv(PATHS["fuel_prices"], index=False)
+        logger.success(f"  Fuel prices saved: {len(fuel_df):,} rows → {PATHS['fuel_prices']}")
 
     # ── Save ingestion metadata log ───────────────────────────────────────────
     meta = {
