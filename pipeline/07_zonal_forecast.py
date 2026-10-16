@@ -374,7 +374,7 @@ def generate_alert(zonal_out, best_market, national_anchors, run_date, zones):
         "================================================",
         "AGROLINKING ZONAL COMMODITY INTELLIGENCE",
         f"Date: {run_date.strftime('%A, %d %B %Y')}",
-        "6 Zones | 12 States | 12 Commodities",
+        f"6 Zones | 12 States | {len(COMMODITIES)} Commodities",
         "================================================",
     ]
     for zone in ZONE_ORDER:

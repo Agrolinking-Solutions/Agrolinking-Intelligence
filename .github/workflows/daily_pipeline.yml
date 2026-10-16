@@ -12,7 +12,11 @@ on:
     # not at all on 15 Oct. So: off-peak minutes, plus a backup slot that
     # does nothing if the first one already ran (see the gate job).
     - cron: "17 4 * * *"    # 05:17 Lagos (WAT, UTC+1)
-    - cron: "43 6 * * *"    # 07:43 Lagos - backup, skipped if today's run is done
+    # Backups, each skipped by the gate job if today's run already committed.
+    # On 16 Oct 2026 neither 04:17 nor 06:43 had started by 08:20 UTC.
+    - cron: "43 6 * * *"    # 07:43 Lagos
+    - cron: "23 8 * * *"    # 09:23 Lagos
+    - cron: "37 10 * * *"   # 11:37 Lagos
   workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
 
 permissions:
