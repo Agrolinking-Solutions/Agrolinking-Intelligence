@@ -945,10 +945,14 @@ def food_price_index():
         "value":          fpi.get("value"),
         "base":           fpi.get("base", "2025=100"),
         "mom_change":     fpi.get("mom_change"),
+        "mom_change_pct": fpi.get("mom_change_pct"),
+        # The index is a weighted WHOLESALE basket of the tracked commodities
+        # (grains, legumes, cash crops, livestock) against their real 2025
+        # average prices - not consumer food prices.
         "interpretation": (
-            f"Food currently costs {round(fpi.get('value', 100) - 100)}% more than it did in 2025"
+            f"Our wholesale commodity basket costs {round(fpi.get('value', 100) - 100)}% more than its 2025 average"
             if fpi.get("value", 100) >= 100
-            else f"Food currently costs {round(100 - fpi.get('value', 100))}% less than it did in 2025"
+            else f"Our wholesale commodity basket costs {round(100 - fpi.get('value', 100))}% less than its 2025 average"
         ),
         "breakdown":      fpi.get("breakdown", {}),
     }
