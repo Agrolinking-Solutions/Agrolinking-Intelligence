@@ -15,7 +15,11 @@ Honesty rules (agreed with John, 16 Oct 2026):
     matters for this commodity, not a claimed price effect.
   - These cards describe the market; the forecasts do not use weather, fuel
     or the exchange rate (the backtest found they did not improve accuracy),
-    so nothing here says the forecast moved "because of" a factor.
+    so nothing here says the forecast moved "because of" a factor. Re-tested
+    16 Oct 2026 for climate (scripts/research/climate_signal_backtest.py):
+    adding rainy-season rainfall or the El Nino index made 3- and 6-month
+    forecasts worse (e.g. 6 months 22.7% -> 27.8% error), so they stay
+    context only.
 
 Inputs (all real): weather_daily.csv (NASA POWER history + Open-Meteo
 forecast per zone), cbn_usd_daily.csv and cbn_inflation_monthly.csv (CBN),

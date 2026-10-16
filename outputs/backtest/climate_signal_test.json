@@ -1,0 +1,306 @@
+{
+  "question": "Do rainy-season rainfall or ENSO improve 13/26-week forecasts on real prices?",
+  "method": "Research: do climate signals improve 3- and 6-month price forecasts?",
+  "results": {
+    "naive+season": {
+      "all": {
+        "13w": {
+          "n": 599,
+          "base_error_pct": 14.47,
+          "with_signal_error_pct": 15.28,
+          "commodities_improved": "3/17",
+          "last_beta": 0.00056
+        },
+        "26w": {
+          "n": 559,
+          "base_error_pct": 22.67,
+          "with_signal_error_pct": 27.84,
+          "commodities_improved": "1/12",
+          "last_beta": 0.0014
+        }
+      },
+      "export crop": {
+        "13w": {
+          "n": 10,
+          "base_error_pct": 9.74,
+          "with_signal_error_pct": 10.62,
+          "commodities_improved": "2/5",
+          "last_beta": 0.00117
+        }
+      },
+      "imported": {
+        "13w": {
+          "n": 126,
+          "base_error_pct": 8.31,
+          "with_signal_error_pct": 8.78,
+          "commodities_improved": "0/1",
+          "last_beta": 0.00033
+        },
+        "26w": {
+          "n": 118,
+          "base_error_pct": 12.74,
+          "with_signal_error_pct": 13.86,
+          "commodities_improved": "0/1",
+          "last_beta": 0.00104
+        }
+      },
+      "livestock": {
+        "13w": {
+          "n": 74,
+          "base_error_pct": 10.15,
+          "with_signal_error_pct": 11.0,
+          "commodities_improved": "0/4",
+          "last_beta": -0.0002
+        },
+        "26w": {
+          "n": 65,
+          "base_error_pct": 13.88,
+          "with_signal_error_pct": 40.89,
+          "commodities_improved": "0/4",
+          "last_beta": 0.00504
+        }
+      },
+      "local crop": {
+        "13w": {
+          "n": 389,
+          "base_error_pct": 17.42,
+          "with_signal_error_pct": 18.32,
+          "commodities_improved": "1/7",
+          "last_beta": 0.00056
+        },
+        "26w": {
+          "n": 376,
+          "base_error_pct": 27.31,
+          "with_signal_error_pct": 29.98,
+          "commodities_improved": "1/7",
+          "last_beta": 0.0014
+        }
+      }
+    },
+    "naive+enso": {
+      "all": {
+        "13w": {
+          "n": 603,
+          "base_error_pct": 14.48,
+          "with_signal_error_pct": 15.2,
+          "commodities_improved": "3/17",
+          "last_beta": 0.03001
+        },
+        "26w": {
+          "n": 562,
+          "base_error_pct": 22.72,
+          "with_signal_error_pct": 24.91,
+          "commodities_improved": "2/12",
+          "last_beta": 0.03584
+        }
+      },
+      "export crop": {
+        "13w": {
+          "n": 10,
+          "base_error_pct": 9.74,
+          "with_signal_error_pct": 10.33,
+          "commodities_improved": "2/5",
+          "last_beta": 0.03704
+        }
+      },
+      "imported": {
+        "13w": {
+          "n": 130,
+          "base_error_pct": 8.54,
+          "with_signal_error_pct": 8.65,
+          "commodities_improved": "0/1",
+          "last_beta": 0.06629
+        },
+        "26w": {
+          "n": 121,
+          "base_error_pct": 13.19,
+          "with_signal_error_pct": 14.08,
+          "commodities_improved": "0/1",
+          "last_beta": 0.11054
+        }
+      },
+      "livestock": {
+        "13w": {
+          "n": 74,
+          "base_error_pct": 10.15,
+          "with_signal_error_pct": 10.32,
+          "commodities_improved": "1/4",
+          "last_beta": 0.03259
+        },
+        "26w": {
+          "n": 65,
+          "base_error_pct": 13.88,
+          "with_signal_error_pct": 27.86,
+          "commodities_improved": "0/4",
+          "last_beta": -0.2745
+        }
+      },
+      "local crop": {
+        "13w": {
+          "n": 389,
+          "base_error_pct": 17.42,
+          "with_signal_error_pct": 18.44,
+          "commodities_improved": "0/7",
+          "last_beta": 0.03001
+        },
+        "26w": {
+          "n": 376,
+          "base_error_pct": 27.31,
+          "with_signal_error_pct": 27.89,
+          "commodities_improved": "2/7",
+          "last_beta": 0.03584
+        }
+      }
+    },
+    "seasonal+season": {
+      "all": {
+        "13w": {
+          "n": 599,
+          "base_error_pct": 14.34,
+          "with_signal_error_pct": 15.15,
+          "commodities_improved": "3/17",
+          "last_beta": 0.00052
+        },
+        "26w": {
+          "n": 559,
+          "base_error_pct": 22.81,
+          "with_signal_error_pct": 27.91,
+          "commodities_improved": "2/12",
+          "last_beta": 0.00133
+        }
+      },
+      "export crop": {
+        "13w": {
+          "n": 10,
+          "base_error_pct": 9.74,
+          "with_signal_error_pct": 10.62,
+          "commodities_improved": "2/5",
+          "last_beta": 0.00117
+        }
+      },
+      "imported": {
+        "13w": {
+          "n": 126,
+          "base_error_pct": 9.09,
+          "with_signal_error_pct": 9.51,
+          "commodities_improved": "0/1",
+          "last_beta": 0.00029
+        },
+        "26w": {
+          "n": 118,
+          "base_error_pct": 13.91,
+          "with_signal_error_pct": 14.66,
+          "commodities_improved": "0/1",
+          "last_beta": 0.001
+        }
+      },
+      "livestock": {
+        "13w": {
+          "n": 74,
+          "base_error_pct": 10.67,
+          "with_signal_error_pct": 11.23,
+          "commodities_improved": "1/4",
+          "last_beta": -0.00041
+        },
+        "26w": {
+          "n": 65,
+          "base_error_pct": 13.7,
+          "with_signal_error_pct": 41.43,
+          "commodities_improved": "0/4",
+          "last_beta": 0.00478
+        }
+      },
+      "local crop": {
+        "13w": {
+          "n": 389,
+          "base_error_pct": 16.86,
+          "with_signal_error_pct": 17.83,
+          "commodities_improved": "0/7",
+          "last_beta": 0.00052
+        },
+        "26w": {
+          "n": 376,
+          "base_error_pct": 27.18,
+          "with_signal_error_pct": 29.74,
+          "commodities_improved": "2/7",
+          "last_beta": 0.00133
+        }
+      }
+    },
+    "seasonal+enso": {
+      "all": {
+        "13w": {
+          "n": 603,
+          "base_error_pct": 14.33,
+          "with_signal_error_pct": 14.91,
+          "commodities_improved": "4/17",
+          "last_beta": 0.03106
+        },
+        "26w": {
+          "n": 562,
+          "base_error_pct": 22.86,
+          "with_signal_error_pct": 24.91,
+          "commodities_improved": "2/12",
+          "last_beta": 0.03594
+        }
+      },
+      "export crop": {
+        "13w": {
+          "n": 10,
+          "base_error_pct": 9.74,
+          "with_signal_error_pct": 10.33,
+          "commodities_improved": "2/5",
+          "last_beta": 0.03704
+        }
+      },
+      "imported": {
+        "13w": {
+          "n": 130,
+          "base_error_pct": 9.19,
+          "with_signal_error_pct": 9.03,
+          "commodities_improved": "1/1",
+          "last_beta": 0.06911
+        },
+        "26w": {
+          "n": 121,
+          "base_error_pct": 14.35,
+          "with_signal_error_pct": 14.65,
+          "commodities_improved": "0/1",
+          "last_beta": 0.11461
+        }
+      },
+      "livestock": {
+        "13w": {
+          "n": 74,
+          "base_error_pct": 10.67,
+          "with_signal_error_pct": 10.82,
+          "commodities_improved": "1/4",
+          "last_beta": 0.02436
+        },
+        "26w": {
+          "n": 65,
+          "base_error_pct": 13.7,
+          "with_signal_error_pct": 27.64,
+          "commodities_improved": "0/4",
+          "last_beta": -0.27825
+        }
+      },
+      "local crop": {
+        "13w": {
+          "n": 389,
+          "base_error_pct": 16.86,
+          "with_signal_error_pct": 17.77,
+          "commodities_improved": "0/7",
+          "last_beta": 0.03106
+        },
+        "26w": {
+          "n": 376,
+          "base_error_pct": 27.18,
+          "with_signal_error_pct": 27.73,
+          "commodities_improved": "2/7",
+          "last_beta": 0.03594
+        }
+      }
+    }
+  }
+}
