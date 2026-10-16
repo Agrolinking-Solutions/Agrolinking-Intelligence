@@ -24,7 +24,8 @@ After the latest real figure every series is carried forward flat - never
 projected. Each file gets a *_source column saying which.
 
 Also saves the raw monthly/daily series (cbn_inflation_monthly.csv,
-cbn_usd_daily.csv, wfp_petrol_monthly.csv) for the price-drivers panel.
+cbn_usd_daily.csv, wfp_petrol_monthly.csv) for the price-drivers panel, and
+NOAA's Oceanic Nino Index (enso_oni.csv: El Nino / La Nina strength).
 Any source that fails leaves its file unchanged. Never fails the pipeline.
 
 Run: python pipeline/fetch_macro.py
@@ -148,12 +149,27 @@ def rebuild_fuel(today):
                    f"diesel set to petrol after {last_diesel:%b %Y} (estimate)")
 
 
+def fetch_enso(today):
+    r = requests.get("https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt", headers=HEADERS, timeout=60)
+    r.raise_for_status()
+    rows = []
+    for line in r.text.splitlines()[1:]:
+        parts = line.split()
+        if len(parts) == 4:
+            rows.append({"season": parts[0], "year": int(parts[1]), "total": float(parts[2]), "oni": float(parts[3])})
+    d = pd.DataFrame(rows)
+    d.to_csv(os.path.join(EXT, "enso_oni.csv"), index=False)
+    last = d.iloc[-1]
+    logger.success(f"  El Nino index (NOAA ONI): {last['oni']:+.2f} for {last['season']} {last['year']}")
+
+
 def run():
     logger.info("=" * 60)
     logger.info("REAL MACRO DATA - inflation, exchange rate (CBN), fuel (WFP)")
     logger.info("=" * 60)
     today = datetime.now(timezone.utc).date()
-    for name, fn in (("inflation", rebuild_inflation), ("exchange rate", rebuild_fx), ("fuel", rebuild_fuel)):
+    for name, fn in (("inflation", rebuild_inflation), ("exchange rate", rebuild_fx), ("fuel", rebuild_fuel),
+                     ("El Nino index", fetch_enso)):
         try:
             fn(today)
         except Exception as e:

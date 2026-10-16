@@ -277,7 +277,7 @@ jobs:
         run: |
           git config user.name "agrolinking-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv data/raw/web_prices.csv data/raw/wfp_food_prices_nga.csv data/raw/.wfp_hdx_state.json data/raw/afex_prices.csv data/raw/fao_fpma_prices.csv data/external/inflation.csv data/external/fx_rates.csv data/external/fuel_prices.csv data/external/cbn_inflation_monthly.csv data/external/cbn_usd_daily.csv data/external/wfp_petrol_monthly.csv
+          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv data/raw/web_prices.csv data/raw/wfp_food_prices_nga.csv data/raw/.wfp_hdx_state.json data/raw/afex_prices.csv data/raw/fao_fpma_prices.csv data/external/inflation.csv data/external/fx_rates.csv data/external/fuel_prices.csv data/external/cbn_inflation_monthly.csv data/external/cbn_usd_daily.csv data/external/wfp_petrol_monthly.csv data/external/enso_oni.csv data/raw/world_prices.csv
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else

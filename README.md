@@ -35,7 +35,7 @@ Daily wholesale price intelligence and forecasts for Nigerian agricultural commo
 | **Web price search** (Claude API with web search) | Named, dated wholesale prices found online | Every 3 hours, plus a daily sweep | Real only after vetting (step 00c), and only for commodities with no fresh partner price |
 | **Agrolinking field collection** | Wheat, across 10 states | Stopped 13 April 2026 | Real |
 
-**Supporting data, all real:** inflation and the official US$ rate from the **Central Bank of Nigeria** (step 00g), petrol prices from WFP, and weather (NASA POWER history plus a 16-day Open-Meteo forecast for 6 zones, step 00). After the latest real figure each series is carried forward flat, never projected. Until October 2026 these files ran on as smooth projections.
+**Supporting data, all real:** inflation and the official US$ rate from the **Central Bank of Nigeria** (step 00g), petrol prices from WFP, NOAA's El Niño index, world benchmark prices for maize, wheat, rice, soybeans and cocoa (Mansa Markets, step 00e), and weather (NASA POWER history plus a 16-day Open-Meteo forecast for 6 zones, step 00). After the latest real figure each series is carried forward flat, never projected. Until October 2026 these files ran on as smooth projections.
 
 **Estimates, always labelled:** World Bank Real-Time Prices model rows, prices interpolated between two real prices, synthetic rows rebuilt from international prices × FX, and the platform's own daily model price.
 
@@ -66,7 +66,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | 06b | `15_track_accuracy.py` | Scores past published forecasts against the real prices that arrived |
 | 07 | `07_zonal_forecast.py` | State and zone prices |
 | 08 | `08_intelligence.py` | Food price index, movers, early warnings, arbitrage, confidence |
-| 08b | `price_drivers.py` | Price-driver cards per commodity (weather, season, fuel, exchange rate, inflation), served at `/drivers` |
+| 08b | `price_drivers.py` | Price-driver cards per commodity (weather, season, climate, fuel, exchange rate, inflation, world price), served at `/drivers` |
 | 09 | `09_staleness_check.py` | Flags commodities without a recent real price |
 | 09b | `16_cross_check.py` | Our prices vs AFEX and web wholesale prices (agree / check / disagree) |
 | | `data_status.py` | Plain-language real-data status at the top of the run page |

@@ -16,6 +16,11 @@ How the prices are used (see MANSA_TO_OURS):
     ginger and soybean grades differ from Agricome's. That is a decision for a
     person, per commodity.
 
+The same pages show a monthly world benchmark price (US$/tonne); it is saved
+to data/raw/world_prices.csv for the price-drivers panel. Mansa's own "+x%"
+figure has no stated period, so it is stored but not used; changes are
+measured from our own daily record.
+
 Never fails the pipeline. Run: python pipeline/fetch_afex_prices.py
 """
 
@@ -38,6 +43,8 @@ URL      = "https://www.mansamarkets.com/commodities/{slug}"
 HEADERS  = {"User-Agent": "Agrolinking-Intelligence/1.0 (daily price reader; contact: john@agrolinking.com)"}
 COLUMNS  = ["as_of_date", "mansa_commodity", "country", "price_type", "price_ngn_mt",
             "price_as_shown", "source", "url", "retrieved_on"]
+WORLD_PATH = os.path.join(BASE, "data", "raw", "world_prices.csv")
+WORLD_COLUMNS = ["as_of_date", "mansa_commodity", "usd_per_tonne", "change_pct_shown", "source", "url", "retrieved_on"]
 
 # Mansa page -> our commodities it can be compared with. Empty = stored only.
 MANSA_TO_OURS = {
@@ -74,6 +81,35 @@ def to_ngn_mt(shown):
     return None if per is None else float(m.group(1).replace(",", "")) / per * 1000.0
 
 
+def parse_benchmark(page):
+    """(usd_per_tonne, change_pct_shown, as_of) from the page's 'Global benchmark' block, or None."""
+    i = page.find("Global benchmark")
+    if i < 0:
+        return None
+    text = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", page[i:i + 1500])).split())
+    m = re.search(r"Global benchmark \$([\d,]+(?:\.\d+)?)\s*([+-−]\s*[\d.]+)?\s*%?\s*USD per metric ton.*?(\d{1,2} [A-Z][a-z]{2} \d{4})", text)
+    if not m:
+        return None
+    chg = m.group(2).replace("−", "-").replace(" ", "") if m.group(2) else None
+    return float(m.group(1).replace(",", "")), chg, datetime.strptime(m.group(3), "%d %b %Y").date().isoformat()
+
+
+def save_world(rows):
+    seen = set()
+    if os.path.exists(WORLD_PATH):
+        with open(WORLD_PATH, newline="", encoding="utf-8") as f:
+            seen = {(r["mansa_commodity"], r["as_of_date"]) for r in csv.DictReader(f)}
+    new = [r for r in rows if (r[1], r[0]) not in seen]
+    if new:
+        write_header = not os.path.exists(WORLD_PATH)
+        with open(WORLD_PATH, "a", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            if write_header:
+                w.writerow(WORLD_COLUMNS)
+            w.writerows(new)
+    return len(new)
+
+
 def existing_keys():
     if not os.path.exists(OUT_PATH):
         return set()
@@ -85,7 +121,7 @@ def run():
     logger.info("=" * 60)
     logger.info("AFEX EXCHANGE PRICES (Nigeria) via Mansa Markets")
     logger.info("=" * 60)
-    seen, new_rows = existing_keys(), []
+    seen, new_rows, world_rows = existing_keys(), [], []
     today = datetime.now(timezone.utc).date().isoformat()
     for slug in MANSA_TO_OURS:
         url = URL.format(slug=slug)
@@ -95,6 +131,10 @@ def run():
         except Exception as e:
             logger.warning(f"  {slug:<8} could not read page: {e}")
             continue
+        bench = parse_benchmark(r.text)
+        if bench:
+            world_rows.append([bench[2], slug, bench[0], bench[1], "Mansa Markets global benchmark", url,
+                               datetime.now(timezone.utc).date().isoformat()])
         rows = [x for x in parse_rows(r.text) if x[0] == "Nigeria"]
         if not rows:
             logger.info(f"  {slug:<8} no Nigerian price on the page")
@@ -122,6 +162,8 @@ def run():
             if write_header:
                 w.writerow(COLUMNS)
             w.writerows(new_rows)
+    n_world = save_world(world_rows)
+    logger.info(f"  World benchmarks: {', '.join(f'{r[1]} ${r[2]:,.0f}/t' for r in world_rows)} ({n_world} new)")
     logger.success(f"AFEX PRICES DONE - {len(new_rows)} new row(s) saved to {os.path.relpath(OUT_PATH, BASE)}")
     return True
 
