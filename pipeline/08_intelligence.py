@@ -68,7 +68,8 @@ UNIT_CONFIG = {
 FPI_WEIGHTS = {
     "Maize (white)":   0.12,
     "Maize (yellow)":  0.08,
-    "Rice":            0.14,
+    "Rice (local)":    0.07,   # the old "Rice" (0.14), now split by type
+    "Rice (foreign)":  0.07,
     "Wheat":           0.07,
     "Sorghum":         0.06,
     "Beans (white)":   0.07,
@@ -84,8 +85,12 @@ FPI_WEIGHTS = {
     "Fish (dried)":    0.05,
     "Eggs":            0.03,
 }
-# Base prices (June 2025 = 100 baseline, NGN/MT equivalent)
-FPI_BASE_2025 = {
+# 2025 base prices: built from REAL 2025 prices by build_fpi_base.py into
+# data/external/fpi_base_2025.csv (see load_fpi_base). The hand-typed values
+# below are only a fallback if that file is missing - they were far off
+# (beef 3.2M vs WFP's real 2025 average 5.86M, cocoa 4.8M vs 11.9M).
+FPI_BASE_PATH = os.path.join(BASE, "data", "external", "fpi_base_2025.csv")
+FPI_BASE_2025_FALLBACK = {
     "Maize (white)":   285_000,
     "Maize (yellow)":  310_000,
     "Rice":            1_200_000,
@@ -104,6 +109,19 @@ FPI_BASE_2025 = {
     "Fish (dried)":    2_100_000,
     "Eggs":            5_500,
 }
+
+
+def load_fpi_base():
+    """{commodity: 2025 base price} from fpi_base_2025.csv, else the fallback."""
+    try:
+        b = pd.read_csv(FPI_BASE_PATH)
+        return {r.commodity: float(r.base_price_ngn_mt) for r in b.itertuples()}
+    except Exception:
+        logger.warning("  fpi_base_2025.csv missing - using the old hand-typed base prices")
+        return dict(FPI_BASE_2025_FALLBACK)
+
+
+FPI_BASE_2025 = load_fpi_base()
 
 # ── WFP ALPS alert thresholds ─────────────────────────────────────────────────
 ALPS_THRESHOLDS = {

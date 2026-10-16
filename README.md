@@ -198,6 +198,7 @@ python pipeline/quality_gate.py
 | **Block an unreliable website** | Add the site and reason to `data/raw/web_sources_blocked.csv`. |
 | **Use another exchange or market-monitor commodity as a real price** | Add it to `AFEX_AS_REAL` or `FEWS_AS_REAL` in `pipeline/01_ingest.py`, after checking how its level compares with existing real data. |
 | **Add a commodity** | Add it to `COMMODITIES` in `config/settings.py` and to its source mappings. New Postgres rows are created automatically. |
+| **Rebuild the Food Price Index base** | `python pipeline/build_fpi_base.py` rebuilds `data/external/fpi_base_2025.csv` from real 2025 prices. The base is fixed on purpose, so only rebuild it when the 2025 history itself changes. |
 | **Check today's data health** | Open the latest Daily Forecast Pipeline run on GitHub (status summary at the top), or call `/crosscheck` and `/accuracy`. |
 
 ## Deployment
