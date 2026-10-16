@@ -144,9 +144,12 @@ _master_for_reference = None
 
 def latest_fresh_real_price(commodity: str, today=None):
     """
-    Latest price in master from a real source (Agricome/WFP/primary) or an
-    accepted web-sourced price (Web_search), if at most FRESH_REFERENCE_DAYS
-    old. Real sources win over web-sourced when both are fresh.
+    Latest price in master from a real source (Agricome/WFP/primary, AFEX,
+    FEWS NET) or an accepted web-sourced price (Web_search), if at most
+    FRESH_REFERENCE_DAYS old - the newest by date, the same price
+    05_forecast builds the forecast from and the cross-check calls "ours".
+    (Partner prices used to win over a newer web price, so imported rice was
+    validated against WFP's 14 Sep price while forecast from the 21 Sep one.)
     Returns (price, source_description) or (None, None).
     """
     global _master_for_reference
@@ -160,8 +163,7 @@ def latest_fresh_real_price(commodity: str, today=None):
         sub = sub[(today - sub["date"]).dt.days <= FRESH_REFERENCE_DAYS]
         if sub.empty:
             return None, None
-        hq = sub[sub["data_source"] != "Web_search"]
-        row = (hq if len(hq) else sub).sort_values("date").iloc[-1]
+        row = sub.sort_values("date").iloc[-1]
         label = "Web-sourced price" if row["data_source"] == "Web_search" else f"{row['data_source']} real price"
         return float(row["price_ngn_mt"]), f"{label} ({row['date'].date()})"
     except Exception as e:
@@ -370,6 +372,18 @@ def validate_commodity(
     daily_fc  = fc_data["horizons"]["daily"]["ensemble"]["values"][0]
     error_pct = compute_error(daily_fc, ref_price)
 
+    # The champion forecast is built from the latest real price (05_forecast
+    # last_real_price) and carried forward by a method tested on real prices.
+    # Pulling it toward a reference would only re-apply that same price, or a
+    # hand-typed MANUAL_PRICES fallback that goes stale, and undo the tested
+    # move since then. So it is checked, not corrected: the "error" is how far
+    # its starting real price is from the reference.
+    models_used = fc_data["horizons"]["daily"]["ensemble"].get("models_used", [])
+    built_from_real = (fc_data.get("last_real_price")
+                       and any(str(m).startswith("champion:") for m in models_used))
+    if built_from_real:
+        error_pct = compute_error(fc_data["last_real_price"], ref_price)
+
     logger.debug(
         f"  [{commodity}] Forecast: ₦{daily_fc:>12,.0f} | "
         f"Reference: ₦{ref_price:>12,.0f} | "
@@ -377,7 +391,10 @@ def validate_commodity(
     )
 
     # Apply correction to daily forecast
-    corrected_daily, correction_type = apply_correction(daily_fc, ref_price, error_pct)
+    if built_from_real:
+        corrected_daily, correction_type = daily_fc, "none: built from the latest real price"
+    else:
+        corrected_daily, correction_type = apply_correction(daily_fc, ref_price, error_pct)
 
     # Scale all horizons by the same correction ratio
     validated_horizons = {}
@@ -423,11 +440,9 @@ def validate_commodity(
         "forecast_before":    round(daily_fc, 2),
         "forecast_after":     round(corrected_daily, 2),
         "error_pct_before":   round(error_pct, 2),
-        "error_pct_after":    round(
-            compute_error(corrected_daily, ref_price), 2
-        ),
+        "error_pct_after":    round(error_pct if built_from_real else compute_error(corrected_daily, ref_price), 2),
         "correction_applied": correction_type,
-        "within_target":      compute_error(corrected_daily, ref_price) <= MAX_ERROR_PCT,
+        "within_target":      (error_pct if built_from_real else compute_error(corrected_daily, ref_price)) <= MAX_ERROR_PCT,
         "validated_at":       datetime.now().isoformat(),
     }
 

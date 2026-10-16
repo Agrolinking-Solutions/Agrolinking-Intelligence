@@ -209,8 +209,18 @@ SELECTION_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__
                               "outputs", "backtest", "model_selection.json")
 _selection_cache = None
 
-def build_champion(commodity, hist_df, last_price, last_date, future_df):
-    """Weekly forecast from the backtest-selected drift method (or None)."""
+NOT_KNOWN_YET = {"Interpolated", "Agrolinking_validated"}   # as 13_select_forecaster
+
+
+def build_champion(commodity, hist_df, start_price, start_date, origin_date, future_df):
+    """
+    Weekly forecast from the backtest-selected drift method (or None).
+
+    The path starts from the latest REAL price (start_price on start_date) -
+    exactly how 13_select_forecaster tested it - and "anchor_price" is that
+    path's value on origin_date (this week's Monday), where the published
+    curve begins. Horizons and ranges count from origin_date.
+    """
     global _selection_cache
     if CHAMPION_MODE == "off":
         return None
@@ -223,16 +233,23 @@ def build_champion(commodity, hist_df, last_price, last_date, future_df):
         if not sel:
             return None
         long_method = sel.get("long_method")
-        values = blended_path(sel["method"], long_method, hist_df, last_price, last_date, future_df["date"])
+        start_date, origin_date = pd.Timestamp(start_date), pd.Timestamp(origin_date)
+        # filled-in and self-validated rows after the real start were drawn from
+        # the next real price or from earlier forecasts - not known information
+        hist = hist_df
+        if "data_source" in hist_df:
+            hist = hist_df[~(hist_df["data_source"].isin(NOT_KNOWN_YET) & (hist_df["date"] > start_date))]
+        values = blended_path(sel["method"], long_method, hist, start_price, start_date, future_df["date"])
+        anchor_price = (float(blended_path(sel["method"], long_method, hist, start_price, start_date,
+                                           [origin_date])[0]) if origin_date > start_date else float(start_price))
         label = sel["method"] + (f">{long_method}" if long_method else "")
-        weeks = np.maximum((pd.to_datetime(future_df["date"]) - pd.Timestamp(last_date)).dt.days.values / 7.0, 0)
+        weeks = np.maximum((pd.to_datetime(future_df["date"]) - origin_date).dt.days.values / 7.0, 0)
         # Interval half-width from the backtest's measured error at 4/8/13/26
         # weeks (interpolated between, scaled down below 4 weeks), times the
         # multipliers in drift_models.range_halfwidth that make it an 80% range
         # (calibrated in scripts/research/forecast_audit.py).
         # wider when the latest REAL price is old (see drift_models.RANGE_K / DATA_AGE)
-        real_rows = hist_df[hist_df["data_source"].isin(REAL_SOURCES)] if "data_source" in hist_df else hist_df.iloc[0:0]
-        age_weeks = ((pd.Timestamp(last_date) - real_rows["date"].max()).days / 7.0) if len(real_rows) else 52.0
+        age_weeks = (origin_date - start_date).days / 7.0
         # With fresh data the range starts from the error measured on fresh-data
         # test forecasts: White maize's all-history error includes the 2025 FEWS
         # NET pause (13.7% vs 5.2% fresh), which made its 1-month range +-23%.
@@ -256,7 +273,7 @@ def build_champion(commodity, hist_df, last_price, last_date, future_df):
         mape_w = np.interp(weeks, pw, pm)
         mape_w = np.where(weeks < pw[0], pm[0] * np.sqrt(np.maximum(weeks, 1) / pw[0]), mape_w)
         hw = range_halfwidth(mape_w, weeks, max(age_weeks, 0.0))
-        return {"method": label, "values": values.tolist(),
+        return {"method": label, "values": values.tolist(), "anchor_price": anchor_price,
                 "lower_ci": (values * (1 - hw)).tolist(), "upper_ci": (values * (1 + hw)).tolist(),
                 "accuracy_4w": sel.get("accuracy_4w"), "n_4w": sel.get("n_4w")}
     except FileNotFoundError:
@@ -633,29 +650,28 @@ def forecast_commodity(commodity, run_date):
 
     hist_df = load_features(commodity)
 
-    # Anchor on whichever is MORE RECENT: a real ingested source (Agricome/
-    # WFP/primary) or a same-day validated_actual row (today's forecast,
-    # confirmed <3% off a live reference by 06_validate.py). This is the
-    # feedback loop closing daily: once a price clears validation, it
-    # becomes tomorrow's anchor, so last_known_date advances every day
-    # instead of freezing on whatever date the raw dataset was last
-    # manually ingested.
+    # The forecast starts from the latest REAL price (partner, AFEX, FEWS NET
+    # or an accepted web price) - the start the accuracy backtest tests - and
+    # the published curve begins this week's Monday (last_date), with the
+    # chosen method carrying the real price forward to it (build_champion).
     #
-    # Raw "forecast" rows (future, uncorrected model output — record_type
-    # == "forecast") are still never trusted as an anchor. Only rows that
-    # either came from a real source or passed live validation
-    # (record_type == "validated_actual") qualify.
+    # It used to start from the previous run's "validated" row, which is
+    # 06_validate's own next-day forecast: the method's drift then compounded
+    # once per RUN, not per day (white maize 450,000 real -> 454,320 -> 454,473
+    # -> 454,626 -> 454,779 over four runs, Oct 2026), and only snapped back
+    # when it passed 06's 2% correction threshold.
     master_df = pd.read_csv(PATHS["master"], parse_dates=["date"])
     comm_master = master_df[master_df["commodity"] == commodity].sort_values("date")
 
-    trusted_rows = comm_master[
-        comm_master["data_source"].isin(REAL_SOURCES) |
-        (comm_master["record_type"] == "validated_actual")
-    ]
-    if len(trusted_rows) > 0:
-        trusted_rows = trusted_rows.sort_values("date")
-        last_price = float(trusted_rows["price_ngn_mt"].iloc[-1])
-        last_date  = trusted_rows["date"].iloc[-1]
+    real_rows = comm_master[comm_master["data_source"].isin(REAL_SOURCES) & comm_master["price_ngn_mt"].gt(0)]
+    real_price = real_date = real_source = None
+    if len(real_rows) > 0:
+        real_price  = float(real_rows["price_ngn_mt"].iloc[-1])
+        real_date   = real_rows["date"].iloc[-1]
+        real_source = real_rows["data_source"].iloc[-1]
+        week_monday = pd.Timestamp(run_date.date()) - pd.Timedelta(days=run_date.weekday())
+        last_date   = max(real_date, week_monday)
+        last_price  = real_price          # replaced by the champion's value on last_date below
     elif len(comm_master) > 0:
         # Fall back to any row (carry_forward etc) but never validated forecast
         non_fc = comm_master[comm_master["record_type"] != "forecast"]
@@ -707,7 +723,10 @@ def forecast_commodity(commodity, run_date):
     # actually scored best. "shadow" (default) computes it and stores it
     # next to the live ensemble without changing what clients see; "live"
     # replaces the ensemble; "off" skips it. Set FORECAST_CHAMPION_MODE.
-    champion = build_champion(commodity, hist_df, last_price, last_date, future_df)
+    champion = (build_champion(commodity, hist_df, real_price, real_date, last_date, future_df)
+                if real_price is not None else None)
+    if champion and CHAMPION_MODE == "live":
+        last_price = champion["anchor_price"]
     # The champion needs no trained models, so in live mode a commodity
     # without them (e.g. new Rice types before 04_train has run) still gets one.
     if ensemble is None and not (champion and CHAMPION_MODE == "live"):
@@ -816,6 +835,12 @@ def forecast_commodity(commodity, run_date):
         "run_date":          str(run_date.date()),
         "last_known_price":  round(last_price, 2),
         "last_known_date":   str(last_date.date()),
+        # the real price the forecast is built from; last_known_* is that price
+        # carried forward to this week by the chosen method when it is older
+        "last_real_price":   round(real_price, 2) if real_price is not None else None,
+        "last_real_date":    str(real_date.date()) if real_date is not None else None,
+        "last_real_source":  real_source,
+        "start_is_estimate": bool(real_date is not None and last_date > real_date),
         "forecast_start":    str(forecast_start.date()),
         "currency":          "NGN",
         "unit":              "NGN/MT",

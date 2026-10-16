@@ -62,7 +62,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | 04 | `04_train.py` | Trains the ML ensemble (kept for comparison) |
 | 04b | `13_select_forecaster.py` | Backtests every forecast method on real prices and picks each commodity's method |
 | 05 | `05_forecast.py` | Forecasts 6 horizons with ranges |
-| 06 | `06_validate.py` | Checks forecasts against the latest real price; writes CSV and Postgres |
+| 06 | `06_validate.py` | Checks forecasts against the latest real price (corrects only the old ML ensemble); writes CSV and Postgres |
 | 06b | `15_track_accuracy.py` | Scores past published forecasts against the real prices that arrived |
 | 07 | `07_zonal_forecast.py` | State and zone prices |
 | 08 | `08_intelligence.py` | Food price index, movers, early warnings, arbitrage, confidence |
@@ -84,21 +84,22 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 
 ## Forecasting
 
-- **Champion method per commodity (`13_select_forecaster.py`, `drift_models.py`).** The candidates are: price holds (naive), rise with food inflation, recent trend, a trend/inflation mix, and seasonal patterns (with or without inflation). Each is tested by rolling backtest on real prices at 1, 2, 3 and 6 months ahead. A challenger must beat "price holds" by 0.3 points to win. When "price holds" wins by less than 0.3 points, rising with half of food inflation is used instead, so that equally accurate forecasts don't show a flat line.
+- **Champion method per commodity (`13_select_forecaster.py`, `drift_models.py`).** The candidates are: price holds (naive), rise with food inflation, recent trend, a trend/inflation mix, and seasonal patterns (with or without inflation). Each is tested by rolling backtest on real prices at 1, 2, 3 and 6 months ahead. A challenger must beat "price holds" by 0.3 points to win. Methods within 0.3 points of the best overall are a tie, and the one most accurate at 1 month wins it. When "price holds" wins by less than 0.3 points, rising with half of food inflation is used instead, so that equally accurate forecasts don't show a flat line.
+- **Every forecast is built from the latest real price** (partner, AFEX, FEWS NET or an accepted web price), exactly as the backtest tests it. When that price is older than this week, the chosen method carries it forward to this week's starting point, and the API shows both: `latest_real_price` (price, date, source) and `last_known_price` with `start_is_estimate`. Until October 2026 each run started from the previous run's own forecast, so the method's drift compounded once per run (white maize ₦450,000 real crept to ₦454,779 over four runs).
 - **Long-range blend.** Some methods win near term and others at 6 months. Where a real pattern (seasonal or trend) beats the champion at 6 months by at least 1 error point, the forecast follows the champion for 3 months and moves to that pattern by month 6. Imported rice, for example, holds near term, then follows its recent trend.
 - **Methods are chosen on normal conditions.** The choice uses test forecasts made when the latest real price was at most 12 weeks old, so a data gap (FEWS NET's 2025 pause left white maize 10 months without a real price) doesn't decide the method. Reported accuracy still counts every test forecast.
 - **Climate was tested and left out.** Adding this season's rainfall or the El Niño index made 3- and 6-month forecasts less accurate on real prices (6-month error 22.7% → 27.8%; see `scripts/research/climate_signal_backtest.py`). So climate is shown as context on the price-driver cards and is not used in the forecasts.
 - **Ranges** come from each commodity's measured error at each horizon.
 - **The ML ensemble** (ARIMA, Prophet, XGBoost) is still trained and stored for comparison. It is no longer published, because the backtest showed it lost to simpler methods. `FORECAST_CHAMPION_MODE` defaults to `live`.
 - **Accuracy is measured, not assumed.** Accuracy = 100 minus mean absolute % error against real prices. `/accuracy` serves the current backtest plus the live record of published forecasts. In October 2026:
-  - Daily selection (last two years): mean 1-month accuracy 92.7%, with 7 of 18 measured commodities at 95% or better; 93.2% when the latest real price is under 4 weeks old.
-  - Fair replay since 2016 (`scripts/research/forecast_audit.py`: past forecasts start from the latest real price known then, never a filled-in one, and the method is chosen only from results known then): 91.3%, and 91.9% over the last two years. Filled-in starting prices had flattered the old figures by 2-7 points for monthly series (white beans 87.4% vs 80.2%).
+  - Daily selection (last two years): mean 1-month accuracy 92.8%, with 7 of 18 measured commodities at 95% or better; 93.3% when the latest real price is under 4 weeks old.
+  - Fair replay since 2016 (`scripts/research/forecast_audit.py`: past forecasts start from the latest real price known then, never a filled-in one, and the method is chosen only from results known then): 91.3%, and 92.1% over the last two years. Filled-in starting prices had flattered the old figures by 2-7 points for monthly series (white beans 87.4% vs 80.2%).
   - Accuracy depends on how fresh the data is: 92.9% when the latest real price is under 4 weeks old, 87.8% at 5-12 weeks, and about 34% beyond 12 weeks (few cases, mostly white maize during the 2025 FEWS NET pause).
 - **Forecast ranges hold the real price about 80% of the time** at every horizon (`drift_models.range_halfwidth`, calibrated by the fair replay). With fresh data a range starts from the error measured on fresh-data test forecasts. It widens when the latest real price is older, never narrows further out, and is capped at ±80%. A commodity with no measured accuracy yet uses the typical error across commodities.
 
 ## Validation and data quality
 
-- **Reference price:** the latest real price no more than 45 days old. The hand-typed `MANUAL_PRICES` in `06_validate.py` are only a last-resort fallback.
+- **Reference price:** the latest real price no more than 45 days old, the newest by date, which is the same price the forecast is built from. The hand-typed `MANUAL_PRICES` in `06_validate.py` are only a last-resort fallback. Forecasts from the chosen method are checked against the reference, not corrected toward it: correcting would only re-apply the same price, or a stale hand-typed one, and undo the tested move since then. The older ML ensemble is still corrected as before.
 - **Web prices** are promoted only when all of these hold: medium or high confidence; a wholesale or exchange price; a named URL; a dated source no more than 21 days old; newer than our latest price; within a sanity band; and a second website agrees when the move is over 15%. When a commodity has no recent partner price, the band is centred on our last accepted web price or a sibling commodity (yellow maize = white maize × 1.023), never a World Bank estimate.
 - **Human review lists:**
   - `data/raw/web_prices_withdrawn.csv` removes a specific bad web price.

@@ -203,6 +203,22 @@ def today_anchor(commodity_key: str):
     except Exception:
         return None, None
 
+def latest_real(key: str, data: dict):
+    """
+    The real price a forecast is built from (05_forecast last_real_*): price,
+    per-unit price, date and source. last_known_price is that price carried
+    forward to this week by the chosen method when it is older, so a page
+    can show "latest real price N450,000 (5 Oct, web price)" next to it.
+    None for forecast files written before 17 Oct 2026.
+    """
+    price = data.get("last_real_price")
+    if price is None:
+        return None
+    src = data.get("last_real_source")
+    return {"price": price, "price_per_unit": price_per_kg(key, price)[0], "date": data.get("last_real_date"),
+            "source": SOURCE_INFO.get(src, {}).get("name", src), "kind": SOURCE_CATEGORY.get(src, "other")}
+
+
 def load_latest_alert():
     files = sorted(glob.glob(os.path.join(ALERTS_DIR, "alert_validated_*.txt")))
     if not files:
@@ -579,6 +595,8 @@ def latest_forecast(
             result[name] = {
                 "last_known_price": data.get("last_known_price", 0),
                 "last_known_date":  data.get("last_known_date", ""),
+                "latest_real_price": latest_real(name, data),
+                "start_is_estimate": data.get("start_is_estimate"),
                 "today_price":      today_price,
                 "today_date":       today_date,
                 "validation":       {
@@ -632,11 +650,13 @@ def commodity_forecast(commodity: str):
         "last_known_price_per_unit": per_kg,
         "unit_label":       unit,
         "last_known_date":  data.get("last_known_date", ""),
-        # Interpolated along the model's own daily curve — last_known_date
-        # only advances weekly (see today_anchor()), this moves every day
-        # the pipeline runs. Use this for a "current price" display;
-        # last_known_price/date above remain the true last real/validated
-        # data point, which is what validation error% is measured against.
+        # The real price the forecast is built from. last_known_price/date
+        # above is this week's starting point: the real price itself, or
+        # carried forward to this week by the chosen method when it is older
+        # (start_is_estimate). today_price below moves along the forecast
+        # curve every day the pipeline runs.
+        "latest_real_price":      latest_real(key, data),
+        "start_is_estimate":      data.get("start_is_estimate"),
         "today_price":            today_price,
         "today_price_per_unit":   today_per_kg,
         "today_date":             today_date,

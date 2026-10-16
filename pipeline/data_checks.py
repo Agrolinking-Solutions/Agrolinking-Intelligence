@@ -16,7 +16,7 @@ Each check gives ok, check (a person should look) or problem (likely wrong):
     freshness     age of the latest real price
     filled_share  share of the last 26 weeks that are filled-in, not real
   forecast
-    start         the forecast starts from the price we held on its start date
+    start         the forecast is built from the latest real price we hold
     sane          every horizon has a positive price, inside its range, and the
                   1-month move is within 3x the method's measured error
   accuracy
@@ -161,6 +161,22 @@ def check_start(fc, rows):
     start = fc.get("last_known_price")
     if not finite(start):
         return result("start", "problem", "Forecast has no starting price")
+    if fc.get("last_real_price") is not None:
+        # 05_forecast builds the forecast from the latest real price and carries it to this week
+        real = rows[rows["data_source"].isin(REAL_SOURCES) & rows["price_ngn_mt"].gt(0)]
+        if real.empty:
+            return result("start", "problem", "Forecast says it is built from a real price, but none is held")
+        last = real.iloc[-1]
+        same = (abs(fc["last_real_price"] / last["price_ngn_mt"] - 1) <= 0.001
+                and fc.get("last_real_date") == f"{last['date']:%Y-%m-%d}")
+        moved = (start / fc["last_real_price"] - 1) * 100
+        msg = (f"Built from the latest real price N{fc['last_real_price']:,.0f} ({fc['last_real_date']}, "
+               f"{fc.get('last_real_source')})" + (f", carried to N{start:,.0f} on {fc.get('last_known_date')} "
+               f"({moved:+.1f}%)" if fc.get("start_is_estimate") else ""))
+        if not same:
+            return result("start", "problem", msg + f" - but the latest real price held is N{last['price_ngn_mt']:,.0f} "
+                          f"({last['date']:%Y-%m-%d})")
+        return result("start", "ok", msg)
     held = rows[(rows["record_type"] != "forecast") & (rows["date"] <= pd.Timestamp(fc.get("last_known_date")))]
     if held.empty:
         return result("start", "problem", f"No price held on or before the forecast start ({fc.get('last_known_date')})")

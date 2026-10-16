@@ -22,7 +22,7 @@ actually used:
      contained the real price, and error by year.
 
 Writes outputs/backtest/forecast_audit.json and prints a scorecard.
-Run: python scripts/research/forecast_audit.py [--rebuild] [--no-variants]
+Run: python scripts/research/forecast_audit.py [--rebuild] [--no-variants | --variants=baseline,near-tie]
 """
 
 import os, sys, json
@@ -80,7 +80,7 @@ def pairs_for(commodity):
     return pd.DataFrame(rows)
 
 
-BASELINE = {"min_gain": MIN_GAIN, "tie": True, "long": True, "band": ("calibrated", None), "gap": True}
+BASELINE = {"min_gain": MIN_GAIN, "tie": True, "long": True, "band": ("calibrated", None), "gap": True, "tie_1m": True}
 
 
 def choose(avail, cfg=BASELINE):
@@ -93,6 +93,9 @@ def choose(avail, cfg=BASELINE):
         return "naive", None, {m: by_h[m].to_dict() for m in CANDIDATES}
     score = {m: sum(HORIZON_W[h] * by_h[m].get(h, np.inf) for h in HORIZONS) for m in CANDIDATES}
     best = min(score, key=score.get)
+    if cfg.get("tie_1m"):     # as 13_select_forecaster: near-tie -> the most accurate at 1 month
+        close = [m for m in CANDIDATES if score[m] - score[best] < cfg["min_gain"]]
+        best = min(close, key=lambda m: by_h[m].get(4, np.inf))
     if best != "naive" and score["naive"] - score[best] < cfg["min_gain"]:
         best = "naive"
     if cfg["tie"] and best == "naive" and score[TIE_METHOD] - score["naive"] <= TIE_MARGIN:
@@ -246,7 +249,11 @@ if __name__ == "__main__":
         "leave 'price holds' only for a 1-point gain": {**BASELINE, "min_gain": 1.0},
         "no inflation tie-break": {**BASELINE, "tie": False},
         "no long-range blend": {**BASELINE, "long": False},
+        "near-tie by weighted score only (no 1-month preference)": {**BASELINE, "tie_1m": False},
     }
+    only = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--variants=")), None)
+    if only:      # e.g. --variants=baseline,near-tie
+        variants = {k: v for k, v in variants.items() if any(k.startswith(o) for o in only.split(","))}
     print("\nVARIANTS (mean over commodities; last two years in brackets)")
     report["variants"] = {}
     for name, cfg in variants.items():

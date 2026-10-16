@@ -54,6 +54,38 @@ def test_range_has_floor_and_cap():
     assert range_halfwidth(90.0, 26, 52) == pytest.approx(RANGE_MAX)
 
 
+# ── Forecast start ───────────────────────────────────────────────────────────
+
+def champion_inputs(method="infl@0.5"):
+    fc = load("05_forecast")
+    fc.CHAMPION_MODE = "live"
+    fc._selection_cache = {"X": {"method": method, "long_method": None, "accuracy_4w": 92.0, "accuracy_8w": 89.0,
+                                 "accuracy_13w": 86.0, "accuracy_26w": 80.0, "n_4w": 30,
+                                 "error_fresh_data_pct": {"4": 8.0, "8": 11.0, "13": 14.0, "26": 20.0}}}
+    d = pd.date_range("2025-01-06", "2026-09-14", freq="W-MON")
+    hist = pd.DataFrame({"date": d, "price_ngn_mt": 100_000.0, "data_source": "WFP", "food_inflation_yoy": 20.0})
+    future = pd.DataFrame({"date": pd.date_range("2026-10-19", periods=26, freq="W-MON")})
+    return fc, hist, future
+
+
+def test_forecast_built_from_real_price_and_never_compounds():
+    fc, hist, future = champion_inputs()
+    real_date, origin = pd.Timestamp("2026-09-14"), pd.Timestamp("2026-10-12")
+    a = fc.build_champion("X", hist, 100_000.0, real_date, origin, future)
+    b = fc.build_champion("X", hist, 100_000.0, real_date, origin, future)
+    assert a["anchor_price"] == b["anchor_price"], "the same real price gives the same start, run after run"
+    assert 100_000 < a["anchor_price"] < 101_500, "carried 4 weeks forward at half of 20% inflation"
+
+
+def test_ranges_count_from_this_week_and_widen_with_data_age():
+    fc, hist, future = champion_inputs("naive")
+    origin = pd.Timestamp("2026-10-12")
+    fresh = fc.build_champion("X", hist, 100_000.0, origin, origin, future)
+    aged = fc.build_champion("X", hist, 100_000.0, origin - pd.Timedelta(weeks=8), origin, future)
+    hw = lambda c: (c["upper_ci"][0] - c["lower_ci"][0]) / 2 / c["values"][0]
+    assert hw(aged) > hw(fresh) * 1.1, "8-week-old data gets the wider 'recent' range"
+
+
 # ── Method selection ─────────────────────────────────────────────────────────
 
 def summ_from(mapes):

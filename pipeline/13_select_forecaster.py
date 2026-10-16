@@ -137,6 +137,14 @@ def choose(summ):
 
     scores = {m: wscore(m) for m in CANDIDATES}
     best = min(scores, key=scores.get)
+    # Near-tie: methods within MIN_GAIN of the best overall score are equally
+    # good within noise, so take the one most accurate at 1 month. White beans:
+    # full seasonal 15.20 overall but 9.5% at 1 month, half seasonal 15.28 and
+    # 8.8% - and real Sep->Oct moves (-6% median) sat closer to the half.
+    m4 = summ[summ.h == 4].set_index("method")["mape"]
+    close = [m for m in CANDIDATES if scores[m] - scores[best] < MIN_GAIN and m in m4.index]
+    if close:
+        best = min(close, key=lambda m: m4[m])
     if best != "naive" and scores["naive"] - scores[best] < MIN_GAIN:
         best = "naive"
     tie_break = bool(best == "naive"
