@@ -106,6 +106,12 @@ WFP_NAME_MAP = {
 # Agrolinking_validated) is an estimate.
 PARTNER_SOURCES = frozenset({"Agricome", "WFP", "Agrolinking_primary", "AFEX", "FEWS_NET"})
 REAL_SOURCES    = PARTNER_SOURCES | {"Web_search"}
+# Websites a dedicated daily reader already covers, so the web search neither
+# uses them nor has its copies promoted or cross-checked. A web copy skipped
+# the reader's checks: AFEX's maize (grade not stated) became White maize's
+# "real" price, and AFEX's fresh ginger was compared with Agricome's dried
+# ginger (Oct 2026). {site: the reader that covers it}
+READ_DIRECTLY = {"mansamarkets.com": "pipeline/fetch_afex_prices.py (AFEX exchange prices)"}
 
 # ─── FORECAST HORIZONS ───────────────────────────────────────────────────────
 FORECAST_HORIZONS = {

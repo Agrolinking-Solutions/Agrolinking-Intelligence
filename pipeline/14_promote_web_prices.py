@@ -40,7 +40,7 @@ import pandas as pd
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES
+from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES, READ_DIRECTLY
 from pipeline.pg_commodities import ensure_web_estimates_schema
 
 logger.remove()
@@ -303,6 +303,10 @@ def promote(candidates, state, today):
             decisions.append(d); continue
         if source_site(c.get("source_url")) in blocked:
             d.update(accepted=False, reason="website blocked after review - see web_sources_blocked.csv")
+            decisions.append(d); continue
+        if source_site(c.get("source_url")) in READ_DIRECTLY:
+            d.update(accepted=False, reason=f"read directly by {READ_DIRECTLY[source_site(c.get('source_url'))]}, "
+                                            "which knows each commodity's grade - a web copy is not used")
             decisions.append(d); continue
         when = withdrawn_match(c, withdrawn)
         if when:

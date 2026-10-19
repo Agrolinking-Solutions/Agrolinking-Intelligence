@@ -111,17 +111,28 @@ def save_world(rows):
 
 
 def existing_keys():
+    """({(commodity, price type, as-of date)}, {(commodity, price type): newest as-of date}) already saved.
+
+    The source label is not part of the key: Mansa relabelled AFEX's row from
+    "AFEX (daily)" to "Mansa Markets (daily)" on 15 Oct 2026, and on 19 Oct
+    its soybean and ginger pages showed an OLDER as-of date (14 Oct) again,
+    so the same day was saved twice with different prices."""
     if not os.path.exists(OUT_PATH):
-        return set()
+        return set(), {}
+    seen, newest = set(), {}
     with open(OUT_PATH, newline="", encoding="utf-8") as f:
-        return {(r["mansa_commodity"], r["price_type"], r["source"], r["as_of_date"]) for r in csv.DictReader(f)}
+        for r in csv.DictReader(f):
+            k = (r["mansa_commodity"], r["price_type"])
+            seen.add(k + (r["as_of_date"],))
+            newest[k] = max(newest.get(k, ""), r["as_of_date"])
+    return seen, newest
 
 
 def run():
     logger.info("=" * 60)
     logger.info("AFEX EXCHANGE PRICES (Nigeria) via Mansa Markets")
     logger.info("=" * 60)
-    seen, new_rows, world_rows = existing_keys(), [], []
+    (seen, newest), new_rows, world_rows = existing_keys(), [], []
     today = datetime.now(timezone.utc).date().isoformat()
     for slug in MANSA_TO_OURS:
         url = URL.format(slug=slug)
@@ -148,10 +159,12 @@ def run():
             if mt is None:
                 logger.warning(f"  {slug:<8} unreadable price {shown!r} - skipped")
                 continue
-            key = (slug, ptype, source, as_of_date)
-            flag = "new" if key not in seen else "already saved"
+            key = (slug, ptype, as_of_date)
+            older = as_of_date < newest.get((slug, ptype), "")
+            flag = ("already saved" if key in seen else
+                    f"older than the {newest[(slug, ptype)]} price already saved - skipped" if older else "new")
             logger.info(f"  {slug:<8} {ptype:<9} {shown:<18} {source:<22} as of {as_of_date}  ({flag})")
-            if key not in seen:
+            if key not in seen and not older:
                 seen.add(key)
                 new_rows.append([as_of_date, slug, country, ptype, round(mt, 2), shown, source, url, today])
         time.sleep(1)   # be polite: one page a second

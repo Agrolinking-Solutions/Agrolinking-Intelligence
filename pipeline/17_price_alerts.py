@@ -15,10 +15,12 @@ the repository gets the issue by email.
                       - a little under the 30% that opens it, so a price
                       hovering around 30% does not open and close every day
   nothing to compare  (no web price today, or our price is old) leave the
-                      issue as it is
+                      issue as it is; after STALE_CLOSE_DAYS with nothing
+                      current to compare, comment and close (a new issue
+                      opens if the disagreement comes back)
 
-What was last emailed is kept in a hidden marker in the issue text, so no
-state file is needed. With no GITHUB_TOKEN (a local run) it prints what it
+What was last emailed, and when the prices were last compared, is kept in a
+hidden marker in the issue text, so no state file is needed. With no GITHUB_TOKEN (a local run) it prints what it
 would do and changes nothing. Never blocks the pipeline.
 
 Run: python pipeline/17_price_alerts.py [--dry-run]
@@ -43,6 +45,7 @@ LABEL           = "price-alert"
 LABEL_COLOUR    = "d93f0b"
 CLOSE_BELOW_PCT = 25      # close once the sources are this close again
 RENOTIFY_POINTS = 10      # email again only if the gap moved this much
+STALE_CLOSE_DAYS = 7      # close after this long with nothing current to compare
 CROSSCHECK_URL  = "https://pis-api.agrolinking.com/crosscheck"
 API             = "https://api.github.com"
 MARKER          = re.compile(r"<!-- price-alert (\{.*?\}) -->")
@@ -72,7 +75,7 @@ def apart(gap):
     return f"{abs(gap):.0f}% {'above' if gap > 0 else 'below'}"
 
 
-def issue_body(commodity, e, run_date, emailed_gap):
+def issue_body(commodity, e, run_date, emailed_gap, last_compared=None):
     gap = e["gap_pct"]
     basis = "wholesale, NGN per crate of 30" if commodity == "Eggs" else "wholesale, NGN per tonne"
     theirs = e.get("compared_with") or "other sources"
@@ -111,10 +114,11 @@ def issue_body(commodity, e, run_date, emailed_gap):
         "website to `data/raw/web_sources_blocked.csv` with the reason, and it is ignored from the next run.",
         "- If both are right (prices really moved): no action - the next partner price will catch up.",
         "",
-        f"This issue updates itself every day and closes when the gap is under {CLOSE_BELOW_PCT}%. "
+        f"This issue updates itself every day. It closes when the gap is under {CLOSE_BELOW_PCT}%, or after "
+        f"{STALE_CLOSE_DAYS} days with no current independent price to compare. "
         f"Full cross-check for all commodities: {CROSSCHECK_URL}",
         "",
-        f"<!-- price-alert {json.dumps({'commodity': commodity, 'emailed_gap': emailed_gap})} -->",
+        f"<!-- price-alert {json.dumps({'commodity': commodity, 'emailed_gap': emailed_gap, 'last_compared': last_compared or run_date})} -->",
     ]
     return "\n".join(lines)
 
@@ -153,6 +157,20 @@ def plan(report, open_issues):
                             "comment": (f"Back in line on {run_date}: {e.get('compared_with')} is {apart(gap)} "
                                         f"our price ({money(e['web_median'])} vs {money(e['our_price'])}). "
                                         f"Closing.")})
+        elif iss is not None and status in ("agree", "check") and gap is not None:
+            # compared, still 25-30% apart: keep it open, record the comparison quietly
+            m = read_marker(iss["body"])
+            actions.append({"do": "update", "commodity": c, "number": iss["number"],
+                            "body": issue_body(c, e, run_date, m.get("emailed_gap"))})
+        elif iss is not None:
+            # nothing current to compare (no independent price, or ours is old)
+            last = read_marker(iss["body"]).get("last_compared") or str(iss.get("created_at", ""))[:10] or run_date
+            idle = (datetime.fromisoformat(run_date) - datetime.fromisoformat(last)).days
+            if idle >= STALE_CLOSE_DAYS:
+                actions.append({"do": "close", "commodity": c, "number": iss["number"],
+                                "comment": (f"No current independent price to compare since {last} "
+                                            f"({idle} days; today: {status}). Closing - a new alert opens if "
+                                            f"the prices disagree again.")})
     return actions
 
 

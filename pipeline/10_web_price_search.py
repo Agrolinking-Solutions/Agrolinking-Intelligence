@@ -42,7 +42,7 @@ from datetime import datetime, timezone
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import COMMODITIES
+from config.settings import COMMODITIES, READ_DIRECTLY   # READ_DIRECTLY: sites a daily reader covers
 from pipeline.pg_commodities import ensure_commodities, ensure_web_estimates_schema
 
 logger.remove()
@@ -58,8 +58,9 @@ ROTATING_EXTRA_PER_RUN     = 2   # non-gap commodities added to each 3-hourly ru
 # Extra instruction per search focus. "general" is the daily sweep.
 FOCI = {
     "general":  "",
-    "exchange": "Search specifically for commodity EXCHANGE prices: AFEX spot or trade prices, "
-                "including AFEX prices republished by Mansa Markets or quoted in the news.",
+    "exchange": "Search specifically for commodity EXCHANGE prices quoted in the news or by the "
+                "exchanges themselves (AFEX, Lagos Commodities and Futures Exchange). Do not use "
+                "mansamarkets.com: its AFEX table is already read directly every day.",
     "official": "Search specifically for OFFICIAL or institutional price data: NBS Selected Food "
                 "Price Watch, a state Ministry of Agriculture price tracker (for example Lagos "
                 "State's), FEWS NET or WFP market monitors.",
@@ -116,7 +117,7 @@ Rules:
 - Prefer the most recent date you can find. If nothing is available within roughly the last 60 days, return null rather than using an old or unclear figure.
 - If the source gives a price in a different unit (per kg, per bag, per crate, per litre, a different currency), convert it to {unit} yourself and show that conversion in "notes".
 - If you find conflicting prices from different sources, prefer the one that is most recent and most specific to a named Nigerian market or exchange.
-- Source preference, best first: (1) commodity exchange spot prices (AFEX, including AFEX prices republished by Mansa Markets or reported in the news); (2) official or institutional price trackers (NBS Selected Food Price Watch, a state Ministry of Agriculture price tracker, FEWS NET, WFP); (3) dated wholesale market reports naming a Nigerian market (e.g. Dawanau in Kano, Bodija in Ibadan, Mile 12 in Lagos).
+- Source preference, best first: (1) commodity exchange spot prices reported in the news or by the exchange (AFEX, Lagos Commodities and Futures Exchange); (2) official or institutional price trackers (NBS Selected Food Price Watch, a state Ministry of Agriculture price tracker, FEWS NET, WFP); (3) dated wholesale market reports naming a Nigerian market (e.g. Dawanau in Kano, Bodija in Ibadan, Mile 12 in Lagos).
 - Avoid undated "price list" pages, retail shops or e-commerce listings, and forum posts. Use one only if nothing better exists, and then set confidence to "low".
 
 Respond with ONLY a single JSON object, no other text, in exactly this shape:
@@ -153,6 +154,8 @@ def build_prompt(commodity: str, focus: str = "general") -> str:
     if skip:
         prompt += ("\n\nDo not use these websites - they were checked and found unreliable: "
                    + ", ".join(skip) + ".")
+    prompt += ("\n\nDo not use these websites - their prices are already read directly every day: "
+               + ", ".join(READ_DIRECTLY) + ".")
     if FOCI.get(focus):
         prompt += "\n\nFocus for this search: " + FOCI[focus]
     return prompt

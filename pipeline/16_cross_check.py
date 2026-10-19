@@ -35,7 +35,7 @@ import pandas as pd
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, WFP_NAME_MAP
+from config.settings import PATHS, COMMODITIES, WFP_NAME_MAP, READ_DIRECTLY
 from pipeline.pg_commodities import ensure_web_estimates_schema
 
 logger.remove()
@@ -132,18 +132,28 @@ AFEX_NOTES = {
 AFEX_DIFFERENT_GRADE = {"ginger"}
 
 
+AFEX_DAYS = 5          # AFEX's median over its last 5 trading days (within AFEX_WINDOW_DAYS)
+AFEX_WINDOW_DAYS = 10  # one day's figure swings: soybean 598K -> 645K -> 549K over 14-16 Oct 2026
+
+
 def afex_candidates(path=AFEX_PATH):
-    """Latest AFEX exchange price per Mansa commodity, as candidates for each mapped commodity."""
+    """AFEX exchange price per Mansa commodity - the median of its last AFEX_DAYS trading days -
+    as candidates for each mapped commodity."""
     from pipeline.fetch_afex_prices import MANSA_TO_OURS
     if not os.path.exists(path):
         return []
     df = pd.read_csv(path)
-    df = df[df["price_type"] == "exchange"].sort_values("as_of_date")
+    df = df[df["price_type"] == "exchange"].drop_duplicates(["mansa_commodity", "as_of_date"], keep="last")
+    df = df.sort_values("as_of_date")
     out = []
     for slug, g in df.groupby("mansa_commodity"):
         r = g.iloc[-1]
+        last = pd.to_datetime(g["as_of_date"])
+        recent = g[last >= last.max() - pd.Timedelta(days=AFEX_WINDOW_DAYS)].tail(AFEX_DAYS)
+        price = float(recent["price_ngn_mt"].median())
         for ours in MANSA_TO_OURS.get(slug, []):
-            out.append({"commodity": ours, "query_date": r["as_of_date"], "price": float(r["price_ngn_mt"]),
+            out.append({"commodity": ours, "query_date": r["as_of_date"], "price": price,
+                        "afex_days": len(recent),
                         "source_url": r["url"], "source_date": r["as_of_date"], "confidence": "high",
                         "price_level": "exchange, different grade" if slug in AFEX_DIFFERENT_GRADE else "exchange",
                         "market_location": "national (AFEX exchange)",
@@ -177,6 +187,8 @@ def build_report(master, candidates, today, coverage=None):
                 continue
             if cand.get("is_afex") and mine and mine["source"] == "AFEX":
                 continue    # our price IS the AFEX price - nothing to compare
+            if not cand.get("is_afex") and source_site(cand.get("source_url")) in READ_DIRECTLY:
+                continue    # a web-search copy of a site the AFEX reader covers (afex_candidates)
             ok, sd = usable(cand, today)
             if ok and source_site(cand.get("source_url")) not in blocked:
                 pool.append({**cand, "_sd": sd})
@@ -229,6 +241,10 @@ def build_report(master, candidates, today, coverage=None):
         others = sum(1 for p in compared if not p.get("is_afex"))
         if mine and others and any(p.get("is_afex") for p in compared):
             notes.append(f"Status uses the AFEX price; {others} other web price(s) listed for reference.")
+        afex_days = max((p.get("afex_days") or 0 for p in compared + context if p.get("is_afex")), default=0)
+        if afex_days > 1:
+            notes.append(f"The AFEX price is the middle of its last {afex_days} trading days, "
+                         "so one day's swing doesn't decide the status.")
         if entry["web_prices"] and len(entry["web_prices"]) == 1:
             notes.append("Only one website - treat the comparison as a hint, not proof.")
         entry["notes"] = notes

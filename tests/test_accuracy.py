@@ -133,13 +133,13 @@ def test_afex_ginger_is_listed_not_compared(tmp_path):
     assert cands and all(c["price_level"] not in cc.COMPARE_LEVELS for c in cands)
 
 
-def alert_report(gap, status="disagree"):
+def alert_report(gap, status="disagree", run_date="2026-10-16"):
     e = {"status": status, "gap_pct": gap, "our_price": 1_400_000, "our_date": "2026-10-12",
          "our_source": "Agricome", "our_level": "wholesale", "web_median": 2_300_000,
          "compared_with": "AFEX exchange", "notes": [], "other_web_prices": [],
          "web_prices": [{"price": 2_300_000, "site": "mansamarkets.com", "url": "https://x",
                          "source_date": "2026-10-15", "level": "exchange"}]}
-    return {"run_date": "2026-10-16", "commodities": {"Sesame": e}}
+    return {"run_date": run_date, "commodities": {"Sesame": e}}
 
 
 def test_alerts_open_stay_quiet_email_and_close():
@@ -162,9 +162,47 @@ def test_alerts_open_stay_quiet_email_and_close():
     assert run(alert_report(70.0)) == ["update"]          # moved < 10 points: no email
     assert run(alert_report(80.0)) == ["comment"]         # moved 10+ points: email
     assert run(alert_report(None, "no web price")) == []  # nothing to compare: leave it
-    assert run(alert_report(28.0, "check")) == []         # under 30% but not under 25%: stays open
+    assert run(alert_report(28.0, "check")) == ["update"]  # under 30% but not under 25%: stays open, quietly
     assert run(alert_report(-20.0, "check")) == ["close"]
     assert run(alert_report(40.0)) == ["open"]
+
+
+def test_alert_closes_after_a_week_with_nothing_to_compare():
+    pa = load("17_price_alerts")
+    issues = []
+    for a in pa.plan(alert_report(64.3, run_date="2026-10-16"), issues):
+        issues.append({"number": 1, "body": a["body"]})
+    assert pa.plan(alert_report(None, "no web price", run_date="2026-10-20"), issues) == []
+    acts = pa.plan(alert_report(None, "no web price", run_date="2026-10-23"), issues)
+    assert [a["do"] for a in acts] == ["close"]
+
+
+def afex_file(tmp_path, slug, prices):
+    p = tmp_path / "afex.csv"
+    pd.DataFrame([{"as_of_date": f"2026-10-{d:02d}", "mansa_commodity": slug, "country": "Nigeria",
+                   "price_type": "exchange", "price_ngn_mt": v, "price_as_shown": "", "source": "AFEX",
+                   "url": f"https://www.mansamarkets.com/commodities/{slug}", "retrieved_on": "2026-10-17"}
+                  for d, v in prices]).to_csv(p, index=False)
+    return str(p)
+
+
+def test_afex_uses_the_middle_of_recent_days(tmp_path):
+    cc = load("16_cross_check")
+    c = cc.afex_candidates(afex_file(tmp_path, "soybean", [(14, 597820.0), (15, 645340.0), (16, 548540.0)]))
+    assert c and c[0]["price"] == 597820.0 and c[0]["afex_days"] == 3
+
+
+def test_web_copies_of_directly_read_sites_are_not_used():
+    cc, pr = load("16_cross_check"), load("14_promote_web_prices")
+    web = {"commodity": "Maize (white)", "query_date": "2026-10-18", "price": 389680.0,
+           "source_url": "https://www.mansamarkets.com/commodities", "source_date": "2026-10-16",
+           "confidence": "medium", "price_level": "exchange", "market_location": "national"}
+    master = pd.DataFrame({"commodity": "Maize (white)", "date": pd.to_datetime(["2026-10-05"]),
+                           "price_ngn_mt": [450000.0], "data_source": "Web_search", "market_type": "wholesale"})
+    rep = cc.build_report(master, [web], pd.Timestamp("2026-10-19").date())
+    assert rep["commodities"]["Maize (white)"]["web_prices"] == []
+    rows, decisions = pr.promote([web], {}, pd.Timestamp("2026-10-19").date())
+    assert not rows and "read directly" in decisions[0]["reason"]
 
 
 # ── Daily data checks ────────────────────────────────────────────────────────
