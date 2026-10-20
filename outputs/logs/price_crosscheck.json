@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-19",
+  "run_date": "2026-10-20",
   "basis": "Wholesale, NGN per tonne (Eggs: NGN per crate of 30)",
   "thresholds": {
     "check_above_pct": 15.0,
@@ -9,8 +9,8 @@
   },
   "summary": {
     "no web price": 6,
-    "disagree": 3,
-    "agree": 5,
+    "disagree": 2,
+    "agree": 6,
     "check": 3,
     "our price is old": 2
   },
@@ -39,7 +39,7 @@
           "price": 2300000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/sesame",
-          "source_date": "2026-10-16",
+          "source_date": "2026-10-19",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -51,6 +51,7 @@
       "gap_pct": 64.3,
       "compared_with": "AFEX exchange",
       "notes": [
+        "The AFEX price is the middle of its last 4 trading days, so one day's swing doesn't decide the status.",
         "Only one website - treat the comparison as a hint, not proof."
       ]
     },
@@ -62,15 +63,6 @@
       "our_coverage": "Agricome",
       "web_prices": [
         {
-          "price": 990000,
-          "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/commodities",
-          "source_date": "2026-10-16",
-          "level": "exchange",
-          "location": "national",
-          "confidence": "high"
-        },
-        {
           "price": 5200000,
           "site": "businessday.ng",
           "url": "https://businessday.ng/agriculture/article/ginger-blight-outbreak-returns-amid-nigerias-bid-to-rebuild-713m-industry/",
@@ -80,12 +72,26 @@
           "confidence": "high"
         }
       ],
-      "other_web_prices": [],
+      "other_web_prices": [
+        {
+          "price": 990000,
+          "site": "mansamarkets.com",
+          "url": "https://www.mansamarkets.com/commodities/ginger",
+          "source_date": "2026-10-19",
+          "level": "exchange, different grade",
+          "location": "national (AFEX exchange)",
+          "confidence": "high"
+        }
+      ],
       "status": "disagree",
-      "web_median": 3095000,
-      "gap_pct": -61.3,
-      "compared_with": "web prices from 2 site(s)",
-      "notes": []
+      "web_median": 5200000,
+      "gap_pct": -35.0,
+      "compared_with": "web prices from 1 site(s)",
+      "notes": [
+        "AFEX ginger is a different grade (fresh or unsplit) from Agricome's dried split ginger, so it is listed for reference but not compared.",
+        "The AFEX price is the middle of its last 4 trading days, so one day's swing doesn't decide the status.",
+        "Only one website - treat the comparison as a hint, not proof."
+      ]
     },
     "Cocoa": {
       "our_price": 6400000,
@@ -98,7 +104,7 @@
           "price": 7250000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/cocoa",
-          "source_date": "2026-10-16",
+          "source_date": "2026-10-19",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -110,6 +116,7 @@
       "gap_pct": 13.3,
       "compared_with": "AFEX exchange",
       "notes": [
+        "The AFEX price is the middle of its last 4 trading days, so one day's swing doesn't decide the status.",
         "Only one website - treat the comparison as a hint, not proof."
       ]
     },
@@ -121,21 +128,22 @@
       "our_coverage": "Agricome",
       "web_prices": [
         {
-          "price": 548540,
+          "price": 573180,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/soybean",
-          "source_date": "2026-10-16",
+          "source_date": "2026-10-19",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
         }
       ],
       "other_web_prices": [],
-      "status": "disagree",
-      "web_median": 548540,
-      "gap_pct": -30.6,
+      "status": "check",
+      "web_median": 573180,
+      "gap_pct": -27.4,
       "compared_with": "AFEX exchange",
       "notes": [
+        "The AFEX price is the middle of its last 4 trading days, so one day's swing doesn't decide the status.",
         "Only one website - treat the comparison as a hint, not proof."
       ]
     },
@@ -150,7 +158,7 @@
           "price": 1719500,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/cashew",
-          "source_date": "2026-10-16",
+          "source_date": "2026-10-19",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -162,6 +170,7 @@
       "gap_pct": -9.5,
       "compared_with": "AFEX exchange",
       "notes": [
+        "The AFEX price is the middle of its last 4 trading days, so one day's swing doesn't decide the status.",
         "Only one website - treat the comparison as a hint, not proof."
       ]
     },
@@ -173,21 +182,22 @@
       "our_coverage": "Agricome",
       "web_prices": [
         {
-          "price": 354790,
+          "price": 355645,
           "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/commodities",
-          "source_date": "2026-10-16",
+          "url": "https://www.mansamarkets.com/commodities/sorghum",
+          "source_date": "2026-10-19",
           "level": "exchange",
-          "location": "national (Nigeria, AFEX exchange spot via Mansa Markets)",
+          "location": "national (AFEX exchange)",
           "confidence": "high"
         }
       ],
       "other_web_prices": [],
       "status": "agree",
-      "web_median": 354790,
-      "gap_pct": 2.8,
-      "compared_with": "web prices from 1 site(s)",
+      "web_median": 355645,
+      "gap_pct": 3.1,
+      "compared_with": "AFEX exchange",
       "notes": [
+        "The AFEX price is the middle of its last 4 trading days, so one day's swing doesn't decide the status.",
         "Only one website - treat the comparison as a hint, not proof."
       ]
     },
@@ -251,19 +261,28 @@
       "notes": []
     },
     "Maize (white)": {
-      "our_price": 389680,
-      "our_date": "2026-10-12",
+      "our_price": 450000,
+      "our_date": "2026-10-05",
       "our_source": "Web_search",
       "our_level": "wholesale",
       "our_coverage": "a web price accepted earlier",
       "web_prices": [
         {
-          "price": 389680,
+          "price": 397990,
           "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/commodities",
-          "source_date": "2026-10-16",
+          "url": "https://www.mansamarkets.com/commodities/maize",
+          "source_date": "2026-10-19",
           "level": "exchange",
-          "location": "national (AFEX Nigeria exchange)",
+          "location": "national (AFEX exchange)",
+          "confidence": "high"
+        },
+        {
+          "price": 438900,
+          "site": "aaigrainsfoodsupllies.com",
+          "url": "https://www.aaigrainsfoodsupllies.com/market-prices",
+          "source_date": "2026-09-23",
+          "level": "wholesale",
+          "location": "Kano, Kaduna (origin), FOB Lagos export price - national",
           "confidence": "medium"
         }
       ],
@@ -279,17 +298,19 @@
         }
       ],
       "status": "agree",
-      "web_median": 389680,
-      "gap_pct": 0.0,
-      "compared_with": "web prices from 1 site(s)",
+      "web_median": 397990,
+      "gap_pct": -11.6,
+      "compared_with": "AFEX exchange",
       "notes": [
         "Our latest price itself came from the web, so this compares web sources with each other.",
-        "Only one website - treat the comparison as a hint, not proof."
+        "AFEX does not say whether its maize is white or yellow.",
+        "Status uses the AFEX price; 1 other web price(s) listed for reference.",
+        "The AFEX price is the middle of its last 4 trading days, so one day's swing doesn't decide the status."
       ]
     },
     "Maize (yellow)": {
-      "our_price": 389680,
-      "our_date": "2026-10-12",
+      "our_price": 375810,
+      "our_date": "2026-10-19",
       "our_source": "AFEX",
       "our_level": "wholesale",
       "our_coverage": "AFEX exchange",
@@ -322,7 +343,7 @@
       "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 189 days old - nothing current to compare against."
+        "Our latest real price is 190 days old - nothing current to compare against."
       ]
     },
     "Rice": {
@@ -331,17 +352,7 @@
       "our_source": "WFP",
       "our_level": "wholesale",
       "our_coverage": "WFP",
-      "web_prices": [
-        {
-          "price": 409780,
-          "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/blog/rice-price-in-nigeria-today",
-          "source_date": "2026-10-15",
-          "level": "exchange",
-          "location": "national",
-          "confidence": "high"
-        }
-      ],
+      "web_prices": [],
       "other_web_prices": [
         {
           "price": 1060000,
@@ -354,11 +365,10 @@
         }
       ],
       "status": "our price is old",
-      "web_median": 409780,
+      "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 1379 days old - nothing current to compare against.",
-        "Only one website - treat the comparison as a hint, not proof."
+        "Our latest real price is 1380 days old - nothing current to compare against."
       ]
     },
     "Rice (local)": {
@@ -421,6 +431,15 @@
           "level": "wholesale",
           "location": "Lagos State (state-wide market tracker)",
           "confidence": "medium"
+        },
+        {
+          "price": 1320000,
+          "site": "legit.ng",
+          "url": "https://www.legit.ng/business-economy/industry/1733338-rice-prices-drop-by-n15000-50kg-bag-rates-emerge-nigeria/",
+          "source_date": "2026-09-23",
+          "level": "wholesale",
+          "location": "national (average across 12 Nigerian markets)",
+          "confidence": "medium"
         }
       ],
       "other_web_prices": [
@@ -432,24 +451,14 @@
           "level": "retail",
           "location": "Lagos (Lagos State Ministry of Agriculture and Food Systems price tracker)",
           "confidence": "medium"
-        },
-        {
-          "price": 1320000,
-          "site": "legit.ng",
-          "url": "https://www.legit.ng/business-economy/industry/1733338-rice-prices-drop-by-n15000-50kg-bag-rates-emerge-nigeria/",
-          "source_date": "2026-09-23",
-          "level": "not recorded",
-          "location": null,
-          "confidence": "medium"
         }
       ],
-      "status": "check",
-      "web_median": 1060000,
-      "gap_pct": -19.7,
-      "compared_with": "web prices from 1 site(s)",
+      "status": "agree",
+      "web_median": 1190000,
+      "gap_pct": -9.8,
+      "compared_with": "web prices from 2 site(s)",
       "notes": [
-        "Our latest price itself came from the web, so this compares web sources with each other.",
-        "Only one website - treat the comparison as a hint, not proof."
+        "Our latest price itself came from the web, so this compares web sources with each other."
       ]
     },
     "Meat (beef)": {
@@ -459,7 +468,17 @@
       "our_level": "retail",
       "our_coverage": "WFP markets in Borno, Yobe",
       "web_prices": [],
-      "other_web_prices": [],
+      "other_web_prices": [
+        {
+          "price": 7000000,
+          "site": "dailytrust.com",
+          "url": "https://dailytrust.com/cost-of-living-nigerians-seek-alternatives-as-beef-goes-out-of-reach/",
+          "source_date": "2026-10-15",
+          "level": "retail",
+          "location": "Abattoir Market, Kano",
+          "confidence": "medium"
+        }
+      ],
       "status": "no web price",
       "web_median": null,
       "gap_pct": null,
@@ -520,7 +539,7 @@
           "url": "https://naijasabi.com.ng/egg-price-nigeria-today-2026/",
           "source_date": "2026-10-01",
           "level": "wholesale",
-          "location": "Lagos markets, Lagos State",
+          "location": "Lagos markets, Lagos",
           "confidence": "medium"
         }
       ],
