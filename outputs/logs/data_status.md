@@ -8,13 +8,14 @@
 | Wheat | 2026-04-13 | 190 |
 
 **Web prices added today: 0**
-- Rice: 9 found, none used - 5x read directly by pipeline/fetch_afex_prices.py (AFEX exchang, 2x withdrawn earlier after review, 1x not a wholesale price (or level not recorded), 1x no exact date on the source
+- Rice: 9 found, none used - 5x read directly by pipeline/fetch_afex_prices.py (AFEX exchang, 3x withdrawn earlier after review, 1x not a wholesale price (or level not recorded)
 - Wheat: 1 found, none used - 1x low confidence (forum, undated list or shop)
 
-**Our prices vs independent web prices:** 6 agree, 3 check, 2 disagree, 6 no web price, 2 our price is old
+**Our prices vs independent web prices:** 5 agree, 4 check, 2 disagree, 6 no web price, 2 our price is old
 - DISAGREE: Sesame - ours N1,400,000 (Agricome), web N2,300,000 from 1 site(s), +64%
 - DISAGREE: Ginger - ours N8,000,000 (Agricome), web N5,200,000 from 1 site(s), -35%
 - CHECK: Soybeans - ours N790,000 (Agricome), web N573,180 from 1 site(s), -27%
+- CHECK: Rice (foreign) - ours N1,320,000 (Web_search), web N1,060,000 from 1 site(s), -20%
 - CHECK: Eggs - ours N6,719 (WFP), web N5,400 from 1 site(s), -20%
 - CHECK: Beans (white) - ours N1,022,465 (WFP), web N835,800 from 1 site(s), -18%
 

@@ -10,8 +10,8 @@
   "summary": {
     "no web price": 6,
     "disagree": 2,
-    "agree": 6,
-    "check": 3,
+    "agree": 5,
+    "check": 4,
     "our price is old": 2
   },
   "commodities": {
@@ -275,15 +275,6 @@
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
-        },
-        {
-          "price": 438900,
-          "site": "aaigrainsfoodsupllies.com",
-          "url": "https://www.aaigrainsfoodsupllies.com/market-prices",
-          "source_date": "2026-09-23",
-          "level": "wholesale",
-          "location": "Kano, Kaduna (origin), FOB Lagos export price - national",
-          "confidence": "medium"
         }
       ],
       "other_web_prices": [
@@ -304,8 +295,8 @@
       "notes": [
         "Our latest price itself came from the web, so this compares web sources with each other.",
         "AFEX does not say whether its maize is white or yellow.",
-        "Status uses the AFEX price; 1 other web price(s) listed for reference.",
-        "The AFEX price is the middle of its last 4 trading days, so one day's swing doesn't decide the status."
+        "The AFEX price is the middle of its last 4 trading days, so one day's swing doesn't decide the status.",
+        "Only one website - treat the comparison as a hint, not proof."
       ]
     },
     "Maize (yellow)": {
@@ -352,23 +343,24 @@
       "our_source": "WFP",
       "our_level": "wholesale",
       "our_coverage": "WFP",
-      "web_prices": [],
-      "other_web_prices": [
+      "web_prices": [
         {
           "price": 1060000,
           "site": "lagosagric.com",
           "url": "https://lagosagric.com/price-tracker/",
           "source_date": "2026-10-01",
-          "level": "not recorded",
-          "location": null,
-          "confidence": "high"
+          "level": "wholesale",
+          "location": "Lagos State",
+          "confidence": "medium"
         }
       ],
+      "other_web_prices": [],
       "status": "our price is old",
-      "web_median": null,
+      "web_median": 1060000,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 1380 days old - nothing current to compare against."
+        "Our latest real price is 1380 days old - nothing current to compare against.",
+        "Only one website - treat the comparison as a hint, not proof."
       ]
     },
     "Rice (local)": {
@@ -431,15 +423,6 @@
           "level": "wholesale",
           "location": "Lagos State (state-wide market tracker)",
           "confidence": "medium"
-        },
-        {
-          "price": 1320000,
-          "site": "legit.ng",
-          "url": "https://www.legit.ng/business-economy/industry/1733338-rice-prices-drop-by-n15000-50kg-bag-rates-emerge-nigeria/",
-          "source_date": "2026-09-23",
-          "level": "wholesale",
-          "location": "national (average across 12 Nigerian markets)",
-          "confidence": "medium"
         }
       ],
       "other_web_prices": [
@@ -451,14 +434,24 @@
           "level": "retail",
           "location": "Lagos (Lagos State Ministry of Agriculture and Food Systems price tracker)",
           "confidence": "medium"
+        },
+        {
+          "price": 1320000,
+          "site": "legit.ng",
+          "url": "https://www.legit.ng/business-economy/industry/1733338-rice-prices-drop-by-n15000-50kg-bag-rates-emerge-nigeria/",
+          "source_date": "2026-09-23",
+          "level": "not recorded",
+          "location": null,
+          "confidence": "medium"
         }
       ],
-      "status": "agree",
-      "web_median": 1190000,
-      "gap_pct": -9.8,
-      "compared_with": "web prices from 2 site(s)",
+      "status": "check",
+      "web_median": 1060000,
+      "gap_pct": -19.7,
+      "compared_with": "web prices from 1 site(s)",
       "notes": [
-        "Our latest price itself came from the web, so this compares web sources with each other."
+        "Our latest price itself came from the web, so this compares web sources with each other.",
+        "Only one website - treat the comparison as a hint, not proof."
       ]
     },
     "Meat (beef)": {
@@ -539,7 +532,7 @@
           "url": "https://naijasabi.com.ng/egg-price-nigeria-today-2026/",
           "source_date": "2026-10-01",
           "level": "wholesale",
-          "location": "Lagos markets, Lagos",
+          "location": "Lagos markets, Lagos (Lagos State Ministry of Agriculture and Food Systems price tracker)",
           "confidence": "medium"
         }
       ],
