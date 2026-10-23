@@ -60,8 +60,8 @@ COMMODITIES = [
     "Maize (white)",
     "Maize (yellow)",
     "Wheat",
-    "Rice",            # legacy series (World Bank estimate-based) - kept until the
-                       # frontend switches to the two below, then retired
+    # The legacy "Rice" series (World Bank estimate-based) was retired on
+    # 23 Oct 2026, once the website showed the two types below.
     "Rice (local)",    # Nigerian local milled rice   - WFP "Rice (local)"
     "Rice (foreign)",  # imported/foreign parboiled   - WFP "Rice (imported)"
     "Meat (beef)",
@@ -83,7 +83,6 @@ WFP_NAME_MAP = {
     "Sorghum (white)":  "Sorghum",
     "Soybeans":         "Soybeans",
     "Wheat":            "Wheat",
-    "Rice":             "Rice",
     "Rice (imported)":  "Rice (foreign)",
     "Rice (local)":     "Rice (local)",
     # Livestock and protein

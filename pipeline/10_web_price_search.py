@@ -75,9 +75,9 @@ FOCI = {
                 "Premium Times).",
 }
 ROTATION = ["exchange", "official", "north", "south", "news"]
-# Legacy "Rice" is being retired in favour of Rice (local) / Rice (foreign);
-# don't spend 3-hourly searches on it (the daily sweep still covers it).
-ROTATION_SKIP = {"Rice"}
+# Commodities the 3-hourly rotation never searches (the legacy "Rice" series sat
+# here until it was retired on 23 Oct 2026).
+ROTATION_SKIP = set()
 
 # Eggs are priced per crate (30 eggs) everywhere else in this system
 # (see api.py's price_per_kg()), not per metric tonne — found this the

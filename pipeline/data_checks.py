@@ -53,7 +53,6 @@ logger.add(sys.stdout,
 
 OUT_PATH      = os.path.join(PATHS["logs_dir"], "data_checks.json")
 SHOP_PRICE_OK = {"Meat (beef)", "Meat (goat)", "Fish (dried)", "Eggs"}   # John, 14 Oct 2026: shop prices, labelled
-RETIRED       = {"Rice"}           # legacy series kept until the frontend shows the two rice types
 ACCURACY_GOAL = 95.0
 RANK          = {"ok": 0, "check": 1, "problem": 2}
 
@@ -298,8 +297,6 @@ def run_checks(today=None):
 
     report = {}
     for c in COMMODITIES:
-        if c in RETIRED:
-            continue
         rows = master[master["commodity"] == c]
         real = rows[rows["data_source"].isin(REAL_SOURCES) & rows["price_ngn_mt"].gt(0)].reset_index(drop=True)
         fc, sel = forecast.get(c), selection.get(c, {})

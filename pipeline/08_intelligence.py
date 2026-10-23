@@ -48,7 +48,7 @@ except Exception:
     COMMODITIES = [
         "Hibiscus","Sesame","Ginger","Cocoa","Soybeans","Cashew Nuts",
         "Sorghum","Beans (white)","Beans (red)","Maize (white)",
-        "Maize (yellow)","Wheat","Rice",
+        "Maize (yellow)","Wheat","Rice (local)","Rice (foreign)",
         "Meat (beef)","Meat (goat)","Fish (dried)","Eggs",
     ]
 
@@ -64,7 +64,7 @@ UNIT_CONFIG = {
 
 # ── Commodity basket weights for Food Price Index ─────────────────────────────
 # Based on Nigerian household consumption expenditure share (NBS 2023/2024)
-# Weights sum to 1.0 across all 17 commodities
+# Weights sum to 1.0 across all 18 commodities
 FPI_WEIGHTS = {
     "Maize (white)":   0.12,
     "Maize (yellow)":  0.08,
@@ -93,7 +93,6 @@ FPI_BASE_PATH = os.path.join(BASE, "data", "external", "fpi_base_2025.csv")
 FPI_BASE_2025_FALLBACK = {
     "Maize (white)":   285_000,
     "Maize (yellow)":  310_000,
-    "Rice":            1_200_000,
     "Wheat":           580_000,
     "Sorghum":         320_000,
     "Beans (white)":   650_000,
@@ -257,7 +256,7 @@ def compute_30day_outlook(validated_forecast):
             # Grains: max +/-15% in 30 days
             # Export crops: max +/-25% in 30 days
             # Livestock: max +/-10% in 30 days
-            GRAIN_CAPS    = ["Maize (white)","Maize (yellow)","Sorghum","Wheat","Rice","Rice (local)","Rice (foreign)",
+            GRAIN_CAPS    = ["Maize (white)","Maize (yellow)","Sorghum","Wheat","Rice (local)","Rice (foreign)",
                              "Beans (white)","Beans (red)","Soybeans"]
             LIVESTOCK     = ["Meat (beef)","Meat (goat)","Fish (dried)","Eggs"]
             if commodity in GRAIN_CAPS:

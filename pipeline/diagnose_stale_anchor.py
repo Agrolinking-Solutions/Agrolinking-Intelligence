@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS
 
 REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary"}
-CHECK = ["Maize (white)", "Maize (yellow)", "Rice", "Meat (beef)", "Meat (goat)",
+CHECK = ["Maize (white)", "Maize (yellow)", "Meat (beef)", "Meat (goat)",
          "Fish (dried)", "Eggs", "Hibiscus", "Sesame", "Ginger", "Cocoa",
          "Soybeans", "Cashew Nuts", "Sorghum"]
 

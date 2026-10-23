@@ -74,7 +74,6 @@ MANUAL_PRICES = {
     "Maize (white)":   370_000,   # Market 2026
     "Maize (yellow)":  400_000,   # Market 2026
     "Wheat":           706_833,   # Agrolinking primary Apr 13 2026
-    "Rice":          1_550_000,   # Market research May 2026
     # Rice by type: WFP national average, Jun 2026, retail converted to
     # wholesale-equivalent (x0.942 local, x0.898 imported) in 01_ingest.py
     "Rice (local)":  1_056_000,   # ~N52.8k per 50kg bag

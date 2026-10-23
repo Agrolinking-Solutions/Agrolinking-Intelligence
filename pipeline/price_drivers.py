@@ -69,7 +69,7 @@ MONTHS = ["", "January", "February", "March", "April", "May", "June", "July",
 GROUPS = {
     "local crop":  ["Maize (white)", "Maize (yellow)", "Sorghum", "Beans (white)", "Beans (red)",
                     "Rice (local)", "Soybeans"],
-    "imported":    ["Rice (foreign)", "Wheat", "Rice"],
+    "imported":    ["Rice (foreign)", "Wheat"],
     "export crop": ["Cocoa", "Sesame", "Cashew Nuts", "Ginger", "Hibiscus"],
     "livestock":   ["Meat (beef)", "Meat (goat)", "Fish (dried)", "Eggs"],
 }
@@ -352,8 +352,6 @@ def build(today=None):
     fx_rate = pd.read_csv(os.path.join(EXT, "cbn_usd_daily.csv"))["ngn_per_usd"].iloc[-1]
     out = {"as_of": str(today.date()), "commodities": {}}
     for c in COMMODITIES:
-        if c == "Rice":
-            continue      # legacy, being retired
         zones = [] if GROUP_OF.get(c) in ("imported", "livestock") else producing_zones(c, zones_cfg)
         cards = {"weather": weather_card(c, zones, weather, today), "season": season_card(c, master, today),
                  "climate": climate_card(c, zones, weather, enso, today)}

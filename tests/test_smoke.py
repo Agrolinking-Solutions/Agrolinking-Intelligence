@@ -13,9 +13,11 @@ from config.settings import COMMODITIES, PATHS, MODEL_CONFIG
 
 
 def test_commodities_defined():
-    """All 19 commodities: the 17 originals plus Rice (local) and Rice (foreign), split Oct 2026."""
-    assert len(COMMODITIES) == 19, f"Expected 19 commodities, got {len(COMMODITIES)}"
-    assert {"Rice", "Rice (local)", "Rice (foreign)"} <= set(COMMODITIES)
+    """18 commodities: rice is tracked as Rice (local) and Rice (foreign); the legacy
+    "Rice" series was retired on 23 Oct 2026."""
+    assert len(COMMODITIES) == 18, f"Expected 18 commodities, got {len(COMMODITIES)}"
+    assert {"Rice (local)", "Rice (foreign)"} <= set(COMMODITIES)
+    assert "Rice" not in COMMODITIES
     assert "Meat (beef)" in COMMODITIES
 
 

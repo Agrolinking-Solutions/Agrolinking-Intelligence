@@ -584,7 +584,8 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
             | existing["price_ngn_mt"].isna()
         )
         if bad.any():
-            logger.warning(f"  Dropping {int(bad.sum())} malformed rows from existing master")
+            logger.warning(f"  Dropping {int(bad.sum())} rows from existing master: malformed, or a "
+                           f"commodity no longer tracked (the legacy Rice series, retired 23 Oct 2026)")
             existing = existing[~bad].copy()
         # Web-sourced rows are rebuilt from data/raw/web_prices.csv on every
         # ingest (they're in master_df), so that file is the single source

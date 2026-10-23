@@ -14,7 +14,7 @@ Daily wholesale price intelligence and forecasts for Nigerian agricultural commo
 
 ## What it does
 
-- **Prices for 19 commodities.** Hibiscus, Sesame, Ginger, Cocoa, Soybeans, Cashew Nuts, Sorghum, Beans (white), Beans (red), Maize (white), Maize (yellow), Wheat, Rice (local), Rice (foreign), Meat (beef), Meat (goat), Fish (dried) and Eggs. The legacy "Rice" is still listed and is being retired now that the two rice types are live.
+- **Prices for 18 commodities.** Hibiscus, Sesame, Ginger, Cocoa, Soybeans, Cashew Nuts, Sorghum, Beans (white), Beans (red), Maize (white), Maize (yellow), Wheat, Rice (local), Rice (foreign), Meat (beef), Meat (goat), Fish (dried) and Eggs. The legacy "Rice" series, built on World Bank estimates, was retired on 23 October 2026 once the website showed the two rice types.
 - **One price basis: wholesale.** Every price is wholesale, in naira per tonne. Eggs are per crate of 30. Meat, fish and eggs are shop (retail) prices until a wholesale source exists, and they are labelled that way.
 - **Real data first.** Each price point records its source. Real observed prices (partner, exchange, market-monitor and vetted web prices) are kept apart from estimates (interpolated, synthetic, World Bank model, platform model), and the API labels every point.
 - **Forecasts for 6 horizons:** next day, 1 week, 2 weeks, 1 month, 3 months and 6 months, each with a range.

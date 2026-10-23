@@ -1131,7 +1131,6 @@ def seasonality_profile(commodity: str):
             "Maize (white)":  {1:35,2:30,3:40,4:55,5:65,6:75,7:80,8:85,9:90,10:75,11:55,12:40},
             "Maize (yellow)": {1:35,2:30,3:40,4:55,5:65,6:75,7:80,8:85,9:90,10:75,11:55,12:40},
             "Sorghum":        {1:55,2:45,3:40,4:35,5:30,6:35,7:40,8:50,9:70,10:85,11:80,12:65},
-            "Rice":           {1:45,2:40,3:35,4:40,5:50,6:60,7:65,8:70,9:80,10:85,11:75,12:55},
             "Rice (local)":   {1:45,2:40,3:35,4:40,5:50,6:60,7:65,8:70,9:80,10:85,11:75,12:55},
             "Rice (foreign)": {1:45,2:40,3:35,4:40,5:50,6:60,7:65,8:70,9:80,10:85,11:75,12:55},
             "Wheat":          {1:70,2:75,3:80,4:85,5:70,6:55,7:45,8:40,9:35,10:40,11:55,12:65},
@@ -2501,14 +2500,16 @@ def platform_meta():
             ),
         },
         "food_price_index_methodology": {
-            "base_period":    "June 2025 = 100",
-            "basket":         "17 commodities weighted by NBS 2023/24 household consumption share",
+            "base_period":    "2025 average of real prices = 100",
+            "basket":         "18 commodities weighted by NBS 2023/24 household consumption share",
             "endpoint":       "/index/food",
             "history":        "/history/fpi",
             "top_weights": {
-                "Rice":           "14%",
-                "Meat (beef)":    "10%",
                 "Maize (white)":  "12%",
+                "Meat (beef)":    "10%",
+                "Maize (yellow)": "8%",
+                "Rice (local)":   "7%",
+                "Rice (foreign)": "7%",
                 "Beans (white)":  "7%",
                 "Wheat":          "7%",
             }
@@ -2614,7 +2615,6 @@ def forecast_factor_drivers(
         "Maize (white)":  {1:35,2:30,3:40,4:55,5:65,6:75,7:80,8:85,9:90,10:75,11:55,12:40},
         "Maize (yellow)": {1:35,2:30,3:40,4:55,5:65,6:75,7:80,8:85,9:90,10:75,11:55,12:40},
         "Sorghum":        {1:55,2:45,3:40,4:35,5:30,6:35,7:40,8:50,9:70,10:85,11:80,12:65},
-        "Rice":           {1:45,2:40,3:35,4:40,5:50,6:60,7:65,8:70,9:80,10:85,11:75,12:55},
         "Rice (local)":   {1:45,2:40,3:35,4:40,5:50,6:60,7:65,8:70,9:80,10:85,11:75,12:55},
         "Rice (foreign)": {1:45,2:40,3:35,4:40,5:50,6:60,7:65,8:70,9:80,10:85,11:75,12:55},
         "Wheat":          {1:70,2:75,3:80,4:85,5:70,6:55,7:45,8:40,9:35,10:40,11:55,12:65},
@@ -2634,7 +2634,6 @@ def forecast_factor_drivers(
 
     # ── Policy signals (rule-based, July 2026) ────────────────────────────
     POLICY_SIGNALS = {
-        "Rice":          ("High", "Import levy active — 50% tariff on imported rice"),
         "Rice (local)":  ("Mid",  "Import restrictions on foreign rice support local rice demand; paddy supply drives price"),
         "Rice (foreign)":("High", "Import levy active — 50% tariff on imported rice; FX sensitive"),
         "Wheat":         ("High", "Import-dependent — FX and tariff sensitive"),
@@ -2657,7 +2656,7 @@ def forecast_factor_drivers(
 
     # ── FX sensitivity (which commodities are most import-dependent) ──────
     FX_SENSITIVE = {
-        "Wheat": True, "Rice": True, "Rice (foreign)": True, "Rice (local)": False,
+        "Wheat": True, "Rice (foreign)": True, "Rice (local)": False,
         "Fish (dried)": True,
         "Cocoa": False, "Sesame": False, "Ginger": False,
     }
