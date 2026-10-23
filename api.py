@@ -1878,7 +1878,7 @@ def load_latest_drivers():
 def price_drivers_overview():
     """
     What is happening to the factors behind each commodity's price: weather
-    (14-day forecast vs normal in its growing zones), season (pattern
+    (MET Norway forecast for the coming days vs normal in its zones), season (pattern
     measured on real prices), fuel (WFP petrol), exchange rate and food
     inflation (CBN). One row per commodity with a short summary and, per
     factor: status (current / stale / not measured), relevance for that
@@ -1908,6 +1908,56 @@ def commodity_price_drivers(commodity: str):
         raise HTTPException(status_code=404,
                             detail=f"'{commodity}' not found. Available: {sorted(rep.get('commodities', {}))}")
     return {"as_of": rep.get("as_of"), "commodity": key, **rep["commodities"][key]}
+
+
+def load_latest_weather():
+    files = sorted(glob.glob(os.path.join(BASE_DIR, "outputs", "intelligence", "weather_*.json")))
+    if not files:
+        raise HTTPException(status_code=404, detail="No weather report yet - it is built by the daily pipeline.")
+    with open(files[-1], encoding="utf-8") as f:
+        return json.load(f)
+
+
+WEATHER_META = ("as_of", "issued_at", "source", "attribution", "license", "days")
+
+
+@app.get("/weather/today", tags=["Weather"])
+def weather_today(
+    zone: Optional[str] = Query(None, description="Only one zone, e.g. North West"),
+    main_cities_only: bool = Query(False, description="Only each zone's main city (6 places)"),
+):
+    """
+    Today's weather report: today and the next 6 days for 23 places (the
+    capitals of the main growing states and each zone's main city), grouped
+    by zone. Per day: condition in plain words, MET Norway icon symbol (free
+    icons: github.com/metno/weathericons), high and low (C), rain (mm), wind
+    (km/h) and humidity (%). Built every morning by pipeline/weather_report.py.
+    Show the credit "Data from MET Norway" wherever this is displayed.
+    """
+    rep = load_latest_weather()
+    places = rep.get("report", [])
+    if zone:
+        places = [p for p in places if p["zone"].lower() == zone.lower()]
+    if main_cities_only:
+        places = [p for p in places if p.get("zone_main_city")]
+    return {**{k: rep.get(k) for k in WEATHER_META}, "places": places}
+
+
+@app.get("/weather/{commodity}", tags=["Weather"])
+def commodity_weather(commodity: str):
+    """
+    The weather card for one commodity: its main producing states, a 7-day
+    strip (most common condition across them, average high/low and rain, and
+    which states expect rain), each state's own days, a one-line outlook and
+    a one-line general guidance for the time of year. Weather is context only:
+    it is not used in the price forecast.
+    """
+    rep = load_latest_weather()
+    key = next((c for c in rep.get("commodities", {}) if c.lower() == commodity.lower()), None)
+    if not key:
+        raise HTTPException(status_code=404,
+                            detail=f"'{commodity}' not found. Available: {sorted(rep.get('commodities', {}))}")
+    return {**{k: rep.get(k) for k in WEATHER_META}, "commodity": key, **rep["commodities"][key]}
 
 
 @app.get("/checks", tags=["Accuracy"])

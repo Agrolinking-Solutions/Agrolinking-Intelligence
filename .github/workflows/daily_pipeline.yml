@@ -103,6 +103,14 @@ jobs:
         continue-on-error: true
         run: python pipeline/11_external_factors.py
 
+      # Today's weather report and a 7-day weather card per commodity (its
+      # main producing states) from the MET Norway forecast step 00 saved.
+      # Context only, never a forecast input. Served at /weather/today and
+      # /weather/{commodity}. continue-on-error: never blocks publishing.
+      - name: 00h - Weather report
+        continue-on-error: true
+        run: python pipeline/weather_report.py
+
       # Web price search (formerly step 10). Writes only to the isolated
       # web_price_estimates Postgres table. Runs BEFORE ingest so the
       # promotion step below can use today's results. Skips cleanly (exit 0)
@@ -315,7 +323,7 @@ jobs:
         run: |
           git config user.name "agrolinking-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv data/raw/web_prices.csv data/raw/wfp_food_prices_nga.csv data/raw/.wfp_hdx_state.json data/raw/afex_prices.csv data/raw/fao_fpma_prices.csv data/external/inflation.csv data/external/fx_rates.csv data/external/fuel_prices.csv data/external/cbn_inflation_monthly.csv data/external/cbn_usd_daily.csv data/external/wfp_petrol_monthly.csv data/external/enso_oni.csv data/raw/world_prices.csv
+          git add data/processed/agrolinking_master.csv data/processed/features/ outputs/ data/external/live_fx.csv data/external/weather_daily.csv data/external/weather_forecast_daily.csv data/raw/web_prices.csv data/raw/wfp_food_prices_nga.csv data/raw/.wfp_hdx_state.json data/raw/afex_prices.csv data/raw/fao_fpma_prices.csv data/external/inflation.csv data/external/fx_rates.csv data/external/fuel_prices.csv data/external/cbn_inflation_monthly.csv data/external/cbn_usd_daily.csv data/external/wfp_petrol_monthly.csv data/external/enso_oni.csv data/raw/world_prices.csv
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else

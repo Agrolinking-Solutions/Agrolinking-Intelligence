@@ -35,7 +35,7 @@ Daily wholesale price intelligence and forecasts for Nigerian agricultural commo
 | **Web price search** (Claude API with web search) | Named, dated wholesale prices found online | Every 3 hours, plus a daily sweep | Real only after vetting (step 00c), and only for commodities with no fresh partner price |
 | **Agrolinking field collection** | Wheat, across 10 states | Stopped 13 April 2026 | Real |
 
-**Supporting data, all real:** inflation and the official US$ rate from the **Central Bank of Nigeria** (step 00g), petrol prices from WFP, NOAA's El Niño index, world benchmark prices for maize, wheat, rice, soybeans and cocoa (Mansa Markets, step 00e), and weather (NASA POWER history plus a 16-day Open-Meteo forecast for 6 zones, step 00). After the latest real figure each series is carried forward flat, never projected. Until October 2026 these files ran on as smooth projections.
+**Supporting data, all real:** inflation and the official US$ rate from the **Central Bank of Nigeria** (step 00g), petrol prices from WFP, NOAA's El Niño index, world benchmark prices for maize, wheat, rice, soybeans and cocoa (Mansa Markets, step 00e), and weather (NASA POWER history, refreshed daily for the last 45 days, plus MET Norway's ~9-day forecast for 23 places, step 00). After the latest real figure each series is carried forward flat, never projected. Until October 2026 these files ran on as smooth projections.
 
 **Estimates, always labelled:** World Bank Real-Time Prices model rows, prices interpolated between two real prices, synthetic rows rebuilt from international prices × FX, and the platform's own daily model price.
 
@@ -49,7 +49,8 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 
 | Step | Script | What it does |
 |---|---|---|
-| 00 | `11_external_factors.py` | Live FX and weather |
+| 00 | `11_external_factors.py` | Live FX and weather (NASA POWER history; MET Norway forecast for 23 places) |
+| 00h | `weather_report.py` | Today's weather report and a 7-day weather card per commodity, served at `/weather/today` and `/weather/{commodity}` |
 | 00b | `10_web_price_search.py` | Daily web price sweep, saved to Postgres `web_price_estimates` |
 | 00c | `14_promote_web_prices.py` | Vets web prices; accepted ones go to `data/raw/web_prices.csv` |
 | 00d | `refresh_wfp_hdx.py` | Downloads and validates the latest WFP file |
@@ -111,6 +112,12 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 - **Tests (`tests/`):** rule tests (ranges, method choice, cross-check, alerts, ingest) and data tests that fail if a known error comes back (CFA-franc border prices, the duplicated WFP extract, future-dated or non-positive real prices). They run in every daily pipeline.
 - **History fixes (October 2026):** WFP's cross-border markets reported in CFA francs until 2016, although the file labels them Naira, which inflated pre-2016 white maize and sorghum about 2x and imported rice by 61%; they are now dropped before 2017. An older WFP extract stored in the Agricome file duplicated about 99% of the current WFP/FEWS NET months, a week apart; only the months the current data lacks are kept, scaled to its level and labelled WFP.
 
+## Weather
+
+- **Daily weather report and commodity cards** (`weather_report.py`, `/weather/today`, `/weather/{commodity}`): every morning, today and the next 6 days for 23 places (the capitals of the main growing states and each zone's main city). Each day has a condition in plain words, an icon symbol, high and low, rain, wind and humidity. Each commodity card covers its main producing states (`GROWING_STATES`), with a combined 7-day strip, each state's days, a one-line outlook ("Dry week ahead", "Heavy rain on Tue in Cross River") and a one-line general guidance for the time of year (`CROP_CALENDAR`).
+- **Sources, all free for commercial use:** MET Norway's Locationforecast for the forecast (CC BY 4.0; show "Data from MET Norway" wherever it appears; free icons at github.com/metno/weathericons), and NASA POWER for observed history. Open-Meteo was used until October 2026, but its free service is for non-commercial use only. MET Norway gives no chance-of-rain figure for Nigeria, so the cards show expected rainfall instead.
+- **Weather is context, not a forecast input.** A backtest found it adds about 0.4 accuracy points, and the guidance lines are general crop-calendar knowledge, not effects measured on prices.
+
 ## State prices
 
 State price = national price × that state's price gap (`pipeline/state_factors.py`).
@@ -133,6 +140,7 @@ FastAPI, `api.py`. Interactive reference: [pis-api.agrolinking.com/docs](https:/
 | States and trade | `/zonal/latest`, `/zonal/{commodity}`, `/spreads`, `/arbitrage`, `/arbitrage/{commodity}`, `/routes`, `/routes/{origin}/{destination}`, `/supply`, `/supply/{zone}` |
 | Intelligence | `/intelligence/latest`, `/index/food`, `/index/volatility`, `/outlook/30d`, `/movers`, `/confidence`, `/alerts/early-warning`, `/shortage-surplus`, `/seasonality/{commodity}`, `/factors` |
 | Price drivers | `/drivers` (all commodities), `/drivers/{commodity}` (full cards with sources and dates). The older `/factors` is superseded |
+| Weather | `/weather/today` (today and the next 6 days for 23 places, by zone; `?zone=`, `?main_cities_only=true`), `/weather/{commodity}` (7-day card for its main producing states, with an outlook and general guidance) |
 | Data quality | `/accuracy`, `/checks`, `/crosscheck` |
 | Alerts | `/alerts/latest` (WhatsApp/email-ready text); `/alerts/saved` (GET, POST), `/alerts/saved/{alert_id}` (DELETE) and `/alerts/check`, which need a Google sign-in token |
 

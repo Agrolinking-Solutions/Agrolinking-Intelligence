@@ -25,6 +25,9 @@ Each check gives ok, check (a person should look) or problem (likely wrong):
     live          published forecasts scored against real prices that arrived
                   later; flagged when well below the tested accuracy
     cross_check   today's comparison with AFEX / web prices (16_cross_check)
+  context
+    weather       the commodity's weather card (weather_report.py) is from
+                  today's MET Norway forecast and covers at least 5 days
 
 Writes outputs/logs/data_checks.json (API /checks) and a table on the run
 page. Report only: never fails the pipeline - the quality gate blocks
@@ -260,6 +263,18 @@ def check_cross(c, cross):
     return result("cross_check", "ok", f"{s}{gap}")
 
 
+def check_weather(c, weather, today):
+    card = (weather.get("commodities") or {}).get(c)
+    if not card:
+        return result("weather", "check", "No weather card in today's weather report")
+    issued = str(weather.get("issued_at") or "")[:10]
+    age = (pd.Timestamp(today) - pd.Timestamp(issued)).days if issued else None
+    msg = f"{len(card['days'])}-day weather for {', '.join(card['areas'])}, forecast issued {issued or 'unknown'}"
+    if age is None or age > 1 or len(card["days"]) < 5:
+        return result("weather", "check", msg + " - the weather card is out of date or short")
+    return result("weather", "ok", msg)
+
+
 # ── Run ──────────────────────────────────────────────────────────────────────
 
 def load_json(path, default):
@@ -278,6 +293,8 @@ def run_checks(today=None):
     selection = load_json(os.path.join(ROOT, "outputs", "backtest", "model_selection.json"), {})
     live = load_json(os.path.join(ROOT, "outputs", "backtest", "live_accuracy.json"), {})
     cross = load_json(os.path.join(PATHS["logs_dir"], "price_crosscheck.json"), {})
+    wfiles = sorted(glob.glob(os.path.join(ROOT, "outputs", "intelligence", "weather_*.json")))
+    weather = load_json(wfiles[-1], {}) if wfiles else {}
 
     report = {}
     for c in COMMODITIES:
@@ -289,7 +306,8 @@ def run_checks(today=None):
         checks = [check_unit(real), check_spikes(real, today), check_sources(real, today),
                   check_basis(c, real, today), check_freshness(real, today), check_filled(rows, today),
                   check_start(fc, rows), check_sane(fc, sel),
-                  check_tested(sel), check_live(c, live, sel), check_cross(c, cross)]
+                  check_tested(sel), check_live(c, live, sel), check_cross(c, cross),
+                  check_weather(c, weather, today)]
         worst = max((ch["status"] for ch in checks), key=RANK.get)
         report[c] = {"status": worst, "checks": checks}
 

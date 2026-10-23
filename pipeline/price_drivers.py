@@ -21,7 +21,7 @@ Honesty rules (agreed with John, 16 Oct 2026):
     forecasts worse (e.g. 6 months 22.7% -> 27.8% error), so they stay
     context only.
 
-Inputs (all real): weather_daily.csv (NASA POWER history + Open-Meteo
+Inputs (all real): weather_daily.csv (NASA POWER history + MET Norway
 forecast per zone), cbn_usd_daily.csv and cbn_inflation_monthly.csv (CBN),
 wfp_petrol_monthly.csv (WFP), the master dataset's real prices (seasonal
 pattern), zones_config.json (where each commodity is mainly grown).
@@ -124,11 +124,11 @@ def weather_card(commodity, zones, weather, today):
         where = "in " + " and ".join(zones)
     else:
         where = f"across its {len(zones)} main growing zones"
-    fc = weather[(weather["source"] == "open-meteo") & (weather["date"] >= today)
+    fc = weather[(weather["source"] == "met-norway") & (weather["date"] >= today)
                  & (weather["date"] < today + timedelta(days=WEATHER_DAYS)) & weather["zone"].isin(zones)]
     if fc.empty:
         return {"factor": "weather", "status": "no recent data", "relevance": rel, "why_it_matters": why,
-                "reading": "No weather forecast available", "source": "Open-Meteo"}
+                "reading": "No weather forecast available", "source": "MET Norway"}
     days_covered = fc["date"].nunique()
     per_zone = fc.groupby("zone").agg(rain=("precip_mm", "sum"), rain_days=("precip_mm", lambda s: int((s >= 1).sum())),
                                       tmax=("tmax_c", "mean"), tmax_hi=("tmax_c", "max"))
@@ -162,7 +162,8 @@ def weather_card(commodity, zones, weather, today):
                     "normal_rain_days": None if n_days is None else round(n_days, 1),
                     "max_temp_c": round(float(per_zone["tmax_hi"].max()), 1), "days": int(days_covered)},
         "relevance": rel, "why_it_matters": why, "price_effect": None,
-        "source": "Open-Meteo forecast; normal from NASA POWER 2018 onwards", "as_of": str(issued.date()),
+        "source": "MET Norway forecast (data from MET Norway); normal from NASA POWER 2018 onwards",
+        "as_of": str(issued.date()),
     }
 
 
