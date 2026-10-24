@@ -506,6 +506,13 @@ def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
     agricome_df["date"] = pd.to_datetime(agricome_df["date"])
     wfp_df["date"]      = pd.to_datetime(wfp_df["date"])
 
+    # Keep each row's own date: when a source posts several times in one week
+    # (Agricome posts daily), the LATEST post must win the week. Before this the
+    # first post won, so Agricome's 15 Oct 2026 price changes would have been
+    # dropped in favour of the unchanged 12 Oct post.
+    agricome_df["_obs_date"] = agricome_df["date"]
+    wfp_df["_obs_date"] = wfp_df["date"]
+
     # Snap both to week-start (Monday)
     agricome_df["date"] = agricome_df["date"] - pd.to_timedelta(
         agricome_df["date"].dt.dayofweek, unit="D"
@@ -517,6 +524,7 @@ def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
     # Stack them
     if web_df is not None and len(web_df) > 0:
         web_df["date"] = pd.to_datetime(web_df["date"])
+        web_df["_obs_date"] = web_df["date"]
         web_df["date"] = web_df["date"] - pd.to_timedelta(web_df["date"].dt.dayofweek, unit="D")
     agricome_df = place_legacy_wfp(agricome_df, pd.concat([wfp_df] + ([web_df] if web_df is not None else []),
                                                           ignore_index=True))
@@ -529,15 +537,16 @@ def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
     # duplicates, the higher-quality row is kept
     source_priority = {"Agricome": 0, "FEWS_NET": 0.8, "WFP": 1, "AFEX": 1.5, "Web_search": 2, "WB_RTP_estimate": 3}
     combined["_priority"] = combined["data_source"].map(source_priority).fillna(9)
-    combined = combined.sort_values(["commodity", "date", "_priority"])
+    combined = combined.sort_values(["commodity", "date", "_priority", "_obs_date"],
+                                    ascending=[True, True, True, False], kind="stable")
 
-    # Drop duplicates: keep first (Agricome wins)
+    # Drop duplicates: keep first (Agricome wins; within a source, its latest post that week)
     before = len(combined)
     combined = combined.drop_duplicates(subset=["commodity", "date"], keep="first")
     dupes_removed = before - len(combined)
     logger.info(f"  Deduplication: removed {dupes_removed:,} overlapping rows (Agricome priority)")
 
-    combined = combined.drop(columns=["_priority"])
+    combined = combined.drop(columns=["_priority", "_obs_date"])
 
     # Only keep the 11 target commodities
     combined = combined[combined["commodity"].isin(COMMODITIES)]
