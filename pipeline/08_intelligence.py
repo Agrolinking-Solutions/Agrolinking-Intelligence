@@ -786,24 +786,27 @@ def run_intelligence():
 
     # ── 6. Biggest riser / faller ────────────────────────────────────────────
     logger.info("  Computing biggest riser/faller...")
+    # Only a move of MIN_MOVE_PCT or more counts. Smaller day changes are the
+    # forecast's own daily drift between real prices (beef +0.03% a day), not
+    # a market move; showing it as "biggest riser" misled readers (Oct 2026).
+    MIN_MOVE_PCT = 0.5
     valid_anchors = {c: v for c, v in national_anchors.items() if v.get("day_change") is not None}
+
+    def mover(name):
+        return {"commodity": name,
+                "price_ngn_mt":   valid_anchors[name]["price"],
+                "price_ngn_kg":   round(valid_anchors[name]["price"] / 1000, 2),
+                "day_change_pct": valid_anchors[name]["day_change"],
+                "change_since":   valid_anchors[name].get("change_since")}
+
+    none = {"commodity": None, "price_ngn_mt": None, "price_ngn_kg": None, "day_change_pct": 0,
+            "note": f"No price moved by {MIN_MOVE_PCT}% or more since the last update"}
+    riser = faller = {}
     if valid_anchors:
         riser_name = max(valid_anchors, key=lambda c: valid_anchors[c]["day_change"])
         faller_name= min(valid_anchors, key=lambda c: valid_anchors[c]["day_change"])
-        riser = {
-            "commodity":      riser_name,
-            "price_ngn_mt":   valid_anchors[riser_name]["price"],
-            "price_ngn_kg":   round(valid_anchors[riser_name]["price"] / 1000, 2),
-            "day_change_pct": valid_anchors[riser_name]["day_change"],
-        }
-        faller = {
-            "commodity":      faller_name,
-            "price_ngn_mt":   valid_anchors[faller_name]["price"],
-            "price_ngn_kg":   round(valid_anchors[faller_name]["price"] / 1000, 2),
-            "day_change_pct": valid_anchors[faller_name]["day_change"],
-        }
-    else:
-        riser = faller = {}
+        riser = mover(riser_name) if valid_anchors[riser_name]["day_change"] >= MIN_MOVE_PCT else dict(none)
+        faller = mover(faller_name) if valid_anchors[faller_name]["day_change"] <= -MIN_MOVE_PCT else dict(none)
 
     logger.info(f"    Riser: {riser.get('commodity')} {riser.get('day_change_pct',0):+.2f}%")
     logger.info(f"    Faller: {faller.get('commodity')} {faller.get('day_change_pct',0):+.2f}%")

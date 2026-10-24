@@ -249,6 +249,28 @@ def load_all():
     return diff, zones, forecast, os.path.basename(latest_file)
 
 
+def previous_published(run_date):
+    """
+    {commodity: national price} from the newest zonal file dated BEFORE run_date,
+    and that file's date - the price the platform showed at its last update.
+    """
+    import glob, math
+    today = run_date.strftime("%Y-%m-%d")
+    files = [f for f in sorted(glob.glob(os.path.join(ZONAL_DIR, "zonal_forecast_*.json")))
+             if os.path.basename(f)[len("zonal_forecast_"):-5] < today]
+    for path in reversed(files):
+        try:
+            with open(path) as f:
+                anchors = json.load(f).get("national_anchors", {})
+        except (OSError, ValueError):
+            continue
+        prices = {c: float(a["price"]) for c, a in anchors.items()
+                  if isinstance(a.get("price"), (int, float)) and math.isfinite(a["price"]) and a["price"] > 0}
+        if prices:
+            return prices, os.path.basename(path)[len("zonal_forecast_"):-5]
+    return {}, None
+
+
 def build_zonal_output(forecast, diff, zones, run_date):
     out              = {}
     national_anchors = {}
@@ -258,9 +280,16 @@ def build_zonal_output(forecast, diff, zones, run_date):
     logger.info(f"  {'Commodity':<22} {'Today Price':>14}  {'Day Chg':>8}  {'vs Ref':>8}  Source")
     logger.info("  " + "-" * 80)
 
-    # Calculate yesterday's price directly from the forecast curve
-    # (more reliable than loading prev JSON which may have stale/broken data)
+    # Day change = today's price vs the price published at the last update.
+    # It used to be today vs yesterday on TODAY's forecast curve - the curve's
+    # slope, ~0% for every commodity once forecasts start from the real price,
+    # and blind to real moves: Yellow maize's AFEX price fell 15% (320K -> 272K)
+    # on 23 Oct and showed 0.0% (Oct 2026). The curve is only a fallback when
+    # there is no earlier published price.
     yesterday = run_date - timedelta(days=1)
+    prev_prices, prev_date = previous_published(run_date)
+    if prev_date:
+        logger.info(f"  Day change measured against the prices published on {prev_date}")
 
     for commodity in COMMODITIES:
         if commodity not in forecast:
@@ -268,7 +297,7 @@ def build_zonal_output(forecast, diff, zones, run_date):
             continue
         fc_item     = forecast[commodity]
         today_price, src  = get_daily_price(fc_item, run_date)
-        yest_price,  _    = get_daily_price(fc_item, yesterday)
+        yest_price = prev_prices.get(commodity) or get_daily_price(fc_item, yesterday)[0]
         ref_price = float(
             fc_item.get("validation",{}).get("reference_price") or
             fc_item.get("last_known_price", 0)
@@ -280,6 +309,7 @@ def build_zonal_output(forecast, diff, zones, run_date):
         national_anchors[commodity] = {
             "price":          today_price,
             "yesterday_price": yest_price,
+            "change_since":   prev_date if commodity in prev_prices else "forecast curve",
             "ref_price":      ref_price,
             "pct_vs_ref":     pct_vs_ref,
             "day_change":     day_chg,

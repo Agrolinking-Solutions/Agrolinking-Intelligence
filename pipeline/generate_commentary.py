@@ -42,8 +42,8 @@ def generate_commentary(intel: dict, run_date: datetime) -> str:
 Market data for {run_date.strftime('%A, %d %B %Y')}:
 - Food Price Index: {fpi} (base 2025=100, food costs {round(fpi-100)}% more than June 2025)
 - 30-Day Outlook: {outlook:+.1f}% expected average price change
-- Biggest Riser: {riser.get('commodity','N/A')} ({riser.get('day_change_pct',0):+.2f}%)
-- Biggest Faller: {faller.get('commodity','N/A')} ({faller.get('day_change_pct',0):+.2f}%)
+- Biggest Riser: {riser.get('commodity') or 'none'} ({riser.get('day_change_pct') or 0:+.2f}%)
+- Biggest Faller: {faller.get('commodity') or 'none'} ({faller.get('day_change_pct') or 0:+.2f}%)
 - Most Volatile: {vol_leader}
 - Active Severe/High Alerts: {', '.join(f"{k} ({v['alert_level']})" for k,v in alert_comms.items()) if alert_comms else 'None'}
 

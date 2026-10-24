@@ -293,3 +293,18 @@ def test_no_cfa_franc_border_prices(master):
     if mz.empty:
         pytest.skip("no 2005 white maize")
     assert mz["price_ngn_mt"].median() < 100_000
+
+
+def test_day_change_is_measured_against_the_last_published_price(tmp_path):
+    """Yellow maize fell 15% on AFEX on 23 Oct 2026 and the site showed 0.0%: the change was the
+    slope of today's forecast curve. It is now today's price vs the price published before today."""
+    import json
+    from datetime import datetime
+    z = load("07_zonal_forecast")
+    z.ZONAL_DIR = str(tmp_path)
+    for day, price in (("2026-10-22", 319930.0), ("2026-10-23", 271940.0), ("2026-10-24", 999.0)):
+        with open(tmp_path / f"zonal_forecast_{day}.json", "w") as f:
+            json.dump({"national_anchors": {"Maize (yellow)": {"price": price}}}, f)
+    prices, day = z.previous_published(datetime(2026, 10, 24))
+    assert day == "2026-10-23", "today's own file (a rerun) is never the comparison"
+    assert prices["Maize (yellow)"] == 271940.0

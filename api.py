@@ -1039,8 +1039,10 @@ def model_confidence():
 @app.get("/movers", tags=["Intelligence"])
 def market_movers():
     """
-    Biggest riser and biggest faller today by day-on-day % change.
-    Includes price in NGN/MT and NGN/kg.
+    Biggest riser and biggest faller today: the change since the prices
+    published at the last update, counting only moves of 0.5% or more
+    (smaller changes are the forecast's own drift between real prices).
+    Includes price in NGN/MT and NGN/kg. With no such move, commodity is null.
     """
     intel, fname = load_latest_intelligence()
     movers = intel.get("market_movers", {})
@@ -1059,7 +1061,8 @@ def market_movers():
         "as_of":          intel.get("run_date", ""),
         "biggest_riser":  riser,
         "biggest_faller": faller,
-        "note": "Day-on-day change from yesterday's forecast position.",
+        "note": ("Change since the prices published at the last update (change_since). Only a move of "
+                 "0.5% or more counts; with none, commodity is null and day_change_pct is 0."),
     }
 
 
