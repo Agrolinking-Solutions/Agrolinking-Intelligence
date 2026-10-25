@@ -1,13 +1,13 @@
-## Real-data status - 24 October 2026
+## Real-data status - 25 October 2026
 
 **17 of 18 commodities have a real price from the last 45 days.**
 
 | Still waiting for real data | Last real price | Days ago |
 |---|---|---|
-| Wheat | 2026-04-13 | 194 |
+| Wheat | 2026-04-13 | 195 |
 
 **Web prices added today: 0**
-- Wheat: 5 found, none used - 3x low confidence (forum, undated list or shop), 1x too far from our yardstick, 1x source too old
+- Wheat: 5 found, none used - 2x low confidence (forum, undated list or shop), 2x source too old, 1x too far from our yardstick
 
 **Our prices vs independent web prices:** 3 agree, 6 check, 1 disagree, 7 no web price, 1 our price is old
 - DISAGREE: Sesame - ours N1,520,000 (Agricome), web N2,300,000 from 2 site(s), +51%
