@@ -1,10 +1,10 @@
-## Real-data status - 25 October 2026
+## Real-data status - 26 October 2026
 
 **17 of 18 commodities have a real price from the last 45 days.**
 
 | Still waiting for real data | Last real price | Days ago |
 |---|---|---|
-| Wheat | 2026-04-13 | 195 |
+| Wheat | 2026-04-13 | 196 |
 
 **Web prices added today: 0**
 - Wheat: 5 found, none used - 2x low confidence (forum, undated list or shop), 2x source too old, 1x too far from our yardstick
