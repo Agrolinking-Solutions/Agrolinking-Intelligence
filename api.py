@@ -28,6 +28,9 @@ NEW ENDPOINTS (v2):
   GET /arbitrage                 Net arbitrage per kg after freight
   GET /arbitrage/{commodity}     Single commodity arbitrage detail
   GET /intelligence/latest       Full intelligence bundle (all metrics)
+  GET /farm-prices               NGN/kg for AgLens farm crops (cassava, yam, groundnut, tomato,
+                                 sweet potato, onion, pepper); ?state= picks the zone's price
+  GET /farm-prices/{crop}        One farm crop: price, every zone, other varieties
   GET /docs                      Auto-generated Swagger UI
 """
 
@@ -613,10 +616,17 @@ def latest_forecast(
 
 @app.get("/forecasts/{commodity}", tags=["Forecasts"])
 def commodity_forecast(commodity: str):
-    """Full 6-horizon forecast for one commodity with weekly series and confidence bands."""
+    """
+    Full 6-horizon forecast for one commodity with weekly series and confidence bands.
+    For a farm crop (see /farm-prices) it returns that crop's price in the same
+    shape, with price_only true and no horizons.
+    """
     forecast, fname = load_latest_validated()
     key, data = find_commodity(forecast, commodity)
     if not key:
+        farm = farm_price_as_forecast(commodity)
+        if farm:
+            return farm
         raise HTTPException(status_code=404,
             detail=f"'{commodity}' not found. Available: {list(forecast.keys())}")
     vld = data.get("validation", {})
@@ -1960,6 +1970,104 @@ def commodity_weather(commodity: str):
         raise HTTPException(status_code=404,
                             detail=f"'{commodity}' not found. Available: {sorted(rep.get('commodities', {}))}")
     return {**{k: rep.get(k) for k in WEATHER_META}, "commodity": key, **rep["commodities"][key]}
+
+
+def load_latest_farm_prices():
+    files = sorted(glob.glob(os.path.join(INTEL_DIR, "farm_prices_*.json")))
+    if not files:
+        raise HTTPException(status_code=404, detail="No farm crop prices yet - they are built by the daily pipeline.")
+    with open(files[-1], encoding="utf-8") as f:
+        return json.load(f)
+
+
+def find_farm_crop(rep: dict, name: str):
+    target = normalise(name)
+    for crop, entry in rep.get("crops", {}).items():
+        if target == crop.lower() or target in entry.get("aliases", []):
+            return crop, entry
+    return None, None
+
+
+def farm_zone(rep: dict, state: Optional[str]):
+    """(state, zone) for a state name; 404 for a name that is not a Nigerian state."""
+    if not state:
+        return None, None
+    s = state.strip().lower()
+    s = rep.get("state_aliases", {}).get(s, s).lower()
+    match = next((st for st in rep.get("state_zones", {}) if st.lower() == s), None)
+    if not match:
+        raise HTTPException(status_code=404,
+                            detail=f"'{state}' is not a state we know. Known: {sorted(rep.get('state_zones', {}))}")
+    return match, rep["state_zones"][match]
+
+
+@app.get("/farm-prices", tags=["Farm prices"])
+def farm_prices(state: Optional[str] = Query(None, description="The farm's state, e.g. Kano: picks its zone's price")):
+    """
+    Naira per kg for the crops AgLens values on farms but PIS does not
+    forecast: cassava, yam, groundnut, tomato, sweet potato, onion, pepper,
+    each in the form the farmer sells. Each price has its date, age, source,
+    level (wholesale, bulk bag or retail), where it is from, and the basis it
+    was chosen on (same zone, national, another zone). These are market
+    prices, not farm-gate prices. A crop with no current real price has
+    price null and a note saying why. Built every morning by
+    pipeline/farm_prices.py.
+    """
+    rep = load_latest_farm_prices()
+    state, zone = farm_zone(rep, state)
+    return {"as_of": rep["as_of"], "unit": rep["unit"], "about": rep["about"], "state": state, "zone": zone,
+            "crops": {c: {"form": e["form"], "price": e["by_zone"][zone] if zone else e["headline"], "note": e["note"]}
+                      for c, e in rep["crops"].items()}}
+
+
+@app.get("/farm-prices/{crop}", tags=["Farm prices"])
+def farm_price(crop: str,
+               state: Optional[str] = Query(None, description="The farm's state, e.g. Kano: picks its zone's price")):
+    """
+    One crop's price per kg (see /farm-prices), its price in every zone, and
+    the other varieties its sources list (hybrid tomatoes, dry-season onions,
+    rodo and shombo pepper) for comparison.
+    """
+    rep = load_latest_farm_prices()
+    key, entry = find_farm_crop(rep, crop)
+    if not key:
+        raise HTTPException(status_code=404, detail=f"'{crop}' not found. Available: {list(rep.get('crops', {}))}")
+    state, zone = farm_zone(rep, state)
+    return {"as_of": rep["as_of"], "unit": rep["unit"], "about": rep["about"], "crop": key, "form": entry["form"],
+            "state": state, "zone": zone, "price": entry["by_zone"][zone] if zone else entry["headline"],
+            "note": entry["note"], "by_zone": entry["by_zone"], "other_items": entry["other_items"],
+            "max_age_days": rep["max_age_days"], "sources": rep["sources"]}
+
+
+def farm_price_as_forecast(name: str):
+    """
+    A farm crop's headline price in the /forecasts/{commodity} shape, so AgLens
+    reads it the way it reads every PIS price. Price only: horizons is empty.
+    start_is_estimate is true when the price is more than a week old (AgLens
+    then calls it the last real price, not a fresh one). None when `name` is
+    not a farm crop.
+    """
+    try:
+        rep = load_latest_farm_prices()
+    except HTTPException:
+        return None
+    key, entry = find_farm_crop(rep, name)
+    if not key:
+        return None
+    p = entry["headline"]
+    if not p:
+        raise HTTPException(status_code=404, detail=f"No current price for {key}. {entry['note']}")
+    per_kg = p["price_ngn_per_kg"]
+    return {
+        "commodity": key, "run_date": rep["as_of"], "price_only": True,
+        "last_known_price": per_kg * 1000, "last_known_price_per_unit": per_kg, "unit_label": "NGN/kg",
+        "last_known_date": p["price_date"],
+        "latest_real_price": {"price": per_kg * 1000, "price_per_unit": per_kg, "date": p["price_date"],
+                              "source": p["source"], "kind": "real" if p["source_key"] == "WFP" else "web"},
+        "start_is_estimate": p["age_days"] > 7,
+        "today_price": per_kg * 1000, "today_price_per_unit": per_kg, "today_date": rep["as_of"],
+        "currency": "NGN", "horizons": {}, "farm_price": {"form": entry["form"], **p, "note": entry["note"]},
+    }
 
 
 @app.get("/checks", tags=["Accuracy"])

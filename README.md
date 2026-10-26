@@ -34,6 +34,8 @@ Daily wholesale price intelligence and forecasts for Nigerian agricultural commo
 | **AFEX exchange** (via Mansa Markets) | Daily exchange prices: maize, sorghum, soybean, rice (paddy), cocoa, ginger, cashew, sesame | Daily (step 00e) | Real for Yellow maize (AFEX does not state the maize type). Comparison only for the others |
 | **Web price search** (Claude API with web search) | Named, dated wholesale prices found online | Every 3 hours, plus a daily sweep | Real only after vetting (step 00c), and only for commodities with no fresh partner price |
 | **Agrolinking field collection** | Wheat, across 10 states | Stopped 13 April 2026 | Real |
+| **ColdHubs Market Weekly** | Bag prices by zone from ColdHubs' hub managers: tomatoes (50 kg), pepper (25 kg) | Weekly (step 00i) | Farm crop prices only (see below) |
+| **Business A.M.** | A weekly wholesale list with bag sizes: tomatoes, onions, tatashe/rodo/shombo pepper, sweet potatoes. Market not named | Weekly (step 00i) | Farm crop prices only |
 
 **Supporting data, all real:** inflation and the official US$ rate from the **Central Bank of Nigeria** (step 00g), petrol prices from WFP, NOAA's El Niño index, world benchmark prices for maize, wheat, rice, soybeans and cocoa (Mansa Markets, step 00e), and weather (NASA POWER history, refreshed daily for the last 45 days, plus MET Norway's ~9-day forecast for 23 places, step 00). After the latest real figure each series is carried forward flat, never projected. Until October 2026 these files ran on as smooth projections.
 
@@ -57,6 +59,8 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | 00e | `fetch_afex_prices.py` | AFEX exchange prices to `data/raw/afex_prices.csv` |
 | 00f | `fetch_fao_prices.py` | FEWS NET wholesale and NBS retail prices to `data/raw/fao_fpma_prices.csv` |
 | 00g | `fetch_macro.py` | CBN inflation and exchange rate, WFP petrol: rebuilds `inflation.csv`, `fx_rates.csv` and `fuel_prices.csv` |
+| 00i | `fetch_produce_prices.py` | ColdHubs and Business A.M. fresh-produce prices to `data/raw/produce_prices.csv` |
+| 00j | `farm_prices.py` | ₦/kg for the AgLens farm crops, served at `/farm-prices` |
 | 01 | `01_ingest.py` | Merges all sources into `data/processed/agrolinking_master.csv`, ranked by source priority |
 | 02 | `02_clean.py` | Fills gaps between real prices (labelled), drops outdated estimates; never edits real prices |
 | 03 | `03_features.py` | Per-commodity feature tables |
@@ -126,6 +130,22 @@ State price = national price × that state's price gap (`pipeline/state_factors.
 
 `/zonal/{commodity}` and `/history/{commodity}?state=Lagos` report which kind each price is (`price_basis`).
 
+## Farm crop prices (for AgLens)
+
+AgLens puts a naira value on each farm's harvest. For seven crops it grows that PIS doesn't forecast (cassava, yam, groundnut, tomato, sweet potato, onion and pepper), `farm_prices.py` gives a price per kg in the form the farmer sells. Each price carries its date, source, level and zone. These prices have no forecast and are not on the client dashboard.
+
+- **Sources:**
+  - ColdHubs weekly zone prices (tomato, pepper).
+  - Business A.M.'s weekly wholesale list (tomato, onion, pepper, sweet potato). Its prices are written as prose, so `fetch_produce_prices.py` reads them with strict patterns. It skips any clause that names two items, any item without a bag size, and any item whose figures disagree within an article. It saves the sentence each price came from.
+  - WFP's monthly shop prices for Borno and Yobe (yam, groundnut, tomato, onion). A month is used once 8 markets have reported.
+- **Prices go stale:** a price is dropped after 45 days (60 for WFP, which is monthly and published late).
+- **Choosing a price for a farm:** first its own zone, then a national wholesale price (no zone named, or the median across zones), then another zone. Wholesale comes before retail, and newer before older, within each step.
+- **These are market prices, not farm-gate prices.** No regular source publishes farm-gate prices for these crops.
+- **Cassava (fresh roots) has no current source** and stays unpriced.
+- **Endpoints:**
+  - `/farm-prices` and `/farm-prices/{crop}` take `?state=` to pick the farm's zone. The single-crop endpoint also lists the price in every zone and the other varieties.
+  - `/forecasts/{crop}` returns the national price in the shape AgLens already reads, with `price_only: true` and no horizons.
+
 ---
 
 ## API
@@ -141,6 +161,7 @@ FastAPI, `api.py`. Interactive reference: [pis-api.agrolinking.com/docs](https:/
 | Intelligence | `/intelligence/latest`, `/index/food`, `/index/volatility`, `/outlook/30d`, `/movers`, `/confidence`, `/alerts/early-warning`, `/shortage-surplus`, `/seasonality/{commodity}`, `/factors` |
 | Price drivers | `/drivers` (all commodities), `/drivers/{commodity}` (full cards with sources and dates). The older `/factors` is superseded |
 | Weather | `/weather/today` (today and the next 6 days for 23 places, by zone; `?zone=`, `?main_cities_only=true`), `/weather/{commodity}` (7-day card for its main producing states, with an outlook and general guidance) |
+| Farm crops (AgLens) | `/farm-prices`, `/farm-prices/{crop}` (₦/kg for cassava, yam, groundnut, tomato, sweet potato, onion and pepper; `?state=`) |
 | Data quality | `/accuracy`, `/checks`, `/crosscheck` |
 | Alerts | `/alerts/latest` (WhatsApp/email-ready text); `/alerts/saved` (GET, POST), `/alerts/saved/{alert_id}` (DELETE) and `/alerts/check`, which need a Google sign-in token |
 
