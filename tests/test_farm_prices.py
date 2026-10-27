@@ -132,6 +132,32 @@ def test_a_farm_gets_its_zone_then_a_national_price_then_another_zone():
     assert rep["crops"]["Cassava"]["headline"] is None and "cassava" in rep["crops"]["Cassava"]["aliases"]
 
 
+def test_every_price_is_labelled_with_its_type_source_and_real_date():
+    fp = load("farm_prices")
+    rep = fp.build(produce(
+        ("2026-10-19", "Tomato", "Tomatoes", "ColdHubs", "bulk bag", "North West", "50 kg bag", 50, 25000, 50000),
+        ("2026-10-09", "Onion", "wet-season onions", "Business A.M.", "wholesale", "", "70 kg bag", 70, 95000, 95000),
+    ), pd.DataFrame(wfp_rows("Yam", "2.5 KG", "2026-09-15", [3250] * 10)), today=date(2026, 10, 26))
+    labels = {c: e["headline"]["label"] for c, e in rep["crops"].items() if e["headline"]}
+    assert labels == {
+        "Yam":    "Market price, retail · WFP Nigeria Food Price Monitor · Sep 2026",
+        "Tomato": "Market price, bulk bag · ColdHubs Market Weekly · week of 19 Oct 2026",
+        "Onion":  "Market price, wholesale · Business A.M. fresh-produce prices · 9 Oct 2026",
+    }
+    assert all(not e["headline"]["is_farm_gate"] for e in rep["crops"].values() if e["headline"])
+
+
+def test_commodities_list_is_unchanged_unless_farm_crops_are_asked_for():
+    from fastapi.testclient import TestClient
+    import api
+    client = TestClient(api.app)
+    plain = client.get("/commodities").json()["commodities"]
+    assert not any(c.get("price_only") for c in plain)
+    with_farm = client.get("/commodities", params={"include": "farm_crops"}).json()["commodities"]
+    assert with_farm[:len(plain)] == plain
+    assert all(c["price_only"] and c["unit"] == "NGN/kg" and c["price_label"] for c in with_farm[len(plain):])
+
+
 def test_onion_headline_is_the_crop_being_harvested_in_that_half_of_the_year():
     fp = load("farm_prices")
     assert fp.onion_item(date(2026, 10, 26)) == "wet-season onions"

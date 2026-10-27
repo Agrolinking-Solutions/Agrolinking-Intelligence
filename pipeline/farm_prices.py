@@ -55,15 +55,18 @@ WFP_MIN_MARKETS = 8          # a WFP month counts once this many markets have re
 LEVEL_ORDER = {"wholesale": 0, "bulk bag": 0, "retail": 1}
 
 SOURCES = {
-    "ColdHubs":      {"name": "ColdHubs Market Weekly", "url": "coldhubs.com",
+    "ColdHubs":      {"name": "ColdHubs Market Weekly", "url": "coldhubs.com", "period": "week",
                       "about": "Weekly bag prices by zone from ColdHubs' hub managers. ColdHubs does not say "
-                               "whether they are wholesale or retail."},
-    "Business A.M.": {"name": "Business A.M. fresh-produce prices", "url": "businessamlive.com",
+                               "whether they are wholesale or retail, so they are labelled 'bulk bag'."},
+    "Business A.M.": {"name": "Business A.M. fresh-produce prices", "url": "businessamlive.com", "period": "day",
                       "about": "Weekly wholesale prices for a fixed list of produce, with bag sizes. "
                                "The market is not named."},
     "WFP":           {"name": "WFP Nigeria Food Price Monitor", "url": "data.humdata.org/dataset/wfp-food-prices-for-nigeria",
-                      "about": "Monthly shop (retail) prices from markets in Borno and Yobe."},
+                      "period": "month", "about": "Monthly shop (retail) prices from markets in Borno and Yobe."},
 }
+# What users are told about each price. None of the sources gives a farm-gate price.
+PRICE_TYPE = {"wholesale": "market price, wholesale", "retail": "market price, retail",
+              "bulk bag": "market price, bulk bag"}
 
 ZONE_STATES = {
     "North Central": ["Benue", "FCT", "Kogi", "Kwara", "Nasarawa", "Niger", "Plateau"],
@@ -250,16 +253,27 @@ def headline_items(crop, today):
     return items
 
 
+def price_label(o):
+    """The line users see: price type, source and the price's real date, e.g.
+    "Market price, wholesale · Business A.M. fresh-produce prices · 9 Oct 2026".
+    A weekly report is dated by its week and a monthly survey by its month."""
+    d, src = date.fromisoformat(o["price_date"]), SOURCES[o["source"]]
+    when = {"day": f"{d.day} {d:%b %Y}", "week": f"week of {d.day} {d:%b %Y}", "month": f"{d:%b %Y}"}[src["period"]]
+    return f"{PRICE_TYPE[o['level']].capitalize()} · {src['name']} · {when}"
+
+
 def price_entry(o, today):
     if o is None:
         return None
     age = (today - date.fromisoformat(o["price_date"])).days
     return {"price_ngn_per_kg": o["price_ngn_per_kg"], "low_ngn_per_kg": o["low_ngn_per_kg"],
-            "high_ngn_per_kg": o["high_ngn_per_kg"], "price_date": o["price_date"], "age_days": age,
+            "high_ngn_per_kg": o["high_ngn_per_kg"], "price_date": o["price_date"],
+            "price_period": SOURCES[o["source"]]["period"], "age_days": age,
             "source": SOURCES[o["source"]]["name"], "source_key": o["source"], "level": o["level"],
+            "price_type": PRICE_TYPE[o["level"]], "is_farm_gate": False, "label": price_label(o),
             "zone": o["zone"], "where": o["where"], "item": o["item"], "package": o["package"],
             "package_price_ngn": o["package_price_ngn"], "basis": o.get("basis"),
-            "is_farm_gate": False, "evidence": o["evidence"], "url": o["url"]}
+            "evidence": o["evidence"], "url": o["url"]}
 
 
 def build(produce, wfp, today=None):

@@ -407,8 +407,16 @@ def summary():
 
 
 @app.get("/commodities", tags=["Commodities"])
-def list_commodities():
-    """All 17 commodities with live price, daily change, and validation status."""
+def list_commodities(
+    include: Optional[str] = Query(None, description="farm_crops: also list the AgLens farm crops "
+                                                     "(price only, no forecast; see /farm-prices)"),
+):
+    """
+    All forecast commodities with live price, daily change, and validation status.
+    With ?include=farm_crops the farm crops that have a current price are added
+    after them, each with price_only true, its real price date, source and price
+    type. Without it the list is unchanged (the dashboard reads it).
+    """
     forecast, fname = load_latest_validated()
     zonal, _ = load_latest_zonal()
     national = zonal.get("national_anchors", {})
@@ -439,6 +447,8 @@ def list_commodities():
             "within_target":      vld.get("within_target", False),
             "currency":           "NGN",
         })
+    if include == "farm_crops":
+        result += farm_crops_as_commodities()
     return {
         "count":       len(result),
         "as_of":       run_date,
@@ -2063,11 +2073,34 @@ def farm_price_as_forecast(name: str):
         "last_known_price": per_kg * 1000, "last_known_price_per_unit": per_kg, "unit_label": "NGN/kg",
         "last_known_date": p["price_date"],
         "latest_real_price": {"price": per_kg * 1000, "price_per_unit": per_kg, "date": p["price_date"],
-                              "source": p["source"], "kind": "real" if p["source_key"] == "WFP" else "web"},
+                              "source": p["source"], "kind": "real" if p["source_key"] == "WFP" else "web",
+                              "price_type": p["price_type"]},
         "start_is_estimate": p["age_days"] > 7,
         "today_price": per_kg * 1000, "today_price_per_unit": per_kg, "today_date": rep["as_of"],
-        "currency": "NGN", "horizons": {}, "farm_price": {"form": entry["form"], **p, "note": entry["note"]},
+        "currency": "NGN", "horizons": {},
+        "price_type": p["price_type"], "is_farm_gate": p["is_farm_gate"], "price_label": p["label"],
+        "farm_price": {"form": entry["form"], **p, "note": entry["note"]},
     }
+
+
+def farm_crops_as_commodities():
+    """/commodities rows for the farm crops that have a current price (only with ?include=farm_crops)."""
+    try:
+        rep = load_latest_farm_prices()
+    except HTTPException:
+        return []
+    rows = []
+    for crop, entry in rep.get("crops", {}).items():
+        p = entry.get("headline")
+        if not p:
+            continue
+        rows.append({
+            "commodity": crop, "price_ngn_mt": p["price_ngn_per_kg"] * 1000, "price_per_unit": p["price_ngn_per_kg"],
+            "unit": "NGN/kg", "last_known_date": p["price_date"], "currency": "NGN", "price_only": True,
+            "form": entry["form"], "price_date": p["price_date"], "source": p["source"],
+            "price_type": p["price_type"], "is_farm_gate": p["is_farm_gate"], "price_label": p["label"],
+        })
+    return rows
 
 
 @app.get("/checks", tags=["Accuracy"])
