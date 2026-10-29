@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-28",
+  "run_date": "2026-10-29",
   "basis": "Wholesale, NGN per tonne (Eggs: NGN per crate of 30)",
   "thresholds": {
     "check_above_pct": 15.0,
@@ -8,10 +8,10 @@
     "max_source_age_days": 45
   },
   "summary": {
-    "no web price": 7,
-    "disagree": 2,
-    "check": 4,
-    "agree": 4,
+    "no web price": 6,
+    "disagree": 3,
+    "check": 6,
+    "agree": 2,
     "our price is old": 1
   },
   "commodities": {
@@ -57,7 +57,7 @@
           "price": 2300000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/sesame",
-          "source_date": "2026-10-27",
+          "source_date": "2026-10-28",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -85,7 +85,7 @@
           "price": 990000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/ginger",
-          "source_date": "2026-10-27",
+          "source_date": "2026-10-28",
           "level": "exchange, different grade",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -110,7 +110,7 @@
           "price": 7250000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/cocoa",
-          "source_date": "2026-10-27",
+          "source_date": "2026-10-28",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -134,19 +134,19 @@
       "our_coverage": "Agricome",
       "web_prices": [
         {
-          "price": 514420,
+          "price": 499470,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/soybean",
-          "source_date": "2026-10-27",
+          "source_date": "2026-10-28",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
         }
       ],
       "other_web_prices": [],
-      "status": "agree",
-      "web_median": 514420,
-      "gap_pct": -14.3,
+      "status": "check",
+      "web_median": 499470,
+      "gap_pct": -16.8,
       "compared_with": "AFEX exchange",
       "notes": [
         "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status.",
@@ -164,7 +164,7 @@
           "price": 1719500,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/cashew",
-          "source_date": "2026-10-27",
+          "source_date": "2026-10-28",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -200,7 +200,7 @@
           "price": 365690,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/sorghum",
-          "source_date": "2026-10-27",
+          "source_date": "2026-10-28",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -294,7 +294,7 @@
           "price": 279570,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/maize",
-          "source_date": "2026-10-27",
+          "source_date": "2026-10-28",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -331,17 +331,30 @@
       ]
     },
     "Maize (yellow)": {
-      "our_price": 321510,
+      "our_price": 369740,
       "our_date": "2026-10-26",
       "our_source": "AFEX",
       "our_level": "wholesale",
       "our_coverage": "AFEX exchange",
-      "web_prices": [],
+      "web_prices": [
+        {
+          "price": 256690,
+          "site": "github.com",
+          "url": "https://github.com/Agrolinking-Solutions/Agrolinking-Intelligence/issues/4",
+          "source_date": "2026-10-19",
+          "level": "exchange",
+          "location": "national",
+          "confidence": "medium"
+        }
+      ],
       "other_web_prices": [],
-      "status": "no web price",
-      "web_median": null,
-      "gap_pct": null,
-      "notes": []
+      "status": "disagree",
+      "web_median": 256690,
+      "gap_pct": -30.6,
+      "compared_with": "web prices from 1 site(s)",
+      "notes": [
+        "Only one website - treat the comparison as a hint, not proof."
+      ]
     },
     "Wheat": {
       "our_price": 706833,
@@ -374,7 +387,7 @@
       "web_median": 405875,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 198 days old - nothing current to compare against."
+        "Our latest real price is 199 days old - nothing current to compare against."
       ]
     },
     "Rice (local)": {
@@ -391,6 +404,15 @@
           "source_date": "2026-10-01",
           "level": "wholesale",
           "location": "Lagos State (Lagos State Ministry of Agriculture and Food Systems price tracker)",
+          "confidence": "medium"
+        },
+        {
+          "price": 1090000,
+          "site": "freedomonline.com.ng",
+          "url": "https://freedomonline.com.ng/rice-prices-fall-in-lagos-as-some-50kg-bags-drop-to-n55000/",
+          "source_date": "2026-10-11",
+          "level": "wholesale",
+          "location": "Lagos (multiple markets), Lagos State",
           "confidence": "medium"
         },
         {
@@ -421,21 +443,11 @@
           "confidence": "medium"
         }
       ],
-      "other_web_prices": [
-        {
-          "price": 1100000,
-          "site": "freedomonline.com.ng",
-          "url": "https://freedomonline.com.ng/rice-prices-fall-in-lagos-as-some-50kg-bags-drop-to-n55000/",
-          "source_date": "2026-10-11",
-          "level": "retail",
-          "location": "Lagos",
-          "confidence": "medium"
-        }
-      ],
+      "other_web_prices": [],
       "status": "check",
       "web_median": 1270000,
       "gap_pct": 15.5,
-      "compared_with": "web prices from 4 site(s)",
+      "compared_with": "web prices from 5 site(s)",
       "notes": [
         "Our latest price itself came from the web, so this compares web sources with each other."
       ]
@@ -457,6 +469,15 @@
           "confidence": "medium"
         },
         {
+          "price": 1060000,
+          "site": "naijasabi.com.ng",
+          "url": "https://naijasabi.com.ng/rice-price-nigeria-today-2026/",
+          "source_date": "2026-10-01",
+          "level": "wholesale",
+          "location": "Lagos State (Lagos State Ministry of Agriculture and Food Systems price tracker)",
+          "confidence": "medium"
+        },
+        {
           "price": 1320000,
           "site": "legit.ng",
           "url": "https://www.legit.ng/business-economy/industry/1733338-rice-prices-drop-by-n15000-50kg-bag-rates-emerge-nigeria/",
@@ -466,21 +487,11 @@
           "confidence": "medium"
         }
       ],
-      "other_web_prices": [
-        {
-          "price": 1060000,
-          "site": "naijasabi.com.ng",
-          "url": "https://naijasabi.com.ng/rice-price-nigeria-today-2026/",
-          "source_date": "2026-10-01",
-          "level": "retail",
-          "location": "Lagos",
-          "confidence": "medium"
-        }
-      ],
-      "status": "agree",
-      "web_median": 1190000,
-      "gap_pct": -9.8,
-      "compared_with": "web prices from 2 site(s)",
+      "other_web_prices": [],
+      "status": "check",
+      "web_median": 1060000,
+      "gap_pct": -19.7,
+      "compared_with": "web prices from 3 site(s)",
       "notes": [
         "Our latest price itself came from the web, so this compares web sources with each other."
       ]
@@ -506,6 +517,15 @@
           "price": 9500000,
           "site": "freedomonline.com.ng",
           "url": "https://freedomonline.com.ng/286677-2/",
+          "source_date": "2026-10-22",
+          "level": "retail",
+          "location": "Lagos",
+          "confidence": "medium"
+        },
+        {
+          "price": 9500000,
+          "site": "thewhistler.ng",
+          "url": "https://thewhistler.ng/meat-hits-n10000-per-kg-in-lagos/",
           "source_date": "2026-10-22",
           "level": "retail",
           "location": "Lagos",
@@ -572,7 +592,7 @@
           "url": "https://naijasabi.com.ng/egg-price-nigeria-today-2026/",
           "source_date": "2026-10-01",
           "level": "wholesale",
-          "location": "Lagos markets, Lagos State",
+          "location": "Lagos markets, Lagos",
           "confidence": "medium"
         }
       ],
