@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-29",
+  "run_date": "2026-10-30",
   "basis": "Wholesale, NGN per tonne (Eggs: NGN per crate of 30)",
   "thresholds": {
     "check_above_pct": 15.0,
@@ -8,11 +8,11 @@
     "max_source_age_days": 45
   },
   "summary": {
-    "no web price": 6,
+    "no web price": 2,
     "disagree": 3,
-    "check": 6,
-    "agree": 2,
-    "our price is old": 1
+    "check": 3,
+    "agree": 3,
+    "our price is old": 7
   },
   "commodities": {
     "Hibiscus": {
@@ -36,15 +36,6 @@
       "our_coverage": "Agricome",
       "web_prices": [
         {
-          "price": 1400000,
-          "site": "github.com",
-          "url": "https://github.com/Agrolinking-Solutions/Agrolinking-Intelligence/issues/1",
-          "source_date": "2026-10-12",
-          "level": "wholesale",
-          "location": "national",
-          "confidence": "medium"
-        },
-        {
           "price": 1843180,
           "site": "useagrios.com",
           "url": "https://useagrios.com/prices/",
@@ -57,10 +48,19 @@
           "price": 2300000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/sesame",
-          "source_date": "2026-10-28",
+          "source_date": "2026-10-29",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
+        },
+        {
+          "price": 2300000,
+          "site": "github.com",
+          "url": "https://github.com/Agrolinking-Solutions/Agrolinking-Intelligence/issues/1",
+          "source_date": "2026-10-19",
+          "level": "exchange",
+          "location": "national (AFEX exchange, Nigeria)",
+          "confidence": "medium"
         }
       ],
       "other_web_prices": [],
@@ -82,10 +82,10 @@
       "web_prices": [],
       "other_web_prices": [
         {
-          "price": 990000,
+          "price": 1138500,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/ginger",
-          "source_date": "2026-10-28",
+          "source_date": "2026-10-29",
           "level": "exchange, different grade",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -110,7 +110,7 @@
           "price": 7250000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/cocoa",
-          "source_date": "2026-10-28",
+          "source_date": "2026-10-29",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -137,7 +137,7 @@
           "price": 499470,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/soybean",
-          "source_date": "2026-10-28",
+          "source_date": "2026-10-29",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -164,7 +164,7 @@
           "price": 1719500,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/cashew",
-          "source_date": "2026-10-28",
+          "source_date": "2026-10-29",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -197,22 +197,22 @@
           "confidence": "medium"
         },
         {
-          "price": 365690,
-          "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/commodities/sorghum",
-          "source_date": "2026-10-28",
-          "level": "exchange",
-          "location": "national (AFEX exchange)",
-          "confidence": "high"
-        },
-        {
           "price": 377440,
           "site": "useagrios.com",
           "url": "https://useagrios.com/prices/",
           "source_date": "2026-10-24",
           "level": "wholesale",
-          "location": "national",
+          "location": "national (average across major markets including Dawanau Market, Kano)",
           "confidence": "medium"
+        },
+        {
+          "price": 380830,
+          "site": "mansamarkets.com",
+          "url": "https://www.mansamarkets.com/commodities/sorghum",
+          "source_date": "2026-10-29",
+          "level": "exchange",
+          "location": "national (AFEX exchange)",
+          "confidence": "high"
         },
         {
           "price": 392900,
@@ -226,8 +226,8 @@
       ],
       "other_web_prices": [],
       "status": "agree",
-      "web_median": 365690,
-      "gap_pct": 3.0,
+      "web_median": 380830,
+      "gap_pct": 7.3,
       "compared_with": "AFEX exchange",
       "notes": [
         "Status uses the AFEX price; 3 other web price(s) listed for reference.",
@@ -240,24 +240,13 @@
       "our_source": "WFP",
       "our_level": "wholesale-equivalent",
       "our_coverage": "WFP markets in Borno, Yobe",
-      "web_prices": [
-        {
-          "price": 835800,
-          "site": "lokoja.app",
-          "url": "https://lokoja.app/prices/",
-          "source_date": "2026-10-05",
-          "level": "wholesale",
-          "location": "Lagos, Nigeria",
-          "confidence": "medium"
-        }
-      ],
+      "web_prices": [],
       "other_web_prices": [],
-      "status": "check",
-      "web_median": 835800,
-      "gap_pct": -18.3,
-      "compared_with": "web prices from 1 site(s)",
+      "status": "our price is old",
+      "web_median": null,
+      "gap_pct": null,
       "notes": [
-        "Only one website - treat the comparison as a hint, not proof."
+        "Our latest real price is 46 days old - nothing current to compare against."
       ]
     },
     "Beans (red)": {
@@ -278,10 +267,12 @@
           "confidence": "medium"
         }
       ],
-      "status": "no web price",
+      "status": "our price is old",
       "web_median": null,
       "gap_pct": null,
-      "notes": []
+      "notes": [
+        "Our latest real price is 46 days old - nothing current to compare against."
+      ]
     },
     "Maize (white)": {
       "our_price": 450000,
@@ -316,6 +307,15 @@
           "level": "wholesale",
           "location": "national (FOB Lagos, sourced from Kano/Kaduna)",
           "confidence": "medium"
+        },
+        {
+          "price": 450000,
+          "site": "businessamlive.com",
+          "url": "https://businessamlive.com/onion-prices-soar-27-in-four-days-as-maize-tomatoes-get-costlier/",
+          "source_date": "2026-10-10",
+          "level": "wholesale",
+          "location": "national",
+          "confidence": "medium"
         }
       ],
       "other_web_prices": [],
@@ -326,7 +326,7 @@
       "notes": [
         "Our latest price itself came from the web, so this compares web sources with each other.",
         "AFEX does not say whether its maize is white or yellow.",
-        "Status uses the AFEX price; 2 other web price(s) listed for reference.",
+        "Status uses the AFEX price; 3 other web price(s) listed for reference.",
         "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status."
       ]
     },
@@ -342,8 +342,8 @@
           "site": "github.com",
           "url": "https://github.com/Agrolinking-Solutions/Agrolinking-Intelligence/issues/4",
           "source_date": "2026-10-19",
-          "level": "exchange",
-          "location": "national",
+          "level": "wholesale",
+          "location": "national (AFEX exchange)",
           "confidence": "medium"
         }
       ],
@@ -387,12 +387,12 @@
       "web_median": 405875,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 199 days old - nothing current to compare against."
+        "Our latest real price is 200 days old - nothing current to compare against."
       ]
     },
     "Rice (local)": {
-      "our_price": 1100000,
-      "our_date": "2026-10-05",
+      "our_price": 1352040,
+      "our_date": "2026-10-19",
       "our_source": "Web_search",
       "our_level": "wholesale",
       "our_coverage": "a web price accepted earlier",
@@ -417,18 +417,18 @@
         },
         {
           "price": 1270000,
-          "site": "parrotnigeria.com",
-          "url": "https://parrotnigeria.com/2026/10/10/inside-the-rice-price-dispute/",
-          "source_date": "2026-10-10",
+          "site": "legit.ng",
+          "url": "https://www.legit.ng/business-economy/economy/1735841-rice-millers-reveal-lowest-price-sell-50kg-bag-fg-targets-n55000/",
+          "source_date": "2026-10-13",
           "level": "wholesale",
           "location": "national",
           "confidence": "medium"
         },
         {
           "price": 1270000,
-          "site": "legit.ng",
-          "url": "https://www.legit.ng/business-economy/economy/1735841-rice-millers-reveal-lowest-price-sell-50kg-bag-fg-targets-n55000/",
-          "source_date": "2026-10-13",
+          "site": "parrotnigeria.com",
+          "url": "https://parrotnigeria.com/2026/10/10/inside-the-rice-price-dispute/",
+          "source_date": "2026-10-10",
           "level": "wholesale",
           "location": "national",
           "confidence": "medium"
@@ -441,13 +441,22 @@
           "level": "wholesale",
           "location": "national",
           "confidence": "medium"
+        },
+        {
+          "price": 1352040,
+          "site": "useagrios.com",
+          "url": "https://useagrios.com/prices/rice/",
+          "source_date": "2026-10-24",
+          "level": "wholesale",
+          "location": "Dawanau Market, Kano",
+          "confidence": "medium"
         }
       ],
       "other_web_prices": [],
-      "status": "check",
+      "status": "agree",
       "web_median": 1270000,
-      "gap_pct": 15.5,
-      "compared_with": "web prices from 5 site(s)",
+      "gap_pct": -6.1,
+      "compared_with": "web prices from 6 site(s)",
       "notes": [
         "Our latest price itself came from the web, so this compares web sources with each other."
       ]
@@ -508,7 +517,7 @@
           "price": 7000000,
           "site": "dailytrust.com",
           "url": "https://dailytrust.com/cost-of-living-nigerians-seek-alternatives-as-beef-goes-out-of-reach/",
-          "source_date": "2026-10-15",
+          "source_date": "2026-10-25",
           "level": "retail",
           "location": "Abattoir Market, Kano",
           "confidence": "medium"
@@ -532,11 +541,12 @@
           "confidence": "medium"
         }
       ],
-      "status": "no web price",
+      "status": "our price is old",
       "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it."
+        "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
+        "Our latest real price is 46 days old - nothing current to compare against."
       ]
     },
     "Meat (goat)": {
@@ -557,11 +567,12 @@
           "confidence": "medium"
         }
       ],
-      "status": "no web price",
+      "status": "our price is old",
       "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it."
+        "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
+        "Our latest real price is 46 days old - nothing current to compare against."
       ]
     },
     "Fish (dried)": {
@@ -572,11 +583,12 @@
       "our_coverage": "WFP markets in Borno, Yobe",
       "web_prices": [],
       "other_web_prices": [],
-      "status": "no web price",
+      "status": "our price is old",
       "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it."
+        "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
+        "Our latest real price is 46 days old - nothing current to compare against."
       ]
     },
     "Eggs": {
@@ -607,12 +619,12 @@
           "confidence": "medium"
         }
       ],
-      "status": "check",
+      "status": "our price is old",
       "web_median": 5400,
-      "gap_pct": -19.6,
-      "compared_with": "web prices from 1 site(s)",
+      "gap_pct": null,
       "notes": [
         "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
+        "Our latest real price is 46 days old - nothing current to compare against.",
         "Only one website - treat the comparison as a hint, not proof."
       ]
     }
