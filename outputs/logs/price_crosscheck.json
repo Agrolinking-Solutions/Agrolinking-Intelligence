@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-10-31",
+  "run_date": "2026-11-01",
   "basis": "Wholesale, NGN per tonne (Eggs: NGN per crate of 30)",
   "thresholds": {
     "check_above_pct": 15.0,
@@ -9,10 +9,10 @@
   },
   "summary": {
     "no web price": 2,
-    "disagree": 1,
+    "disagree": 2,
     "check": 4,
     "agree": 5,
-    "our price is old": 6
+    "our price is old": 5
   },
   "commodities": {
     "Hibiscus": {
@@ -114,6 +114,15 @@
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
+        },
+        {
+          "price": 7285528,
+          "site": "ncmc.gov.ng",
+          "url": "https://ncmc.gov.ng/wp-content/uploads/2026/10/NCMC_Cocoa_Digest_Issue_012_20261016.pdf",
+          "source_date": "2026-10-09",
+          "level": "wholesale",
+          "location": "national",
+          "confidence": "medium"
         }
       ],
       "other_web_prices": [],
@@ -122,8 +131,8 @@
       "gap_pct": 20.8,
       "compared_with": "AFEX exchange",
       "notes": [
-        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status.",
-        "Only one website - treat the comparison as a hint, not proof."
+        "Status uses the AFEX price; 1 other web price(s) listed for reference.",
+        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status."
       ]
     },
     "Soybeans": {
@@ -150,6 +159,15 @@
           "level": "wholesale",
           "location": "Benue, Kaduna, Plateau (FOB Lagos)",
           "confidence": "medium"
+        },
+        {
+          "price": 2493440,
+          "site": "useagrios.com",
+          "url": "https://useagrios.com/prices/",
+          "source_date": "2026-10-24",
+          "level": "wholesale",
+          "location": "national",
+          "confidence": "medium"
         }
       ],
       "other_web_prices": [],
@@ -158,7 +176,7 @@
       "gap_pct": -14.3,
       "compared_with": "AFEX exchange",
       "notes": [
-        "Status uses the AFEX price; 1 other web price(s) listed for reference.",
+        "Status uses the AFEX price; 2 other web price(s) listed for reference.",
         "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status."
       ]
     },
@@ -292,7 +310,7 @@
       "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 47 days old - nothing current to compare against."
+        "Our latest real price is 48 days old - nothing current to compare against."
       ]
     },
     "Maize (white)": {
@@ -363,8 +381,8 @@
           "site": "github.com",
           "url": "https://github.com/Agrolinking-Solutions/Agrolinking-Intelligence/issues/4",
           "source_date": "2026-10-19",
-          "level": "wholesale",
-          "location": "national (AFEX exchange)",
+          "level": "exchange",
+          "location": "national (AFEX Commodities Exchange)",
           "confidence": "medium"
         }
       ],
@@ -378,11 +396,11 @@
       ]
     },
     "Wheat": {
-      "our_price": 706833,
-      "our_date": "2026-04-13",
-      "our_source": "Agrolinking_primary",
+      "our_price": 675000,
+      "our_date": "2026-10-26",
+      "our_source": "Web_search",
       "our_level": "wholesale",
-      "our_coverage": "Agrolinking field data",
+      "our_coverage": "a web price accepted earlier",
       "web_prices": [
         {
           "price": 400000,
@@ -401,14 +419,24 @@
           "level": "wholesale",
           "location": "Kano, Zamfara, Sokoto (FOB Lagos indicative export price)",
           "confidence": "medium"
+        },
+        {
+          "price": 675000,
+          "site": "dailytrust.com",
+          "url": "https://dailytrust.com/kano-wheat-farmers-hopeful-amid-inputs-prices-hike/",
+          "source_date": "2026-10-30",
+          "level": "wholesale",
+          "location": "Kano, Nigeria (grain markets incl. Dawanau)",
+          "confidence": "high"
         }
       ],
       "other_web_prices": [],
-      "status": "our price is old",
-      "web_median": 405875,
-      "gap_pct": null,
+      "status": "disagree",
+      "web_median": 411750,
+      "gap_pct": -39.0,
+      "compared_with": "web prices from 3 site(s)",
       "notes": [
-        "Our latest real price is 201 days old - nothing current to compare against."
+        "Our latest price itself came from the web, so this compares web sources with each other."
       ]
     },
     "Rice (local)": {
@@ -549,7 +577,7 @@
           "url": "https://freedomonline.com.ng/286677-2/",
           "source_date": "2026-10-22",
           "level": "retail",
-          "location": "Lagos (Lagos State Butchers Association, Lagos)",
+          "location": "Lagos, Nigeria",
           "confidence": "medium"
         },
         {
@@ -576,7 +604,7 @@
       "gap_pct": null,
       "notes": [
         "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
-        "Our latest real price is 47 days old - nothing current to compare against."
+        "Our latest real price is 48 days old - nothing current to compare against."
       ]
     },
     "Meat (goat)": {
@@ -602,7 +630,7 @@
       "gap_pct": null,
       "notes": [
         "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
-        "Our latest real price is 47 days old - nothing current to compare against."
+        "Our latest real price is 48 days old - nothing current to compare against."
       ]
     },
     "Fish (dried)": {
@@ -618,7 +646,7 @@
       "gap_pct": null,
       "notes": [
         "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
-        "Our latest real price is 47 days old - nothing current to compare against."
+        "Our latest real price is 48 days old - nothing current to compare against."
       ]
     },
     "Eggs": {
@@ -647,6 +675,15 @@
           "level": "retail",
           "location": "Maiduguri, Borno State",
           "confidence": "medium"
+        },
+        {
+          "price": 7350,
+          "site": "legit.ng",
+          "url": "https://www.legit.ng/business-economy/economy/1736740-egg-prices-nigeria-show-signs-falling-states-highest-costs-emerge/",
+          "source_date": "2026-10-12",
+          "level": "retail",
+          "location": "Jigawa State (northern Nigeria) - state-level market survey, no single named market given",
+          "confidence": "medium"
         }
       ],
       "status": "our price is old",
@@ -654,7 +691,7 @@
       "gap_pct": null,
       "notes": [
         "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
-        "Our latest real price is 47 days old - nothing current to compare against.",
+        "Our latest real price is 48 days old - nothing current to compare against.",
         "Only one website - treat the comparison as a hint, not proof."
       ]
     }
