@@ -39,7 +39,10 @@ def load(name):
 
 def short_reason(r):
     r = str(r or "")
-    for key, text in (("fresh", "already has a recent partner price"),
+    for key, text in (("wrong date", "page is older than the date the search gave"),
+                      ("could not open the page", "page couldn't be opened to check its date"),
+                      ("no publication date on the page", "page shows no date to check"),
+                      ("fresh", "already has a recent partner price"),
                       ("price level", "not a wholesale price (or level not recorded)"),
                       ("confidence", "low confidence (forum, undated list or shop)"),
                       ("source date unusable", "no exact date on the source"),

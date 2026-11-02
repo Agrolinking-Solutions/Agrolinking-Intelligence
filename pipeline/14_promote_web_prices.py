@@ -18,6 +18,8 @@ A web price is promoted only if ALL of these hold:
   - it names a source URL
   - its source date parses, is not in the future, and is at most
     MAX_SOURCE_AGE_DAYS old
+  - the source page, opened and read, is not dated before that source date
+    (pipeline/page_dates.py) - the model once dated a 2023 article 2026
   - it is newer than the latest real price we already hold
   - it is within a sanity band of that latest real price (wider the staler
     that price is), so a wrong unit or a hallucinated number can't move us.
@@ -42,6 +44,7 @@ from loguru import logger
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES, READ_DIRECTLY
 from pipeline.pg_commodities import ensure_web_estimates_schema
+from pipeline.page_dates import fetch_page_dates, confirm_source_date
 
 logger.remove()
 logger.add(sys.stdout,
@@ -280,8 +283,10 @@ def append_rows(rows):
         w.writerows(rows)
 
 
-def promote(candidates, state, today):
-    """Pure decision logic over already-fetched candidates. Returns (rows_to_append, decisions)."""
+def promote(candidates, state, today, page_lookup=None):
+    """Decision logic over already-fetched candidates. Returns (rows_to_append, decisions).
+    page_lookup(url) -> {'published', 'modified', 'error'}; opens the page by default."""
+    page_lookup = page_lookup or fetch_page_dates
     seen = existing_web_keys()
     withdrawn = load_withdrawn()
     blocked = load_blocked_sites()
@@ -317,6 +322,12 @@ def promote(candidates, state, today):
                                             c["query_date"], peers)
         if ok and (com, str(sd)) in seen:
             ok, reason = False, "already promoted"
+        if ok:      # only now, so pages are opened just for prices that passed everything else
+            page = page_lookup(c["source_url"])
+            d.update(page_published=page.get("published"), page_modified=page.get("modified"))
+            ok, why = confirm_source_date(sd, page)
+            if not ok:
+                reason = why
         d.update(accepted=ok, reason=reason)
         decisions.append(d)
         if ok:

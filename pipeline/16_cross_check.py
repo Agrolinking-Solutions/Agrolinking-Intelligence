@@ -37,6 +37,7 @@ from loguru import logger
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES, WFP_NAME_MAP, READ_DIRECTLY
 from pipeline.pg_commodities import ensure_web_estimates_schema
+from pipeline.page_dates import fetch_page_dates, confirm_source_date
 
 logger.remove()
 logger.add(sys.stdout,
@@ -175,9 +176,11 @@ def status_for(gap):
     return "agree" if a <= CHECK_ABOVE else ("check" if a <= DISAGREE_ABOVE else "disagree")
 
 
-def build_report(master, candidates, today, coverage=None):
+def build_report(master, candidates, today, coverage=None, page_lookup=None):
+    """page_lookup(url) -> {'published', 'modified', 'error'}; opens the page by default."""
     ours = our_prices(master, coverage or {})
     blocked = load_blocked_sites()
+    page_lookup = page_lookup or fetch_page_dates
     report = {}
     for c in COMMODITIES:
         mine = ours.get(c)
@@ -191,7 +194,12 @@ def build_report(master, candidates, today, coverage=None):
                 continue    # a web-search copy of a site the AFEX reader covers (afex_candidates)
             ok, sd = usable(cand, today)
             if ok and source_site(cand.get("source_url")) not in blocked:
-                pool.append({**cand, "_sd": sd})
+                # A misdated web price (a 2023 wheat article read as Oct 2026) opened alert #6.
+                # AFEX dates come from fetch_afex_prices.py, not the model.
+                if not cand.get("is_afex"):
+                    ok, _ = confirm_source_date(sd, page_lookup(cand["source_url"]))
+                if ok:
+                    pool.append({**cand, "_sd": sd})
         level = lambda x: str(x.get("price_level") or "").strip().lower()
         compared = latest_per_site([p for p in pool if level(p) in COMPARE_LEVELS])
         compared_sites = {source_site(p["source_url"]) for p in compared}

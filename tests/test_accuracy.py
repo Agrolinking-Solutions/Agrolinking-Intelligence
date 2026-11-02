@@ -205,6 +205,73 @@ def test_web_copies_of_directly_read_sites_are_not_used():
     assert not rows and "read directly" in decisions[0]["reason"]
 
 
+# ── Web page dates (the model once dated a 2023 article 30 Oct 2026) ─────────
+
+# Daily Trust's real markup: the article's JSON-LD, then a "latest news" story dated today.
+DAILY_TRUST_2023 = """<html><head><title>Kano wheat farmers hopeful amid inputs prices' hike - Daily Trust</title>
+<script type="application/ld+json">{"@type": "Article", "headline": "Kano wheat farmers hopeful amid inputs prices' hike",
+ "datePublished": "2023-01-08T01:21:47+01:00", "dateModified": "2023-01-08T01:21:47+01:00"}</script>
+<script type="application/ld+json">{"@type": "NewsArticle", "headline": "Suspected Thugs disrupt APC primary in Zamfara",
+ "datePublished": "2026-11-02T13:08:31+01:00", "dateModified": "2026-11-02T13:08:31+01:00"}</script></head></html>"""
+WHEAT_URL = "https://dailytrust.com/kano-wheat-farmers-hopeful-amid-inputs-prices-hike/"
+D = lambda s: pd.Timestamp(s).date()
+
+
+def test_page_date_is_the_articles_not_the_latest_news_box():
+    from pipeline.page_dates import page_dates
+    assert page_dates(DAILY_TRUST_2023, WHEAT_URL) == (D("2023-01-08"), D("2023-01-08"))
+
+
+def test_page_date_meta_tags_and_updates():
+    from pipeline.page_dates import page_dates, confirm_source_date
+    html = ('<meta property="article:published_time" content="2026-05-27T16:37:45+00:00">'
+            '<meta property="article:modified_time" content="2026-10-12T23:04:23+00:00">')
+    pub, mod = page_dates(html)
+    assert (pub, mod) == (D("2026-05-27"), D("2026-10-12"))
+    # a price page updated in October can carry an October price, but not a November one
+    assert confirm_source_date(D("2026-10-12"), {"published": pub, "modified": mod})[0]
+    assert not confirm_source_date(D("2026-11-01"), {"published": pub, "modified": mod})[0]
+
+
+def web_wheat(price=690000.0):
+    return {"commodity": "Wheat", "query_date": D("2026-11-01"), "price": price,
+            "source_url": WHEAT_URL, "source_date": "2026-10-30", "confidence": "high",
+            "price_level": "wholesale", "market_location": "Kano", "source_title": "Kano wheat farmers"}
+
+
+WHEAT_STATE = {"Wheat": {"hq_date": D("2026-04-13"), "direct_date": D("2026-04-13"), "wfp_date": None,
+                         "real_date": D("2026-04-13"), "real_price": 706833.0}}
+
+
+def test_misdated_web_price_is_not_promoted():
+    pr = load("14_promote_web_prices")
+    old = lambda url: {"published": D("2023-01-08"), "modified": D("2023-01-08"), "error": None}
+    rows, decisions = pr.promote([web_wheat()], {k: dict(v) for k, v in WHEAT_STATE.items()},
+                                 D("2026-11-01"), page_lookup=old)
+    assert not rows and "wrong date" in decisions[0]["reason"]
+    blocked = lambda url: {"published": None, "modified": None, "error": "HTTP 429"}
+    rows, decisions = pr.promote([web_wheat()], {k: dict(v) for k, v in WHEAT_STATE.items()},
+                                 D("2026-11-01"), page_lookup=blocked)
+    assert not rows and "needs human review" in decisions[0]["reason"]
+    current = lambda url: {"published": D("2026-10-30"), "modified": None, "error": None}
+    rows, decisions = pr.promote([web_wheat()], {k: dict(v) for k, v in WHEAT_STATE.items()},
+                                 D("2026-11-01"), page_lookup=current)
+    assert len(rows) == 1 and decisions[0]["accepted"]
+
+
+def test_misdated_web_price_is_not_cross_checked():
+    cc = load("16_cross_check")
+    master = pd.DataFrame({"commodity": "Wheat", "date": pd.to_datetime(["2026-10-26"]),
+                           "price_ngn_mt": [700000.0], "data_source": "Agrolinking_primary",
+                           "market_type": "wholesale"})
+    old = lambda url: {"published": D("2023-01-08"), "modified": D("2023-01-08"), "error": None}
+    current = lambda url: {"published": D("2026-10-30"), "modified": None, "error": None}
+    assert cc.build_report(master, [web_wheat(400000.0)], D("2026-11-01"),
+                           page_lookup=old)["commodities"]["Wheat"]["web_prices"] == []
+    assert cc.build_report(master, [web_wheat(400000.0)], D("2026-11-01"),
+                           page_lookup=current)["commodities"]["Wheat"]["web_prices"]
+
+
 # ── Daily data checks ────────────────────────────────────────────────────────
 
 def series(prices, source="Agricome", start="2026-01-05", market="wholesale"):
