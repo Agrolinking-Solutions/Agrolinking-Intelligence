@@ -12,8 +12,10 @@ sync between runs:
 
   outputs/backtest/forecast_log.csv     one row per (forecast day, commodity, horizon)
   outputs/backtest/live_accuracy.json   per commodity and horizon: accuracy,
-                                        direction hit-rate, number scored —
-                                        overall and split by forecasting method
+                                        direction hit-rate, how often the real
+                                        price fell inside the published range,
+                                        number scored - overall and split by
+                                        forecasting method
 
 "Real" means Agricome / WFP / Agrolinking_primary prices only (same as the
 backtest). A forecast is scored when a real price exists within MATCH_DAYS of
@@ -30,7 +32,7 @@ import pandas as pd
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES
+from config.settings import PATHS, COMMODITIES, SCORED_SOURCES
 
 logger.remove()
 logger.add(sys.stdout,
@@ -43,12 +45,13 @@ OUT_DIR       = os.path.join(ROOT, "outputs", "backtest")
 LOG_PATH      = os.path.join(OUT_DIR, "forecast_log.csv")
 SUMMARY_PATH  = os.path.join(OUT_DIR, "live_accuracy.json")
 
-REAL_SOURCES = PARTNER_SOURCES
-HORIZONS     = {"weekly": "1 week", "monthly": "1 month", "3_months": "3 months", "6_months": "6 months"}
+REAL_SOURCES = SCORED_SOURCES      # a provisional WFP month waits until WFP completes it
+HORIZONS    = {"weekly": "1 week", "monthly": "1 month", "3_months": "3 months", "6_months": "6 months"}
 # Real prices are weekly (Agricome) or monthly (WFP, stored on the nearest
 # Monday), so allow a few days either side of the target date.
 MATCH_DAYS   = 7
 MOVE_PCT     = 1.0    # ignore direction when the real price moved less than this
+FLAT_PCT     = 0.5    # a forecast moving less than this called "price holds" - no direction
 
 
 def forecast_method(h_data):
@@ -82,8 +85,15 @@ def build_log():
                     target, price = (dates[-1], vals[-1]) if vals and dates else (None, None)
                 if not target or price is None or not np.isfinite(price) or price <= 0:
                     continue
+                # the published range at the target date (last point of the band)
+                ens = h.get("ensemble") or {}
+                lo, hi = (ens.get("lower_ci") or [None])[-1], (ens.get("upper_ci") or [None])[-1]
+                ranged = (lo is not None and hi is not None and np.isfinite(lo) and np.isfinite(hi)
+                          and lo < price < hi)
                 rows.append({"made_on": made_on, "commodity": commodity, "horizon": h_key,
                              "target_date": str(target)[:10], "predicted": float(price),
+                             "lower": float(lo) if ranged else np.nan,
+                             "upper": float(hi) if ranged else np.nan,
                              "anchor_price": float(anchor) if anchor else np.nan,
                              "method": forecast_method(h)})
     return pd.DataFrame(rows)
@@ -112,11 +122,24 @@ def summarise(scored):
         ape = (df["predicted"] - df["actual"]).abs() / df["actual"] * 100
         move = (df["actual"] - df["anchor_price"]) / df["anchor_price"] * 100
         moved = move.abs() >= MOVE_PCT
-        hit = (np.sign(df["predicted"] - df["anchor_price"]) == np.sign(df["actual"] - df["anchor_price"]))[moved]
+        # Direction only counts where the forecast called a move: a "price
+        # holds" forecast has no direction, and counting it as a miss put the
+        # champion's 1-week direction at 6% (Nov 2026).
+        called = ((df["predicted"] - df["anchor_price"]) / df["anchor_price"] * 100).abs() >= FLAT_PCT
+        hit = (np.sign(df["predicted"] - df["anchor_price"])
+               == np.sign(df["actual"] - df["anchor_price"]))[moved & called]
+        # The ranges are meant to hold the real price 8 times in 10
+        # (drift_models.range_halfwidth); this checks that on published forecasts.
+        r = df[df["lower"].notna()]
+        inside = (r["actual"] >= r["lower"]) & (r["actual"] <= r["upper"])
         return {"scored": int(len(df)),
                 "accuracy_pct": round(float(100 - ape.mean()), 1),
                 "median_error_pct": round(float(ape.median()), 1),
                 "direction_hit_pct": round(float(hit.mean() * 100), 1) if len(hit) else None,
+                "direction_scored": int(len(hit)),
+                "price_holds_pct": round(float((~called).mean() * 100), 1),
+                "in_range_pct": round(float(inside.mean() * 100), 1) if len(r) else None,
+                "ranges_scored": int(len(r)),
                 "first_forecast": str(df["made_on"].min()), "last_forecast": str(df["made_on"].max())}
 
     out = {}
@@ -156,6 +179,8 @@ def run_tracking():
                    "what": "Accuracy of forecasts as published (outputs/forecasts/validated), scored "
                            "against the real Agricome/WFP price that later arrived for the target date",
                    "accuracy_definition": "100 minus mean absolute percentage error",
+                   "in_range_definition": "share of scored forecasts whose published range held the "
+                                          "real price; the ranges aim for 80%",
                    "forecasts_logged": int(len(log)), "forecasts_scored": int(len(scored)),
                    "overall": overall, "by_commodity": per_commodity}, f, indent=2)
     logger.info(f"  {len(log):,} published forecasts logged, {len(scored):,} scored against real prices")
@@ -164,7 +189,7 @@ def run_tracking():
             s = overall[h][m]
             if s:
                 logger.info(f"    {h:<9} {m:<9} accuracy {s['accuracy_pct']}%  direction "
-                            f"{s['direction_hit_pct']}%  (n={s['scored']})")
+                            f"{s['direction_hit_pct']}%  in range {s['in_range_pct']}%  (n={s['scored']})")
     return True
 
 

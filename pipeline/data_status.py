@@ -22,7 +22,7 @@ from datetime import datetime
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, REAL_SOURCES
+from config.settings import PATHS, COMMODITIES, REAL_SOURCES, PROVISIONAL_SOURCES
 
 LOGS = PATHS["logs_dir"]
 OUT_PATH = os.path.join(LOGS, "data_status.md")
@@ -42,6 +42,7 @@ def short_reason(r):
     for key, text in (("wrong date", "page is older than the date the search gave"),
                       ("could not open the page", "page couldn't be opened to check its date"),
                       ("no publication date on the page", "page shows no date to check"),
+                      ("stand for the national price", "one state's price, no measured gap to national"),
                       ("fresh", "already has a recent partner price"),
                       ("price level", "not a wholesale price (or level not recorded)"),
                       ("confidence", "low confidence (forum, undated list or shop)"),
@@ -116,6 +117,11 @@ def build():
                   and str(recent[recent.commodity == c].iloc[-1].get("market_type")).lower() == "retail"]
         if retail:
             lines += ["", f"**Still shop (retail) prices, waiting for a wholesale source:** {', '.join(retail)}"]
+        latest = real.groupby("commodity").tail(1)
+        prov = latest[latest["data_source"].isin(PROVISIONAL_SOURCES)]
+        if len(prov):
+            lines += ["", "**Provisional (WFP's first markets this month, replaced when WFP completes it):** "
+                      + ", ".join(f"{r.commodity} {r.date:%d %b}" for r in prov.itertuples())]
     except Exception:
         pass
     return "\n".join(lines) + "\n"

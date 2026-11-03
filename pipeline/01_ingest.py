@@ -110,6 +110,57 @@ def load_web_prices() -> pd.DataFrame:
     return df[cols].copy()
 
 
+# Prices Agrolinking collects itself - trader quotes by phone or WhatsApp,
+# field visits - typed into data/raw/field_prices.csv, one row per quote:
+#   date, commodity, market, state, price_ngn, unit, price_level, reported_by, notes
+# Several quotes in one week become one national row (their median). The file
+# is the source of truth: delete a row and it leaves the master on the next
+# run. Started Nov 2026 for wheat, which has had no other real source since
+# Agrolinking's April 2026 field collection (those rows live in the master).
+FIELD_QUOTES_SOURCE = "Agrolinking field quotes"
+FIELD_UNITS = {"100kg bag": 10.0, "50kg bag": 20.0, "25kg bag": 40.0, "tonne": 1.0, "kg": 1000.0,
+               "crate": 1.0}    # crate of 30: the Eggs series is NGN/crate (see WFP_UNIT_TO_MT)
+
+
+def load_field_prices() -> pd.DataFrame:
+    cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",
+            "region", "fx_rate", "rainfall_index", "data_quality_score", "is_validated",
+            "notes", "data_source"]
+    path = PATHS["raw_field_prices"]
+    df = pd.read_csv(path, parse_dates=["date"]) if os.path.exists(path) else pd.DataFrame()
+    if df.empty:
+        return pd.DataFrame(columns=cols)
+    unit = df["unit"].astype(str).str.strip().str.lower()
+    df["factor"] = unit.map(FIELD_UNITS)
+    eggs = df["commodity"] == "Eggs"
+    ok = (df["factor"].notna() & (eggs == (unit == "crate"))
+          & (df["price_level"].astype(str).str.strip().str.lower() == "wholesale")
+          & df["commodity"].isin(COMMODITIES) & (pd.to_numeric(df["price_ngn"], errors="coerce") > 0))
+    for r in df[~ok].itertuples():
+        logger.warning(f"  Field quote skipped (needs a known commodity, a wholesale price and a unit from "
+                       f"{sorted(FIELD_UNITS)}): {r.date:%Y-%m-%d} {r.commodity} {r.price_ngn} {r.unit} {r.price_level}")
+    df = df[ok].copy()
+    if df.empty:
+        return pd.DataFrame(columns=cols)
+    df["price_ngn"] = df["price_ngn"].astype(float)
+    df["price_ngn_mt"] = df["price_ngn"] * df["factor"]
+    df["week"] = df["date"] - pd.to_timedelta(df["date"].dt.dayofweek, unit="D")
+    rows = []
+    for (c, _), g in df.groupby(["commodity", "week"]):
+        quotes = "; ".join(f"{r.market}, {r.state}: N{r.price_ngn:,.0f} per {r.unit} ({r.reported_by}, {r.date:%d %b})"
+                           for r in g.itertuples())
+        rows.append({"commodity": c, "date": g["date"].max(), "price_ngn_mt": float(g["price_ngn_mt"].median()),
+                     "currency": "NGN", "unit": "NGN/MT", "source": FIELD_QUOTES_SOURCE,
+                     "market_type": "wholesale", "region": "National", "fx_rate": np.nan,
+                     "rainfall_index": np.nan, "data_quality_score": 0.9, "is_validated": True,
+                     "notes": f"Agrolinking field quotes, median of {len(g)} - converted to NGN/MT: {quotes}",
+                     "data_source": "Agrolinking_primary"})
+    out = pd.DataFrame(rows, columns=cols)
+    logger.success(f"Field quotes loaded: {len(df)} quotes -> {len(out)} weekly rows | "
+                   f"{out['commodity'].nunique()} commodities")
+    return out
+
+
 # AFEX commodity-exchange prices (data/raw/afex_prices.csv, read daily from
 # Mansa Markets by fetch_afex_prices.py) used as REAL prices, per commodity,
 # only where a person decided they fit. Yellow maize (John, 15 Oct 2026): no
@@ -119,7 +170,14 @@ AFEX_AS_REAL = {"maize": ["Maize (yellow)"]}
 
 
 def load_afex_prices() -> pd.DataFrame:
-    """AFEX exchange rows for AFEX_AS_REAL, one per commodity and week (the latest)."""
+    """
+    AFEX exchange rows for AFEX_AS_REAL, one per commodity and week: the
+    median of AFEX's last 5 trading days up to that week's latest print
+    (afex_median.py, the same figure 16_cross_check compares). It was the
+    single latest print, so yellow maize jumped +39% on one day's 470,870
+    when the 5-day median was 337,700 (2 Nov 2026).
+    """
+    from pipeline.afex_median import afex_median
     cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",
             "region", "fx_rate", "rainfall_index", "data_quality_score", "is_validated",
             "notes", "data_source"]
@@ -128,21 +186,24 @@ def load_afex_prices() -> pd.DataFrame:
         return pd.DataFrame(columns=cols)
     a = pd.read_csv(path, parse_dates=["as_of_date"])
     a = a[(a["price_type"] == "exchange") & a["mansa_commodity"].isin(AFEX_AS_REAL)]
+    a = a.drop_duplicates(["mansa_commodity", "as_of_date"], keep="last")
+    a["week"] = a["as_of_date"] - pd.to_timedelta(a["as_of_date"].dt.dayofweek, unit="D")
     rows = []
-    for _, r in a.iterrows():
-        for ours in AFEX_AS_REAL[r["mansa_commodity"]]:
-            rows.append({"commodity": ours, "date": r["as_of_date"], "price_ngn_mt": float(r["price_ngn_mt"]),
-                         "currency": "NGN", "unit": "NGN/MT", "source": "AFEX via Mansa Markets",
-                         "market_type": "exchange", "region": "National", "fx_rate": np.nan,
-                         "rainfall_index": np.nan, "data_quality_score": 0.9, "is_validated": True,
-                         "notes": (f"AFEX exchange price, {r['price_as_shown']} as of "
-                                   f"{r['as_of_date'].date()} ({r['mansa_commodity']}, type not stated) - {r['url']}"),
-                         "data_source": "AFEX"})
+    for slug, g in a.groupby("mansa_commodity"):
+        for _, r in g.sort_values("as_of_date").groupby("week").tail(1).iterrows():
+            price, n_days = afex_median(g, r["as_of_date"])
+            for ours in AFEX_AS_REAL[slug]:
+                rows.append({"commodity": ours, "date": r["as_of_date"], "price_ngn_mt": price,
+                             "currency": "NGN", "unit": "NGN/MT", "source": "AFEX via Mansa Markets",
+                             "market_type": "exchange", "region": "National", "fx_rate": np.nan,
+                             "rainfall_index": np.nan, "data_quality_score": 0.9, "is_validated": True,
+                             "notes": (f"AFEX exchange price, median of {n_days} trading days to "
+                                       f"{r['as_of_date'].date()} (that day: {r['price_as_shown']}; "
+                                       f"{slug}, type not stated) - {r['url']}"),
+                             "data_source": "AFEX"})
     if not rows:
         return pd.DataFrame(columns=cols)
     df = pd.DataFrame(rows)
-    df["week"] = df["date"] - pd.to_timedelta(df["date"].dt.dayofweek, unit="D")
-    df = df.sort_values("date").groupby(["commodity", "week"], as_index=False).last()
     logger.success(f"AFEX exchange prices loaded: {len(df):,} rows | {sorted(df['commodity'].unique())}")
     return df[cols].copy()
 
@@ -242,6 +303,14 @@ WFP_COMMODITIES_WANTED = {
 
 WHOLESALE_EQUIVALENT = {"Rice (local)", "Rice (foreign)", "Sorghum"}
 CBM_NAIRA_FROM = pd.Timestamp("2017-01-01")   # cross-border markets in CFA francs before this (see load_wfp)
+# WFP market-months whose prices belong to another year. Abba Gamaram
+# (Maiduguri) "15 Jan 2016": 25 rows at 2020s prices - eggs N6,200 a crate,
+# beef N6,500/kg - while 20 other markets that month show 2016 prices and
+# Abba Gamaram's own next report (Jun 2016) is ~6x lower. It was the only
+# eggs, beans, fish, beef and goat price that month, so it became the
+# national price and put a 98%-error year into the eggs accuracy test (found
+# 3 Nov 2026). No other month matches it, so it is dropped, not re-dated.
+WFP_MISDATED = {("Abba Gamaram", "2016-01-15")}
 # The platform prices everything at wholesale. WFP has only ever published
 # RETAIL prices for beans (Borno/Yobe/Adamawa), but it published both retail
 # and wholesale for cowpeas - the same product family - in the same markets
@@ -276,6 +345,54 @@ def wholesale_proxy_ratios(wfp: pd.DataFrame) -> dict:
     return out
 
 
+# WFP publishes a month while only a few of its ~20 markets have reported
+# (Oct 2026: 5 markets in Borno and Yobe) and completes it weeks later. The
+# thin-coverage rule below dropped that partial month, so meat, eggs and beans
+# had no real price past day 45 every month. Instead, a series' newest month
+# is kept as PROVISIONAL when enough markets reported both it and the month
+# before: their same-market change is applied to the previous month's full
+# national average. (The partial set's own average is biased by which markets
+# report first - Oct 2026 eggs: those 5 markets ran 5% above the September
+# national figure.) Stored as data_source "WFP_provisional", replaced when WFP
+# completes the month, never scored against (config SCORED_SOURCES).
+PROVISIONAL_MIN_MARKETS  = 4      # markets that reported both months
+PROVISIONAL_MAX_SPREAD   = 0.25   # skip if their moves differ more (Oct 2026 dried fish: -47% to 0%)
+PROVISIONAL_MAX_GAP_DAYS = 45     # the comparison month must be the month before
+
+
+def provisional_months(monthly: pd.DataFrame, markets: pd.DataFrame) -> dict:
+    """
+    monthly: national rows (date, commodity_std, pricetype, price_ngn_mt, recent_median, thin).
+    markets: market rows (date, commodity_std, pricetype, market, price_ngn_mt).
+    Returns {(date, commodity_std, pricetype): (provisional price_ngn_mt, note)} for each
+    series whose newest month is thin but can be estimated from the month before.
+    """
+    out = {}
+    for (c, t), g in monthly.groupby(["commodity_std", "pricetype"]):
+        g = g.sort_values("date")
+        if len(g) < 2 or not g["thin"].iloc[-1] or g["thin"].iloc[-2]:
+            continue
+        new, prev = g.iloc[-1], g.iloc[-2]
+        if (new["date"] - prev["date"]).days > PROVISIONAL_MAX_GAP_DAYS:
+            continue
+        mk = markets[(markets["commodity_std"] == c) & (markets["pricetype"] == t)]
+        cur = mk[mk["date"] == new["date"]].groupby("market")["price_ngn_mt"].mean()
+        old = mk[mk["date"] == prev["date"]].groupby("market")["price_ngn_mt"].mean()
+        both = cur.index.intersection(old.index)
+        if len(both) < PROVISIONAL_MIN_MARKETS:
+            continue
+        moves = cur[both] / old[both] - 1
+        if moves.max() - moves.min() > PROVISIONAL_MAX_SPREAD:
+            continue
+        change = cur[both].mean() / old[both].mean() - 1
+        out[(new["date"], c, t)] = (
+            float(prev["price_ngn_mt"] * (1 + change)),
+            f"PROVISIONAL: {len(cur)} of ~{new['recent_median']:.0f} WFP markets have reported "
+            f"{new['date']:%b %Y}; their {change:+.1%} change since {prev['date']:%b %Y} applied to that "
+            f"month's national average. Replaced when WFP completes the month")
+    return out
+
+
 def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load WFP data, extract:
@@ -303,6 +420,12 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
         logger.info(f"  WFP: dropped {int(cfa.sum())} cross-border market rows before "
                     f"{CBM_NAIRA_FROM:%Y} (prices in CFA francs)")
         wfp = wfp[~cfa].copy()
+    misdated = pd.Series([(m, f"{d:%Y-%m-%d}") in WFP_MISDATED for m, d in zip(wfp["market"], wfp["date"])],
+                         index=wfp.index)
+    if misdated.any():
+        logger.info(f"  WFP: dropped {int(misdated.sum())} rows from market-months dated to the wrong "
+                    f"year (WFP_MISDATED)")
+        wfp = wfp[~misdated].copy()
     proxy_ratios = wholesale_proxy_ratios(wfp)
 
     # Filter to only the commodities we need
@@ -370,7 +493,14 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
     )
     # Also catches a partial current month (WFP publishes a month while only
     # 4-5 of ~23 markets have reported, e.g. Oct 2026 in the Oct 11 file).
-    thin = monthly["n_markets"] < 0.3 * monthly["recent_median"]
+    monthly["thin"] = monthly["n_markets"] < 0.3 * monthly["recent_median"]
+    provisional = provisional_months(monthly, comm_df)
+    for (d, c, t), (price, note) in provisional.items():
+        sel = (monthly["date"] == d) & (monthly["commodity_std"] == c) & (monthly["pricetype"] == t)
+        monthly.loc[sel, "price_ngn_mt"] = price
+        monthly.loc[sel, "thin"] = False
+        logger.info(f"  WFP: {c} {t} {d.date()} kept as provisional - {note}")
+    thin = monthly["thin"]
     if thin.any():
         for _, r in monthly[thin].iterrows():
             logger.warning(f"  WFP: dropping {r['commodity_std']} {r['pricetype']} {r['date'].date()} "
@@ -413,8 +543,15 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
                     f"to wholesale-equivalent ({int(retail_only.sum())} months)")
     wide["market_type"] = np.where(wide["notes"].str.contains(r"\(retail\)", regex=True),
                                    "retail", "wholesale")
+    # Provisional months (of the price type this row actually uses)
+    used = np.where(wide["Wholesale"].notna(), "Wholesale", "Retail")
+    prov_note = pd.Series([provisional.get((d, c, t), (None, None))[1]
+                           for d, c, t in zip(wide["date"], wide["commodity_std"], used)], index=wide.index)
+    is_prov = prov_note.notna()
+    wide.loc[is_prov, "notes"] = wide.loc[is_prov, "notes"] + " — " + prov_note[is_prov]
+    wide["data_source"] = np.where(is_prov, "WFP_provisional", "WFP")
 
-    comm_agg = (wide[["date", "commodity_std", "price_ngn_mt", "notes", "market_type"]]
+    comm_agg = (wide[["date", "commodity_std", "price_ngn_mt", "notes", "market_type", "data_source"]]
                 .dropna(subset=["price_ngn_mt"])
                 .rename(columns={"commodity_std": "commodity"}))
 
@@ -428,9 +565,8 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
     comm_agg["region"]             = "National"
     comm_agg["fx_rate"]            = np.nan
     comm_agg["rainfall_index"]     = np.nan
-    comm_agg["data_quality_score"] = 0.9
+    comm_agg["data_quality_score"] = np.where(comm_agg["data_source"] == "WFP_provisional", 0.7, 0.9)
     comm_agg["is_validated"]       = True
-    comm_agg["data_source"]        = "WFP"
 
     logger.success(
         f"WFP commodities loaded: {len(comm_agg):,} rows | "
@@ -450,6 +586,10 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
 LEGACY_WFP_SOURCE = "WFP Nigeria Food Prices"
 
 
+LEGACY_BAND = (0.4, 2.5)     # a leftover legacy month must sit within this x the current data...
+LEGACY_NEAR_DAYS = 183       # ...within this many days of it (when there is any)
+
+
 def place_legacy_wfp(agricome_df: pd.DataFrame, current: pd.DataFrame) -> pd.DataFrame:
     """
     The Agricome file's rows with source "WFP Nigeria Food Prices" are an older
@@ -466,7 +606,7 @@ def place_legacy_wfp(agricome_df: pd.DataFrame, current: pd.DataFrame) -> pd.Dat
     legacy = agricome_df["source"].astype(str) == LEGACY_WFP_SOURCE
     if not legacy.any():
         return agricome_df
-    cur = current[current["data_source"].isin(["WFP", "FEWS_NET"])]
+    cur = current[current["data_source"].isin(["WFP", "WFP_provisional", "FEWS_NET"])]
     keep = [agricome_df[~legacy]]
     for c, g in agricome_df[legacy].groupby("commodity"):
         cc = cur[cur["commodity"] == c]
@@ -481,6 +621,17 @@ def place_legacy_wfp(agricome_df: pd.DataFrame, current: pd.DataFrame) -> pd.Dat
             continue
         ratio = float(np.median(ratios))
         rest["price_ngn_mt"] = rest["price_ngn_mt"] / ratio
+        # A leftover month far from the current data around it is the same
+        # error the current file had: the extract's Jan 2016 beans (N4,200 per
+        # 2.5kg, ~7x June's) is Abba Gamaram's mis-dated month (WFP_MISDATED).
+        near = [cc.loc[(cc["date"] - d).abs() <= pd.Timedelta(days=LEGACY_NEAR_DAYS), "price_ngn_mt"].median()
+                for d in rest["date"]]
+        off = [(n == n) and not (LEGACY_BAND[0] <= p / n <= LEGACY_BAND[1])
+               for p, n in zip(rest["price_ngn_mt"], near)]
+        if any(off):
+            logger.info(f"  {c}: older WFP extract - dropped {sum(off)} leftover month(s) more than "
+                        f"{LEGACY_BAND[1]}x off the current data within {LEGACY_NEAR_DAYS} days")
+            rest = rest[[not o for o in off]]
         rest["data_source"], rest["market_type"] = "WFP", "wholesale"
         rest["notes"] = (f"Older WFP national extract, scaled by 1/{ratio:.3f} to the current WFP/FEWS level "
                          f"(median over {len(ratios)} shared months)")
@@ -535,7 +686,8 @@ def merge_sources(agricome_df: pd.DataFrame, wfp_df: pd.DataFrame,
 
     # Sort: Agricome first, WFP second, web-sourced last — so when we drop
     # duplicates, the higher-quality row is kept
-    source_priority = {"Agricome": 0, "FEWS_NET": 0.8, "WFP": 1, "AFEX": 1.5, "Web_search": 2, "WB_RTP_estimate": 3}
+    source_priority = {"Agricome": 0, "Agrolinking_primary": 0, "FEWS_NET": 0.8, "WFP": 1,
+                       "WFP_provisional": 1.1, "AFEX": 1.5, "Web_search": 2, "WB_RTP_estimate": 3}
     combined["_priority"] = combined["data_source"].map(source_priority).fillna(9)
     combined = combined.sort_values(["commodity", "date", "_priority", "_obs_date"],
                                     ascending=[True, True, True, False], kind="stable")
@@ -610,8 +762,12 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         # the older WFP extract older ingests stored as "Agricome" (place_legacy_wfp rebuilds it)
         legacy_wfp = ((existing["data_source"] == "Agricome")
                       & (existing["source"].astype(str) == LEGACY_WFP_SOURCE))
+        # (provisional WFP months, too: rebuilt from the WFP file, gone once WFP completes the month;
+        # and field quotes, rebuilt from data/raw/field_prices.csv)
         existing_historical = existing[(existing["record_type"] == "historical")
-                                       & ~existing["data_source"].isin(["Web_search", "AFEX", "FEWS_NET"])
+                                       & ~existing["data_source"].isin(["Web_search", "AFEX", "FEWS_NET",
+                                                                        "WFP_provisional"])
+                                       & (existing["source"].astype(str) != FIELD_QUOTES_SOURCE)
                                        & ~stale_wfp & ~mislabelled_estimate & ~legacy_wfp]
         forecast_rows = existing[existing["record_type"] == "forecast"]
         # Validated_actual rows — today's forecast, confirmed accurate by
@@ -633,7 +789,8 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         # highest priority — just ingested (web-sourced still ranks below any
         # real row, including Agrolinking_primary rows that live only in master)
         master_df["_priority"] = master_df["data_source"].map(
-            {"FEWS_NET": 0.8, "WFP": 1, "AFEX": 1.2, "Web_search": 1.5, "WB_RTP_estimate": 1.8}).fillna(0)
+            {"FEWS_NET": 0.8, "WFP": 1, "WFP_provisional": 1.1, "AFEX": 1.2, "Web_search": 1.5,
+             "WB_RTP_estimate": 1.8}).fillna(0)
 
         # Tag existing rows by source priority
         existing_historical["_priority"] = existing_historical["data_source"].map({
@@ -750,8 +907,8 @@ def run_ingestion() -> pd.DataFrame:
 
     agricome_df           = load_agricome()
     wfp_commodity_df, fuel_df = load_wfp()
-    web_df                = pd.concat([load_web_prices(), load_afex_prices(), load_fews_prices()],
-                                      ignore_index=True)
+    web_df                = pd.concat([load_web_prices(), load_afex_prices(), load_fews_prices(),
+                                       load_field_prices()], ignore_index=True)
     master_df             = merge_sources(agricome_df, wfp_commodity_df, web_df)
     save_outputs(master_df, fuel_df)
 

@@ -448,7 +448,8 @@ def compute_shortage_surplus_scores(zonal_data, national_anchors, run_date):
         anchor = national_anchors.get(commodity, {})
         current_price = anchor.get("price", 0)
         ref_price     = anchor.get("ref_price", current_price)
-        day_chg       = anchor.get("day_change", 0)
+        # a data correction is not a price trend (07_zonal_forecast classify_change)
+        day_chg       = 0 if anchor.get("change_kind") == "revision" else anchor.get("day_change", 0)
 
         if current_price <= 0:
             continue
@@ -790,7 +791,11 @@ def run_intelligence():
     # forecast's own daily drift between real prices (beef +0.03% a day), not
     # a market move; showing it as "biggest riser" misled readers (Oct 2026).
     MIN_MOVE_PCT = 0.5
-    valid_anchors = {c: v for c, v in national_anchors.items() if v.get("day_change") is not None}
+    # Corrections of our own data (07_zonal_forecast classify_change) are not
+    # market moves: withdrawn web prices made local rice the "biggest faller"
+    # at -23% on 3 Nov 2026.
+    valid_anchors = {c: v for c, v in national_anchors.items()
+                     if v.get("day_change") is not None and v.get("change_kind") != "revision"}
 
     def mover(name):
         return {"commodity": name,

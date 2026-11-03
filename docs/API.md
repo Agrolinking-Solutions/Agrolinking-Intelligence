@@ -102,13 +102,28 @@ GET https://pis-api.agrolinking.com/commodities
       "price_per_unit": 1337.07,
       "unit": "NGN/kg",
       "day_change_pct": 0.09,
+      "day_change_kind": "forecast",
+      "day_change_note": null,
       "forecast_price": 1351709,
+      "validation_status": "validated",
       "within_target": true,
       "currency": "NGN"
     }
   ]
 }
 ```
+
+### Fields added 3 Nov 2026 (what the website should show)
+
+All additions; nothing existing was removed or renamed.
+
+| Field | Where | Values | Show |
+|---|---|---|---|
+| `day_change_kind` | /commodities, /prices/kg, /prices/kg/{c}, zonal commodity view | `"revision"`, `"new real price"`, `"forecast"`, `null` | For `"revision"`, label the change "data correction" (it is not a market move) and leave it out of any movers list. `/movers` already leaves revisions out. |
+| `day_change_note` | /commodities | text or `null` | Tooltip for a revision, e.g. "the real price the last update was built from (N1,352,040, week of 2026-10-19) has been withdrawn". |
+| `validation.status` | /forecasts/latest, /forecasts/{c} | `"validated"`, `"unchecked"` | For `"unchecked"`, `within_target` is `null`: show "Not checked - no recent real price", not "No". `validation.note` says how old the newest real price is. Also `validation_status` on /commodities. |
+| `fair_test` | /accuracy, per commodity | `1_month` ... `6_months`, `price_holds_1_month`, `in_range_pct_1_month`, `test_points_1_month`, `verdict`, `issues` | The honest accuracy figure (weekly replay of history as forecasts are really made). Quote this rather than `backtest`. `fair_test_summary` / `fair_test_updated` sit at the top level. |
+| `in_range_pct`, `ranges_scored`, `price_holds_pct`, `direction_scored` | /accuracy `live` blocks | numbers | How often the real price fell inside the range we showed (aim 80%). `direction_hit_pct` now counts only forecasts that called a move, so it is `null` while every forecast is "price holds". |
 
 ### GET /forecasts/{commodity}/{horizon}
 ```
@@ -139,7 +154,7 @@ Returns `weekly_series` array — drop directly into Chart.js, Recharts, or D3:
   "factors": {
     "rainfall_season":  {"rating": "Low",  "note": "Harvest season — good supply"},
     "fuel_transport":   {"rating": "Mid",  "note": "Fuel prices stable"},
-    "fx_import_parity": {"rating": "High", "note": "Import-dependent — FX pressure"},
+    "fx_import_parity": {"rating": "Mid",  "note": "Import parity stable — NGN/USD relatively stable (+0.7%)"},
     "harvest_supply":   {"rating": "Low",  "note": "Surplus (score=69)"},
     "policy_tariffs":   {"rating": "High", "note": "50% import levy active"}
   }

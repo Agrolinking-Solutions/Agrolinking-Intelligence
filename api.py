@@ -219,7 +219,8 @@ def latest_real(key: str, data: dict):
         return None
     src = data.get("last_real_source")
     return {"price": price, "price_per_unit": price_per_kg(key, price)[0], "date": data.get("last_real_date"),
-            "source": SOURCE_INFO.get(src, {}).get("name", src), "kind": SOURCE_CATEGORY.get(src, "other")}
+            "source": SOURCE_DISPLAY.get(src) or SOURCE_INFO.get(src, {}).get("name", src),
+            "kind": SOURCE_CATEGORY.get(src, "other")}
 
 
 def load_latest_alert():
@@ -438,6 +439,11 @@ def list_commodities(
             "unit":               unit,
             "last_known_date":    data.get("last_known_date", ""),
             "day_change_pct":     anchor.get("day_change", 0),
+            # "revision" = the change is a correction of our data, not a
+            # market move (change_note says what); "new real price";
+            # "forecast" = the forecast's own movement; null = no earlier update
+            "day_change_kind":    anchor.get("change_kind"),
+            "day_change_note":    anchor.get("change_note"),
             "pct_vs_reference":   anchor.get("pct_vs_ref", 0),
             "forecast_price":     detail.get("price", 0),
             "forecast_date":      detail.get("date", ""),
@@ -521,6 +527,9 @@ def latest_forecast(
                     "last_known": float(last_known) if last_known is not None else None,
                     "last_known_date": lk_date.strftime("%Y-%m-%d") if lk_date else "",
                     "ref_price": float(ref_price) if ref_price is not None else 0,
+                    # No reference = 06_validate found no recent real price
+                    # ("unchecked"): within_target is None, not err 0 <= 3.
+                    "checked": ref_price is not None,
                     "err_before": float(err_before) if err_before is not None else 0,
                     "err_after": float(err_after) if err_after is not None else 0,
                     "action": action or "",
@@ -537,7 +546,8 @@ def latest_forecast(
                     result[name] = {
                         "horizon": horizon, "forecast_date": h["date"],
                         "forecast_price_ngn": h["price"], "pct_change": pct, "direction": direction,
-                        "validation_error": err_after, "within_target": err_after <= 3.0,
+                        "validation_error": err_after,
+                        "within_target": err_after <= 3.0 if h["checked"] else None,
                     }
                 else:
                     horizon_summary = {}
@@ -565,7 +575,8 @@ def latest_forecast(
                         "validation": {
                             "reference_price": any_h["ref_price"], "error_before_pct": any_h["err_before"],
                             "error_after_pct": any_h["err_after"], "action": any_h["action"],
-                            "within_target": any_h["err_after"] <= 3.0,
+                            "within_target": any_h["err_after"] <= 3.0 if any_h["checked"] else None,
+                            "status": "validated" if any_h["checked"] else "unchecked",
                         },
                         "horizons": horizon_summary,
                     }
@@ -618,6 +629,10 @@ def latest_forecast(
                     "error_after_pct":  error_after_pct(vld) or 0,
                     "action":           vld.get("correction_applied", ""),
                     "within_target":    vld.get("within_target", False),
+                    # "unchecked" (within_target None) = no real price in the
+                    # last 45 days to check against; note says how old it is
+                    "status":           vld.get("status"),
+                    "note":             vld.get("note"),
                 },
                 "horizons": horizon_summary,
             }
@@ -689,6 +704,8 @@ def commodity_forecast(commodity: str):
             "error_after_pct":  error_after_pct(vld) or 0,
             "action":           vld.get("correction_applied", ""),
             "within_target":    vld.get("within_target", False),
+            "status":           vld.get("status"),
+            "note":             vld.get("note"),
         },
         "horizons": horizons,
     }
@@ -902,6 +919,7 @@ def commodity_zonal(commodity: str):
         "national_price_per_unit": per_kg_nat,
         "unit_label":            unit_nat,
         "day_change_pct":        anchors.get(key, {}).get("day_change", 0),
+        "day_change_kind":       anchors.get(key, {}).get("change_kind"),
         "pct_vs_reference":      anchors.get(key, {}).get("pct_vs_ref", 0),
         "currency":              "NGN",
         "best_sourcing":         best,
@@ -940,6 +958,7 @@ def all_prices_per_kg():
             "price_per_unit": per_unit,
             "unit_label":     unit,
             "day_change_pct": anchor.get("day_change", 0),
+            "day_change_kind": anchor.get("change_kind"),
             "pct_vs_ref":     anchor.get("pct_vs_ref", 0),
         })
     return {
@@ -967,6 +986,7 @@ def commodity_price_per_kg(commodity: str):
         "price_per_unit":   per_unit,
         "unit_label":       unit,
         "day_change_pct":   anchor.get("day_change", 0),
+        "day_change_kind":  anchor.get("change_kind"),
         "pct_vs_reference": anchor.get("pct_vs_ref", 0),
         "note":             "Eggs are priced per crate of 30 eggs." if key == "Eggs" else "",
     }
@@ -1696,16 +1716,21 @@ def _load_history_from_csv(commodities=None, start=None, end=None):
 # source among the rows it averages.
 SOURCE_CATEGORY = {
     "Agricome": "real", "WFP": "real", "Agrolinking_primary": "real", "AFEX": "real", "FEWS_NET": "real",
+    "WFP_provisional": "provisional",
     "Web_search": "web",
     "Agrolinking_validated": "model",
     "WB_RTP_estimate": "estimate",
     "Interpolated": "interpolated",
 }
-SOURCE_RANK = {"real": 0, "web": 1, "model": 2, "estimate": 3, "interpolated": 4, "synthetic": 5, "other": 6}
-# "real" and "web" are both REAL observed market prices - they differ only in
-# where we got them. Everything else is an estimate of some kind.
+SOURCE_RANK = {"real": 0, "provisional": 1, "web": 2, "model": 3, "estimate": 4, "interpolated": 5,
+               "synthetic": 6, "other": 7}     # whole numbers: history buckets map back with int()
+# "real", "provisional" and "web" are all built from REAL observed market
+# prices - they differ in where we got them and, for "provisional", in how many
+# markets have reported yet. Everything else is an estimate of some kind.
 SOURCE_LEGEND = {
     "real":         "Real price - from our data partners (Agricome, WFP, FEWS NET, AFEX exchange, Agrolinking field data)",
+    "provisional":  "Real prices, provisional - WFP's first markets to report this month, applied to last month's "
+                    "national average; replaced when WFP completes the month",
     "web":          "Real price - published online by a named, dated source and cross-checked",
     "model":        "Estimate - the platform's daily figure between real prices, anchored to the latest one",
     "estimate":     "Estimate - World Bank Real-Time Prices model, where no real price exists",
@@ -1713,7 +1738,9 @@ SOURCE_LEGEND = {
     "synthetic":    "Estimate - rebuilt from international prices x FX (no Nigerian market data for this period)",
     "other":        "Other",
 }
-OBSERVED = {"real", "web"}
+OBSERVED = {"real", "provisional", "web"}
+# Display names for data_source values that are not separate feeds in SOURCE_INFO.
+SOURCE_DISPLAY = {"WFP_provisional": "WFP Nigeria Food Price Monitor (provisional month)"}
 
 # State prices are the national price x a state price gap. Only some gaps are
 # measured from market data - say which, so an estimate isn't shown as fact.
@@ -1826,7 +1853,7 @@ def commodity_history(
     sub = load_master_history(commodities=[key], start=start, end=end)
     sub = sub.sort_values("date")
     sub["source_rank"] = sub["data_source"].map(source_category).map(SOURCE_RANK)
-    raw_real = sub.loc[sub["source_rank"] <= SOURCE_RANK["web"], "date"]   # real or web
+    raw_real = sub.loc[sub["source_rank"] <= SOURCE_RANK["web"], "date"]   # real, provisional or web
     last_real_date = raw_real.max().strftime("%Y-%m-%d") if len(raw_real) else None
 
     # Resample (price averaged as before; source = strongest in the bucket)
@@ -2163,7 +2190,12 @@ def forecast_accuracy(
       years of real prices (pipeline/13_select_forecaster.py), per horizon.
     - live: the forecasts actually published each day, scored against the
       real price that later arrived (pipeline/15_track_accuracy.py), split by
-      method ("ensemble" = the old ML ensemble, "champion" = the current one).
+      method ("ensemble" = the old ML ensemble, "champion" = the current one),
+      with in_range_pct = how often the real price fell inside the shown range.
+    - fair_test: weekly audit (scripts/research/forecast_audit.py) replaying
+      history the way forecasts are used - method chosen only from results
+      known at the time, started from the last real price. Lower than
+      backtest; the honest figure to quote.
 
     accuracy = 100 minus mean absolute percentage error. Use these instead of
     the per-day validation error, which only compares today's price.
@@ -2178,6 +2210,7 @@ def forecast_accuracy(
             return {}
 
     live, backtest = load("live_accuracy.json"), load("model_selection.json")
+    audit = load("forecast_audit.json")
     if commodity:
         key = next((c for c in COMMODITIES if c.lower() == commodity.lower()), None)
         if not key:
@@ -2198,14 +2231,31 @@ def forecast_accuracy(
                 "test_points": b.get("n_4w"), "updated": b.get("updated"),
             },
             "live": (live.get("by_commodity") or {}).get(c),
+            "fair_test": fair_test((audit.get("commodities") or {}).get(c)),
         }
     return {
         "accuracy_definition": "100 minus mean absolute percentage error, against real prices (Agricome, WFP, FEWS NET, AFEX, field data)",
         "backtest_updated": next((v.get("updated") for v in backtest.values() if isinstance(v, dict)), None),
         "live_updated": live.get("updated"),
         "live_overall": live.get("overall"),
+        "fair_test_updated": audit.get("updated"),
+        "fair_test_summary": audit.get("summary"),
         "commodities": out,
     }
+
+
+def fair_test(a):
+    """One commodity's weekly fair-audit result, in /accuracy's horizon names."""
+    if not a:
+        return None
+    h = a.get("horizons") or {}
+    pick = lambda w, k: (h.get(w) or {}).get(k)
+    return {"1_month": pick("4w", "accuracy_pct"), "2_months": pick("8w", "accuracy_pct"),
+            "3_months": pick("13w", "accuracy_pct"), "6_months": pick("26w", "accuracy_pct"),
+            "price_holds_1_month": pick("4w", "naive_accuracy_pct"),
+            "in_range_pct_1_month": pick("4w", "range_coverage_pct"),
+            "test_points_1_month": pick("4w", "n"),
+            "verdict": a.get("verdict"), "issues": a.get("issues", [])}
 
 
 @app.get("/history/compare", tags=["Historical Data"])
@@ -2530,6 +2580,7 @@ def _real_data_summary():
     if _meta_cache["key"] == key:
         return _meta_cache["value"]
     df = pd.read_csv(MASTER_PATH, parse_dates=["date"], usecols=["commodity", "date", "data_source"])
+    df["data_source"] = df["data_source"].replace({"WFP_provisional": "WFP"})   # same feed
     real = df[df["data_source"].isin(SOURCE_INFO)]
     today = pd.Timestamp(datetime.now().date())
     sources = []
@@ -2738,9 +2789,15 @@ def forecast_factor_drivers(
         if os.path.exists(fx_path):
             fx_df = pd.read_csv(fx_path, parse_dates=["date"])
             fx_df = fx_df.sort_values("date")
-            # Higher NGN/USD = weaker naira = more expensive imports
-            latest_fx = fx_df.iloc[-1].get("usd_ngn", fx_df.iloc[-1].get("rate", 1600))
-            avg_fx    = fx_df.tail(13)["usd_ngn"].mean() if "usd_ngn" in fx_df.columns else                         fx_df.tail(13).iloc[:, 1].mean()
+            # Higher NGN/USD = weaker naira = more expensive imports.
+            # The column is fx_rate_usd_ngn (weekly). It used to look for
+            # "usd_ngn", find nothing and compare a default of 1,600 with the
+            # real average - showing "NGN weakened +19.6%" when the rate had
+            # barely moved (Nov 2026). No default now: a missing column leaves
+            # the signal at "stable" via the except below.
+            rates     = fx_df["fx_rate_usd_ngn"].dropna()
+            latest_fx = rates.iloc[-1]
+            avg_fx    = rates.tail(13).mean()      # ~3 months of weekly rates
             fx_pct    = (latest_fx - avg_fx) / avg_fx * 100
             if fx_pct > 5:
                 fx_signal = "High"

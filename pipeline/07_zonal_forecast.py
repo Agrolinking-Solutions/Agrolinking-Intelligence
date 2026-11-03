@@ -271,6 +271,64 @@ def previous_published(run_date):
     return {}, None
 
 
+# Why a price moved since the last update. A correction of our own data
+# (a web price withdrawn, a provisional month replaced, a method change) is
+# not a market move: on 3 Nov 2026 local rice "fell" 23% and white beans 13%
+# because fake web prices were withdrawn, and both led "biggest movers".
+CHANGE_REVISION = "revision"         # the real price the last figure stood on was corrected or withdrawn
+CHANGE_NEW_REAL = "new real price"   # built from a newer real price; the old one still stands
+CHANGE_FORECAST = "forecast"         # same real price - the forecast's own day-to-day movement
+SAME_PRICE_TOLERANCE = 0.005
+
+
+def classify_change(prev_basis, today_basis, real_price_at):
+    """
+    prev_basis / today_basis: (price, "YYYY-MM-DD") of the real price each
+    update's figure was built from (05_forecast's last_real_price/date), or None.
+    real_price_at: {"YYYY-MM-DD": price} - this commodity's real prices in
+    today's master (one row per week).
+    Returns (kind, note); (None, None) when there is no earlier basis.
+    """
+    if not prev_basis or not today_basis or not prev_basis[0]:
+        return None, None
+    p_price, p_date = prev_basis
+    still = real_price_at.get(p_date)
+    if still is None or abs(still - p_price) > SAME_PRICE_TOLERANCE * p_price:
+        what = "withdrawn" if still is None else f"corrected to N{still:,.0f}"
+        return CHANGE_REVISION, (f"Data correction, not a market move: the real price the last "
+                                 f"update was built from (N{p_price:,.0f}, week of {p_date}) "
+                                 f"has been {what}.")
+    t_price, t_date = today_basis
+    if t_date > p_date:
+        return CHANGE_NEW_REAL, f"New real price for the week of {t_date}."
+    return CHANGE_FORECAST, None
+
+
+def real_price_bases(prev_date):
+    """
+    ({commodity: (price, date)} the previous update was built from,
+     {commodity: {date: price}} real prices in today's master).
+    Empty when the previous validated forecast or the master can't be read.
+    """
+    from config.settings import REAL_SOURCES
+    prev = {}
+    try:
+        with open(os.path.join(VAL_DIR, f"forecast_validated_{prev_date}.json")) as f:
+            for c, d in json.load(f).items():
+                if d.get("last_real_price") and d.get("last_real_date"):
+                    prev[c] = (float(d["last_real_price"]), str(d["last_real_date"])[:10])
+    except (OSError, ValueError, TypeError):
+        return {}, {}
+    try:
+        m = pd.read_csv(PATHS["master"], usecols=["commodity", "date", "price_ngn_mt", "data_source"])
+    except (OSError, ValueError):
+        return {}, {}
+    m = m[m["data_source"].isin(REAL_SOURCES) & m["price_ngn_mt"].notna()]
+    real = {c: dict(zip(g["date"].astype(str).str[:10], g["price_ngn_mt"].astype(float)))
+            for c, g in m.groupby("commodity")}
+    return prev, real
+
+
 def build_zonal_output(forecast, diff, zones, run_date):
     out              = {}
     national_anchors = {}
@@ -290,6 +348,7 @@ def build_zonal_output(forecast, diff, zones, run_date):
     prev_prices, prev_date = previous_published(run_date)
     if prev_date:
         logger.info(f"  Day change measured against the prices published on {prev_date}")
+    prev_bases, real_prices = real_price_bases(prev_date) if prev_date else ({}, {})
 
     for commodity in COMMODITIES:
         if commodity not in forecast:
@@ -305,6 +364,11 @@ def build_zonal_output(forecast, diff, zones, run_date):
         pct_vs_ref = round((today_price - ref_price)/ref_price*100, 2) if ref_price > 0 else 0
         # Day change: today vs yesterday from same forecast curve
         day_chg    = round((today_price - yest_price)/yest_price*100, 2) if yest_price > 0 else 0
+        today_basis = ((float(fc_item["last_real_price"]), str(fc_item.get("last_real_date", ""))[:10])
+                       if fc_item.get("last_real_price") else None)
+        change_kind, change_note = (classify_change(prev_bases.get(commodity), today_basis,
+                                                    real_prices.get(commodity, {}))
+                                    if commodity in prev_prices else (None, None))
 
         national_anchors[commodity] = {
             "price":          today_price,
@@ -313,10 +377,15 @@ def build_zonal_output(forecast, diff, zones, run_date):
             "ref_price":      ref_price,
             "pct_vs_ref":     pct_vs_ref,
             "day_change":     day_chg,
+            # revision / new real price / forecast (see classify_change);
+            # 08_intelligence keeps revisions out of the movers
+            "change_kind":    change_kind,
+            "change_note":    change_note,
             "source":         src,
         }
         logger.info(f"  {commodity:<22} N{today_price:>12,.0f}  {day_chg:>+7.2f}%  "
-                    f"{pct_vs_ref:>+6.2f}%  {src[:35]}")
+                    f"{pct_vs_ref:>+6.2f}%  {src[:35]}"
+                    + ("  [data correction]" if change_kind == CHANGE_REVISION else ""))
 
     logger.info("")
 

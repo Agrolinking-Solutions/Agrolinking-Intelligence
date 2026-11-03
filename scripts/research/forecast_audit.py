@@ -21,7 +21,9 @@ actually used:
      80% range (drift_models.range_halfwidth, widened for old data)
      contained the real price, and error by year.
 
-Writes outputs/backtest/forecast_audit.json and prints a scorecard.
+Writes outputs/backtest/forecast_audit.json (served in /accuracy as
+"fair_test") and prints a scorecard. Run every Monday by the daily pipeline
+(step 06c) with --rebuild --no-variants.
 Run: python scripts/research/forecast_audit.py [--rebuild] [--no-variants | --variants=baseline,near-tie]
 """
 
@@ -189,7 +191,7 @@ def verdict(s4, s26, reported):
 
 if __name__ == "__main__":
     sel = json.load(open(os.path.join(ROOT, "outputs", "backtest", "model_selection.json")))
-    report = {"scored_from": SCORE_FROM, "commodities": {}}
+    report = {"updated": pd.Timestamp.today().date().isoformat(), "scored_from": SCORE_FROM, "commodities": {}}
     all_rows = []
     PAIRS_CACHE = os.path.join(ROOT, "outputs", "backtest", "audit_pairs.csv")
     if os.path.exists(PAIRS_CACHE) and "--rebuild" not in sys.argv:

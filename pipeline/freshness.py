@@ -12,7 +12,7 @@ from config.settings import PATHS
 
 DIRECT_SOURCES = {"Agricome", "Agrolinking_primary", "AFEX"}
 # Published weeks late, so judged on the longer window (FEWS NET ~7 weeks).
-LAGGED_SOURCES = {"WFP", "FEWS_NET"}
+LAGGED_SOURCES = {"WFP", "WFP_provisional", "FEWS_NET"}
 FRESH_DAYS     = 10   # Agricome/primary price newer than this => no gap
 # WFP is monthly and published ~4 weeks late, so a 10-day window made every
 # WFP commodity look like a gap and let web prices compete with real WFP

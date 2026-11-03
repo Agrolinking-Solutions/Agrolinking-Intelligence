@@ -205,6 +205,61 @@ def test_web_copies_of_directly_read_sites_are_not_used():
     assert not rows and "read directly" in decisions[0]["reason"]
 
 
+# ── Provisional WFP month (WFP publishes a month with ~5 of ~20 markets) ─────
+
+def wfp_months(oct_moves, thin_sep=False):
+    """National monthly rows (Apr-Oct 2026) and market rows for Sep/Oct with the given Oct moves."""
+    dates = pd.to_datetime([f"2026-{m:02d}-15" for m in range(4, 11)])
+    monthly = pd.DataFrame({"date": dates, "commodity_std": "Eggs", "pricetype": "Retail",
+                            "price_ngn_mt": 6700.0, "recent_median": 18.0,
+                            "thin": [False] * 5 + [thin_sep, True]})
+    sep = [7000.0, 7200.0, 6800.0, 7100.0, 6900.0]
+    mk = [{"date": dates[5], "commodity_std": "Eggs", "pricetype": "Retail", "market": f"m{i}", "price_ngn_mt": p}
+          for i, p in enumerate(sep)]
+    mk += [{"date": dates[6], "commodity_std": "Eggs", "pricetype": "Retail", "market": f"m{i}",
+            "price_ngn_mt": p * (1 + mv)} for i, (p, mv) in enumerate(zip(sep, oct_moves))]
+    return monthly, pd.DataFrame(mk)
+
+
+def test_partial_wfp_month_is_kept_as_provisional():
+    ing = load("01_ingest")
+    monthly, markets = wfp_months([-0.06, -0.14, 0.0, 0.0, -0.05])
+    out = ing.provisional_months(monthly, markets)
+    (key, (price, note)), = out.items()
+    same_market = sum(p * (1 + m) for p, m in zip([7000, 7200, 6800, 7100, 6900], [-0.06, -0.14, 0, 0, -0.05])) / 35000
+    assert key[1] == "Eggs" and price == pytest.approx(6700 * same_market) and "PROVISIONAL" in note
+
+
+def test_partial_wfp_month_skipped_when_markets_disagree_or_month_before_is_thin():
+    ing = load("01_ingest")
+    assert ing.provisional_months(*wfp_months([-0.47, -0.16, 0.0, -0.18, 0.0])) == {}   # Oct 2026 dried fish
+    assert ing.provisional_months(*wfp_months([0.0] * 5, thin_sep=True)) == {}
+
+
+def test_field_quotes_become_one_weekly_national_price(tmp_path, monkeypatch):
+    ing = load("01_ingest")
+    p = tmp_path / "field_prices.csv"
+    pd.DataFrame([
+        {"date": "2026-11-03", "commodity": "Wheat", "market": "Dawanau", "state": "Kano", "price_ngn": 70000,
+         "unit": "100kg bag", "price_level": "wholesale", "reported_by": "Dawanau trader 1", "notes": ""},
+        {"date": "2026-11-05", "commodity": "Wheat", "market": "Dawanau", "state": "Kano", "price_ngn": 36000,
+         "unit": "50kg bag", "price_level": "wholesale", "reported_by": "Dawanau trader 2", "notes": ""},
+        {"date": "2026-11-05", "commodity": "Wheat", "market": "Sabon Gari", "state": "Kano", "price_ngn": 800,
+         "unit": "kg", "price_level": "retail", "reported_by": "shop", "notes": ""},        # retail: skipped
+        {"date": "2026-11-05", "commodity": "Wheat", "market": "Dawanau", "state": "Kano", "price_ngn": 70000,
+         "unit": "bag", "price_level": "wholesale", "reported_by": "trader 3", "notes": ""},  # unknown unit: skipped
+    ]).to_csv(p, index=False)
+    monkeypatch.setitem(ing.PATHS, "raw_field_prices", str(p))
+    out = ing.load_field_prices()
+    assert len(out) == 1 and out.iloc[0]["price_ngn_mt"] == 710000.0      # median of 700K and 720K
+    assert out.iloc[0]["data_source"] == "Agrolinking_primary" and "median of 2" in out.iloc[0]["notes"]
+
+
+def test_provisional_months_are_never_scored():
+    from config.settings import SCORED_SOURCES, PROVISIONAL_SOURCES, REAL_SOURCES
+    assert PROVISIONAL_SOURCES <= REAL_SOURCES and not (PROVISIONAL_SOURCES & SCORED_SOURCES)
+
+
 # ── Web page dates (the model once dated a 2023 article 30 Oct 2026) ─────────
 
 # Daily Trust's real markup: the article's JSON-LD, then a "latest news" story dated today.
@@ -236,7 +291,8 @@ def test_page_date_meta_tags_and_updates():
 def web_wheat(price=690000.0):
     return {"commodity": "Wheat", "query_date": D("2026-11-01"), "price": price,
             "source_url": WHEAT_URL, "source_date": "2026-10-30", "confidence": "high",
-            "price_level": "wholesale", "market_location": "Kano", "source_title": "Kano wheat farmers"}
+            # national: a Kano price would be held back first (no measured Kano gap for wheat)
+            "price_level": "wholesale", "market_location": "national", "source_title": "Kano wheat farmers"}
 
 
 WHEAT_STATE = {"Wheat": {"hq_date": D("2026-04-13"), "direct_date": D("2026-04-13"), "wfp_date": None,
@@ -362,6 +418,31 @@ def test_no_cfa_franc_border_prices(master):
     assert mz["price_ngn_mt"].median() < 100_000
 
 
+def test_no_real_price_far_out_of_line_with_the_real_prices_around_it(master):
+    """WFP's Abba Gamaram 'Jan 2016' month carried 2020s prices - eggs N6,200 a crate when
+    July's was N957 - and was the national price for six commodities (found 3 Nov 2026)."""
+    real = master[master["data_source"].isin(REAL_SOURCES) & master["price_ngn_mt"].notna()]
+    bad = []
+    for c, g in real.groupby("commodity"):
+        s = g.set_index("date")["price_ngn_mt"].sort_index()
+        for d, p in s.items():
+            near = s[(s.index != d) & (abs((s.index - d).days) <= 183)]
+            if len(near) >= 2 and not 0.4 <= p / near.median() <= 2.5:
+                bad.append(f"{c} {d.date()} {p:,.0f} vs {near.median():,.0f}")
+    assert not bad, bad
+
+
+def test_filled_in_prices_only_between_real_prices(master):
+    """A filled-in week is drawn between two real prices. Before the first one it copied it
+    back for years - white beans sat at the mis-dated Jan 2016 price all the way to 2002."""
+    anchors = REAL_SOURCES | {"WB_RTP_estimate"}
+    for c, g in master.groupby("commodity"):
+        a = g.loc[g["data_source"].isin(anchors), "date"]
+        filled = g.loc[g["data_source"] == "Interpolated", "date"]
+        if len(a) and len(filled):
+            assert filled.min() >= a.min() and filled.max() <= a.max(), c
+
+
 def test_day_change_is_measured_against_the_last_published_price(tmp_path):
     """Yellow maize fell 15% on AFEX on 23 Oct 2026 and the site showed 0.0%: the change was the
     slope of today's forecast curve. It is now today's price vs the price published before today."""
@@ -375,3 +456,176 @@ def test_day_change_is_measured_against_the_last_published_price(tmp_path):
     prices, day = z.previous_published(datetime(2026, 10, 24))
     assert day == "2026-10-23", "today's own file (a rerun) is never the comparison"
     assert prices["Maize (yellow)"] == 271940.0
+
+
+# ── Wrong things on the site, found 3 Nov 2026 ──────────────────────────────
+
+def test_exchange_rate_signal_reads_the_real_column(tmp_path, monkeypatch):
+    """The API looked for a 'usd_ngn' column, found none and compared a default 1,600 with the
+    real average: 'NGN weakened +19.6%' when the rate had barely moved."""
+    import api
+    (tmp_path / "data" / "external").mkdir(parents=True)
+    dates = pd.date_range("2026-08-03", periods=14, freq="W-MON")
+    for latest, signal in ((1347.0, "Mid"), (1500.0, "High")):
+        pd.DataFrame({"date": dates, "fx_rate_usd_ngn": [1340.0] * 13 + [latest],
+                      "fx_source": "CBN official rate"}).to_csv(
+            tmp_path / "data" / "external" / "fx_rates.csv", index=False)
+        monkeypatch.setattr(api, "BASE_DIR", str(tmp_path))
+        fx = api.forecast_factor_drivers(commodity="Wheat")["factors"]["fx_import_parity"]
+        assert fx["rating"] == signal
+        assert abs(fx["fx_pct_vs_avg"] - (latest / ((1340 * 12 + latest) / 13) - 1) * 100) < 0.01
+
+
+def test_no_recent_real_price_means_unchecked_not_failed(monkeypatch):
+    """Validation fell back to typed-in prices (fish 1.2M vs WFP's real 2.4M) and showed
+    'Within target: No' for beans, beef, goat and fish. Now: unchecked, forecast unchanged."""
+    v = load("06_validate")
+    monkeypatch.setattr(v, "get_reference_price", lambda c: (None, "No real price in the last 45 days"))
+    vals = [100.0, 101.0, 102.0]
+    fc = {"last_known_price": 100.0, "last_known_date": "2026-11-02", "last_real_price": 100.0,
+          "horizons": {h: {"ensemble": {"values": vals, "lower_ci": vals, "upper_ci": vals,
+                                        "models_used": ["champion:naive"]},
+                           "forecast_end": "2026-12-01"} for h in ("daily", "monthly")}}
+    out = v.validate_commodity("Fish (dried)", fc)
+    assert out["validation"]["status"] == "unchecked"
+    assert out["validation"]["within_target"] is None, "None = not checked; False showed 'No'"
+    assert "reference_price" not in out["validation"] and "error_pct_after" not in out["validation"]
+    assert out["horizons"]["monthly"]["ensemble"]["values"] == vals
+    assert out["horizons"]["monthly"]["forecast_end_detail"]["price"] == 102.0
+    assert not hasattr(v, "MANUAL_PRICES") and not hasattr(v, "WEB_REFERENCE_PRICES")
+
+
+def test_afex_history_uses_the_median_not_one_days_print(tmp_path, monkeypatch):
+    """Yellow maize 'rose' 39% on one AFEX print (470,870, 2 Nov 2026); its 5-day median was 337,700."""
+    ing = load("01_ingest")
+    prints = [("2026-10-26", 279570.0), ("2026-10-27", 321510.0), ("2026-10-28", 369740.0),
+              ("2026-10-30", 337700.0), ("2026-11-02", 470870.0)]
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    pd.DataFrame([{"as_of_date": d, "mansa_commodity": "maize", "country": "Nigeria",
+                   "price_type": "exchange", "price_ngn_mt": p, "price_as_shown": f"{p / 1000} NGN / kg",
+                   "source": "AFEX", "url": "https://www.mansamarkets.com/commodities/maize",
+                   "retrieved_on": d} for d, p in prints]).to_csv(raw / "afex_prices.csv", index=False)
+    monkeypatch.setitem(ing.PATHS, "raw_web_prices", str(raw / "web_prices.csv"))
+    df = ing.load_afex_prices().set_index("date")["price_ngn_mt"]
+    assert df[pd.Timestamp("2026-11-02")] == 337700.0
+    assert df[pd.Timestamp("2026-10-30")] == pytest.approx(329605.0), "week of 26 Oct: median of its 4 days"
+
+
+def test_a_corrected_price_is_not_a_market_move():
+    """Withdrawn web prices made local rice the 'biggest faller' at -23% on 3 Nov 2026."""
+    z = load("07_zonal_forecast")
+    real_now = {"2026-10-12": 1_068_043.0, "2026-11-02": 1_025_714.0}
+    # yesterday's figure stood on a price that has since been withdrawn
+    kind, note = z.classify_change((1_352_040.0, "2026-10-19"), (1_025_714.0, "2026-11-02"), real_now)
+    assert kind == z.CHANGE_REVISION and "withdrawn" in note
+    # ...or corrected (a provisional WFP month replaced by the full month)
+    kind, note = z.classify_change((1_068_043.0, "2026-10-12"), (1_068_043.0, "2026-10-12"),
+                                   {"2026-10-12": 1_100_000.0})
+    assert kind == z.CHANGE_REVISION and "corrected" in note
+    assert z.classify_change((1_068_043.0, "2026-10-12"), (1_025_714.0, "2026-11-02"),
+                             real_now)[0] == z.CHANGE_NEW_REAL
+    assert z.classify_change((1_068_043.0, "2026-10-12"), (1_068_043.0, "2026-10-12"),
+                             real_now)[0] == z.CHANGE_FORECAST
+    assert z.classify_change(None, (1.0, "2026-11-02"), real_now) == (None, None)
+
+
+def test_one_states_price_is_not_a_national_price():
+    """Four Lagos prices stood as national prices, and a Lagos 50kg-bag price opened alert #7
+    against AFEX's national maize price (Nov 2026)."""
+    from pipeline.locations import state_of, national_equivalent
+    assert state_of("Mile 12/Mushin/Daleko/Oyingbo, Lagos") == "Lagos"
+    assert state_of("Maiduguri, Borno State") == "Borno"
+    assert state_of("Minna, Niger State") == "Niger"
+    for national in ("national", "Lagos and Kano markets", "Niger Delta", "Nigeria", None):
+        assert state_of(national) is None
+    nat, state, how = national_equivalent("Maize (yellow)", 1_177_000.0, "Mile 12, Lagos")
+    assert state == "Lagos" and nat == pytest.approx(1_000_000.0) and "measured" in how
+    assert national_equivalent("Rice (local)", 1_025_714.0, "Lagos")[0] is None
+    assert national_equivalent("Maize (white)", 450_000.0, "national") == (450_000.0, None, None)
+
+
+def test_state_price_without_measured_gap_is_not_promoted_or_compared():
+    pr, cc = load("14_promote_web_prices"), load("16_cross_check")
+    lagos_rice = {"commodity": "Rice (local)", "query_date": D("2026-11-03"), "price": 1_040_000.0,
+                  "source_url": "https://example.ng/rice", "source_title": "t", "source_date": "2026-11-02",
+                  "confidence": "medium", "price_level": "wholesale", "market_location": "Lagos"}
+    state = {"Rice (local)": {"hq_date": D("2026-09-14"), "direct_date": None, "wfp_date": D("2026-09-14"),
+                              "real_date": D("2026-09-14"), "real_price": 1_057_286.0}}
+    rows, decisions = pr.promote([lagos_rice], state, D("2026-11-03"), page_lookup=lambda u: {})
+    assert not rows and "stand for the national price" in decisions[0]["reason"]
+    master = pd.DataFrame({"commodity": "Rice (local)", "date": pd.to_datetime(["2026-10-26"]),
+                           "price_ngn_mt": [1_057_286.0], "data_source": "WFP", "market_type": "wholesale"})
+    current = lambda url: {"published": D("2026-11-02"), "modified": None, "error": None}
+    e = cc.build_report(master, [lagos_rice], D("2026-11-03"), page_lookup=current)["commodities"]["Rice (local)"]
+    assert e["web_prices"] == [] and e["other_web_prices"][0]["not_compared"]
+
+
+def test_state_price_with_measured_gap_is_converted():
+    pr = load("14_promote_web_prices")
+    lagos_maize = {"commodity": "Maize (yellow)", "query_date": D("2026-11-03"), "price": 400_180.0,
+                   "source_url": "https://example.ng/maize", "source_title": "t", "source_date": "2026-11-02",
+                   "confidence": "medium", "price_level": "wholesale", "market_location": "Mile 12, Lagos"}
+    state = {"Maize (yellow)": {"hq_date": D("2026-08-01"), "direct_date": D("2026-08-01"), "wfp_date": None,
+                                "real_date": D("2026-10-26"), "real_price": 340_000.0}}
+    current = lambda url: {"published": D("2026-11-02"), "modified": None, "error": None}
+    rows, decisions = pr.promote([lagos_maize], state, D("2026-11-03"), page_lookup=current)
+    assert len(rows) == 1 and float(rows[0][2]) == pytest.approx(340_000.0, abs=1)   # 400,180 / 1.177
+    assert "measured Lagos gap" in rows[0][13]
+
+
+# ── Measuring and reporting ──────────────────────────────────────────────────
+
+def scored_rows(rows):
+    return pd.DataFrame([{"made_on": "2026-10-13", "commodity": "Sesame", "horizon": "weekly",
+                          "target_date": pd.Timestamp("2026-10-20"), "actual_date": pd.Timestamp("2026-10-19"),
+                          "method": "champion", "valid": True, "predicted": p, "anchor_price": a,
+                          "lower": lo, "upper": hi, "actual": act} for p, a, lo, hi, act in rows])
+
+
+def test_live_range_coverage_and_no_direction_for_price_holds():
+    """Ranges aim to hold the real price 8 times in 10 - now checked on published forecasts.
+    A 'price holds' forecast has no direction; counting it as a miss put direction at 6%."""
+    t = load("15_track_accuracy")
+    rows = scored_rows([(100.0, 100.0, 90.0, 110.0, 105.0),     # flat, inside
+                        (100.0, 100.0, 95.0, 105.0, 120.0),     # flat, outside
+                        (110.0, 100.0, 100.0, 120.0, 115.0),    # called up, went up, inside
+                        (110.0, 100.0, np.nan, np.nan, 90.0)])  # called up, went down, no range
+    _, overall = t.summarise(rows)
+    s = overall["1 week"]["champion"]
+    assert s["in_range_pct"] == pytest.approx(66.7, abs=0.1) and s["ranges_scored"] == 3
+    assert s["direction_scored"] == 2 and s["direction_hit_pct"] == 50.0
+    assert s["price_holds_pct"] == 50.0
+
+
+def test_monthly_report_is_written_once_per_month(tmp_path):
+    r = load("18_accuracy_report")
+    assert r.report_due(D("2026-11-03"), str(tmp_path)) is None, "first report is for November 2026"
+    assert r.report_due(D("2026-12-01"), str(tmp_path)) == "2026-11"
+    (tmp_path / "accuracy_2026-11.md").write_text("done")
+    assert r.report_due(D("2026-12-02"), str(tmp_path)) is None, "a month is never redone"
+    log = scored_rows([(100.0, 100.0, 90.0, 110.0, 105.0), (100.0, 100.0, 95.0, 105.0, 120.0)])
+    master = pd.DataFrame({"commodity": "Sesame", "date": pd.to_datetime(["2026-10-19"]),
+                           "price_ngn_mt": [105.0], "data_source": "Agricome"})
+    rep, md = r.build_report("2026-10", log, {}, {"Sesame": {"accuracy_4w": 92.9}}, master)
+    assert rep["live"]["1 week"]["in_range_pct"] == 50.0 and rep["live"]["1 month"] is None
+    assert "nothing to score" in md and "| Sesame |" in md and "Agricome" in md
+
+
+def test_feed_alert_opens_updates_and_closes():
+    """Agricome's last prices were for the week of 19 Oct 2026 and nothing said so."""
+    f = load("19_feed_alerts")
+    master = pd.DataFrame({"commodity": ["Sesame", "Maize (yellow)"],
+                           "date": pd.to_datetime(["2026-10-19", "2026-11-02"]),
+                           "price_ngn_mt": [1_520_000.0, 337_700.0], "data_source": ["Agricome", "AFEX"]})
+    status = f.feed_status(master, D("2026-11-03"))
+    assert status["Agricome"]["days"] == 15 and status["Agricome"]["resting"] == ["Sesame"]
+    acts = f.plan(status, [], D("2026-11-03"))
+    assert [(a["do"], a["feed"]) for a in acts] == [("open", "Agricome")]
+    issue = {"title": f.title("Agricome"), "number": 9, "body": acts[0]["body"]}
+    assert f.plan(status, [issue], D("2026-11-03")) == [], "same text: nothing to do"
+    later = f.feed_status(master, D("2026-11-04"))
+    assert f.plan(later, [issue], D("2026-11-04"))[0]["do"] == "update"
+    back = f.feed_status(pd.concat([master, master.iloc[[0]].assign(date=pd.Timestamp("2026-11-02"))]),
+                         D("2026-11-04"))
+    assert f.plan(back, [issue], D("2026-11-04"))[0]["do"] == "close"

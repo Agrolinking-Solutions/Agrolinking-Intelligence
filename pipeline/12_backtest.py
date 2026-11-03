@@ -24,8 +24,11 @@ Regressors are held at their value AT THE ORIGIN for the whole horizon, i.e.
 only information that was genuinely known then is used. Weather anomalies are
 trailing (already observed), so there is no leakage.
 
-Caveat: fx_rates.csv / inflation.csv after ~April 2026 are projections, not
-observations, so keep ORIGINS_END before then when judging FX variants.
+Origins run up to ORIGINS_END, the longest horizon before today, so every origin can
+be scored. (It was fixed at 30 Mar 2026 while fx_rates.csv / inflation.csv
+held projections after April; both have been CBN figures throughout since
+Oct 2026.) This is the factor test. The fair accuracy figure is
+scripts/research/forecast_audit.py, run every Monday.
 
 Run:
   python pipeline/12_backtest.py                      # all commodities
@@ -43,7 +46,7 @@ warnings.filterwarnings("ignore")
 logging.getLogger("prophet").setLevel(logging.ERROR)
 logging.getLogger("cmdstanpy").setLevel(logging.ERROR)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES
+from config.settings import PATHS, COMMODITIES, SCORED_SOURCES
 
 logger.remove()
 logger.add(sys.stdout,
@@ -55,11 +58,11 @@ FEATURES_DIR = os.path.join(os.path.dirname(PATHS["master"]), "features")
 WEATHER_PATH = os.path.join(ROOT, "data", "external", "weather_daily.csv")
 OUT_DIR      = os.path.join(ROOT, "outputs", "backtest")
 
-REAL_SOURCES = {"Agricome", "WFP", "Agrolinking_primary"}
+REAL_SOURCES = SCORED_SOURCES   # partner prices, as 13_select_forecaster scores on
 HORIZONS     = (4, 8)          # weeks ahead
 N_ORIGINS    = 12              # rolling origins per commodity
 ORIGIN_STEP  = 4               # weeks between origins
-ORIGINS_END  = pd.Timestamp("2026-03-30")   # before FX/inflation turn into projections
+ORIGINS_END  = (pd.Timestamp(date.today()) - pd.Timedelta(weeks=max(HORIZONS))).normalize()
 MIN_TRAIN    = 40
 
 BASE_REG = ["fx_rate_usd_ngn", "fuel_cost_index", "food_inflation_yoy",

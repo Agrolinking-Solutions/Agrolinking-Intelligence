@@ -55,7 +55,8 @@ load_blocked_sites = _promote.load_blocked_sites
 
 # Our price = the latest REAL price the platform holds (what it validates
 # forecasts against), including web prices already promoted by step 14.
-PARTNER_SOURCES     = {"Agricome": "Agricome", "WFP": "WFP", "Agrolinking_primary": "Agrolinking field data",
+PARTNER_SOURCES     = {"Agricome": "Agricome", "WFP": "WFP", "WFP_provisional": "WFP (provisional month)",
+                       "Agrolinking_primary": "Agrolinking field data",
                        "AFEX": "AFEX exchange", "FEWS_NET": "FEWS NET market monitor",
                        "Web_search": "a web price accepted earlier"}
 COMPARE_LEVELS      = {"wholesale", "exchange"}
@@ -100,8 +101,9 @@ def our_prices(master, coverage):
         else:
             level = "wholesale"
         where = PARTNER_SOURCES[r["data_source"]]
-        if r["data_source"] == "WFP" and coverage.get(c):
-            where = f"WFP markets in {coverage[c]}"
+        if r["data_source"] in ("WFP", "WFP_provisional") and coverage.get(c):
+            where = f"WFP markets in {coverage[c]}" + (
+                " (provisional month)" if r["data_source"] == "WFP_provisional" else "")
         out[c] = {"price": float(r["price_ngn_mt"]), "date": r["date"].date(),
                   "source": r["data_source"], "level": level, "coverage": where}
     return out
@@ -133,8 +135,9 @@ AFEX_NOTES = {
 AFEX_DIFFERENT_GRADE = {"ginger"}
 
 
-AFEX_DAYS = 5          # AFEX's median over its last 5 trading days (within AFEX_WINDOW_DAYS)
-AFEX_WINDOW_DAYS = 10  # one day's figure swings: soybean 598K -> 645K -> 549K over 14-16 Oct 2026
+# AFEX's price = the median of its last AFEX_DAYS trading days (afex_median.py,
+# shared with 01_ingest.py): one day's figure swings.
+from pipeline.afex_median import afex_median, AFEX_DAYS
 
 
 def afex_candidates(path=AFEX_PATH):
@@ -149,12 +152,10 @@ def afex_candidates(path=AFEX_PATH):
     out = []
     for slug, g in df.groupby("mansa_commodity"):
         r = g.iloc[-1]
-        last = pd.to_datetime(g["as_of_date"])
-        recent = g[last >= last.max() - pd.Timedelta(days=AFEX_WINDOW_DAYS)].tail(AFEX_DAYS)
-        price = float(recent["price_ngn_mt"].median())
+        price, n_days = afex_median(g, pd.to_datetime(g["as_of_date"]).max())
         for ours in MANSA_TO_OURS.get(slug, []):
             out.append({"commodity": ours, "query_date": r["as_of_date"], "price": price,
-                        "afex_days": len(recent),
+                        "afex_days": n_days,
                         "source_url": r["url"], "source_date": r["as_of_date"], "confidence": "high",
                         "price_level": "exchange, different grade" if slug in AFEX_DIFFERENT_GRADE else "exchange",
                         "market_location": "national (AFEX exchange)",
@@ -199,17 +200,27 @@ def build_report(master, candidates, today, coverage=None, page_lookup=None):
                 if not cand.get("is_afex"):
                     ok, _ = confirm_source_date(sd, page_lookup(cand["source_url"]))
                 if ok:
-                    pool.append({**cand, "_sd": sd})
+                    # Like with like: a state's price is compared as its national
+                    # equivalent (measured state gap), or not at all - a Lagos
+                    # 50kg-bag price opened alert #7 against AFEX's national
+                    # maize price (Nov 2026). pipeline/locations.py
+                    nat = cand if cand.get("is_afex") else _promote.as_national(cand)
+                    pool.append({**(nat or cand), "_sd": sd, "_one_state": nat is None})
         level = lambda x: str(x.get("price_level") or "").strip().lower()
-        compared = latest_per_site([p for p in pool if level(p) in COMPARE_LEVELS])
+        compared = latest_per_site([p for p in pool if level(p) in COMPARE_LEVELS and not p["_one_state"]])
         compared_sites = {source_site(p["source_url"]) for p in compared}
-        context = latest_per_site([p for p in pool if level(p) not in COMPARE_LEVELS
+        context = latest_per_site([p for p in pool if (level(p) not in COMPARE_LEVELS or p["_one_state"])
                                    and source_site(p["source_url"]) not in compared_sites])
 
         def show(p):
-            return {"price": round(p["price"]), "site": source_site(p["source_url"]), "url": p["source_url"],
-                    "source_date": str(p["_sd"]), "level": level(p) or "not recorded",
-                    "location": p.get("market_location"), "confidence": p.get("confidence")}
+            out = {"price": round(p["price"]), "site": source_site(p["source_url"]), "url": p["source_url"],
+                   "source_date": str(p["_sd"]), "level": level(p) or "not recorded",
+                   "location": p.get("market_location"), "confidence": p.get("confidence")}
+            if p.get("conversion"):     # price above is the national equivalent
+                out.update(price_as_found=round(p["price_as_found"]), conversion=p["conversion"])
+            if p["_one_state"]:
+                out["not_compared"] = "one state's price, no measured gap to the national price"
+            return out
 
         entry = {"our_price": round(mine["price"]) if mine else None,
                  "our_date": str(mine["date"]) if mine else None,
@@ -253,6 +264,13 @@ def build_report(master, candidates, today, coverage=None, page_lookup=None):
         if afex_days > 1:
             notes.append(f"The AFEX price is the middle of its last {afex_days} trading days, "
                          "so one day's swing doesn't decide the status.")
+        one_state = sum(1 for p in context if p["_one_state"])
+        if one_state:
+            notes.append(f"{one_state} web price(s) from one state's markets, with no measured gap to the "
+                         "national price, are listed but not compared.")
+        if any(p.get("conversion") for p in compared):
+            notes.append("State prices are compared as national prices, converted with that state's "
+                         "measured price gap.")
         if entry["web_prices"] and len(entry["web_prices"]) == 1:
             notes.append("Only one website - treat the comparison as a hint, not proof.")
         entry["notes"] = notes

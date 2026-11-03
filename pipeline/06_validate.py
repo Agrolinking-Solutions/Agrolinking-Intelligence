@@ -16,11 +16,10 @@ How it works:
      closest to live market reality
   7. Updates the master CSV with validated prices
 
-Live sources used (queried fresh on each run via requests):
-  - NEPC Nigeria indicative prices
-  - Agricom Instagram post prices (you provide these manually
-    via the MANUAL_PRICES dict when you get a new post)
-  - Built-in reference anchors (updated from web research)
+Reference = the newest real price in master (partner, exchange, market
+monitor or vetted web price) if at most FRESH_REFERENCE_DAYS old. Without
+one the forecast is marked "unchecked", never compared with a typed-in
+number.
 
 Run: python pipeline/06_validate.py
 """
@@ -36,11 +35,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES, REAL_SOURCES
 
 # Reference price is taken from the latest real/web-sourced price in master
-# when it is at most this many days old; otherwise validation falls back to
-# the hand-entered MANUAL_PRICES / WEB_REFERENCE_PRICES below.
-# 45, not 21: WFP is monthly (mid-month) and HDX publishes it ~4 weeks later,
-# so its newest real price is typically 25-40 days old - still far fresher
-# than the hand-entered fallbacks (e.g. Fish 1.2M vs WFP's real 2.4M, Sep 2026).
+# when it is at most this many days old; otherwise the forecast is marked
+# "unchecked". 45, not 21: WFP is monthly (mid-month) and HDX publishes it
+# ~4 weeks later, so its newest real price is typically 25-40 days old.
+# There used to be hand-typed fallbacks (MANUAL_PRICES, WEB_REFERENCE_PRICES)
+# for older ones. They went stale - fish 1.2M against WFP's real 2.4M - and
+# showed "Within target: No" on the site for beans, beef, goat and fish
+# (removed Nov 2026).
 FRESH_REFERENCE_DAYS = 45
 
 logger.remove()
@@ -53,74 +54,6 @@ logger.add(os.path.join(PATHS["logs_dir"], "validation_{time:YYYY-MM-DD}.log"),
 FORECASTS_DIR = PATHS["forecasts_dir"]
 VALIDATED_DIR = os.path.join(PATHS["forecasts_dir"], "validated")
 os.makedirs(VALIDATED_DIR, exist_ok=True)
-
-# ─────────────────────────────────────────────────────────────────────────────
-# MANUAL PRICE ENTRY
-# ─────────────────────────────────────────────────────────────────────────────
-# Every time you see a new Agricom post, update these prices.
-# Format: NGN/MT  (multiply per-tonne price directly)
-# Leave as None if you don't have a fresh price for that commodity.
-# These take highest priority in validation.
-MANUAL_PRICES = {
-    "Hibiscus":      2_325_000,   # Agricome Apr 16 2026
-    "Sesame":        1_650_000,   # LCFE May 2026 (recalibrated)
-    "Ginger":       12_000_000,   # NGX Feb 2026 N13,000/kg; mid-market N12M
-    "Cocoa":         5_650_000,   # Agricome Apr 16 2026
-    "Soybeans":        745_000,   # Agricome Apr 16 2026
-    "Cashew Nuts":   1_950_000,   # Agricome Apr 16 2026
-    "Sorghum":         420_000,   # Market Naija TV mid-chain (recalibrated)
-    "Beans (white)":   813_000,   # WFP Mar 2026
-    "Beans (red)":     915_000,   # WFP Mar 2026
-    "Maize (white)":   370_000,   # Market 2026
-    "Maize (yellow)":  400_000,   # Market 2026
-    "Wheat":           706_833,   # Agrolinking primary Apr 13 2026
-    # Rice by type: WFP national average, Jun 2026, retail converted to
-    # wholesale-equivalent (x0.942 local, x0.898 imported) in 01_ingest.py
-    "Rice (local)":  1_056_000,   # ~N52.8k per 50kg bag
-    "Rice (foreign)": 1_378_000,  # ~N68.9k per 50kg bag
-    # ── Livestock/protein — previously missing entirely, which forced
-    # validation to always skip these four (status: "skipped", no
-    # correction ever applied, no live accuracy check).
-    # Sourced Sept 2026: retail beef/goat ~N7-8k/kg (24hoursmarket.com,
-    # Daily Trust); wholesale typically runs ~15-20% below retail.
-    # Dried fish from carton pricing at Hadejia market (fcwc-fish.org).
-    # Eggs from NBS "Selected Food Price Watch" March 2026 (channelstv.com).
-    # Update these whenever you have a fresher reading — same workflow
-    # as the crop MANUAL_PRICES entries above.
-    "Meat (beef)":   6_500_000,   # wholesale est. from ~N7-8k/kg retail, Sept 2026
-    "Meat (goat)":   6_500_000,   # wholesale est. from ~N7-8k/kg retail, Sept 2026
-    "Fish (dried)":  1_200_000,   # est. from Hadejia carton pricing, mid-2026
-    "Eggs":              6_200,   # NBS Selected Food Price Watch, Mar 2026 (NGN/crate)
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# WEB-SOURCED REFERENCE ANCHORS
-# ─────────────────────────────────────────────────────────────────────────────
-# Updated from live web research April 2026.
-# Sources: NGX (BusinessDay Feb 2026), WFP March 2026, Market Naija,
-#          Selinawamucii, Proshare, ICO cocoa data.
-WEB_REFERENCE_PRICES = {
-    # Cocoa: ICO ~$3,613/ton × ₦1,640/$ = ₦5.9M/MT (BusinessDay Feb 2026 confirmed crash)
-    "Cocoa":         5_925_000,
-    # Ginger: NGX N13,000/kg = N13M/MT (BusinessDay Feb 2026, held steady due to blight)
-    "Ginger":       13_000_000,
-    # Sesame: NGX N1,150-1,200/kg (BusinessDay Feb 2026)
-    "Sesame":        1_200_000,
-    # Hibiscus: Agricom March 2026 ₦2,650,000
-    "Hibiscus":      2_650_000,
-    # Cashew: Agricom March 2026 ₦1,800,000 (harvest season = lower)
-    "Cashew Nuts":   1_800_000,
-    # Maize: carry_forward trend ₦325–350k/MT (WFP last: ₦208k 2023, inflated since)
-    "Maize (white)":   350_000,
-    "Maize (yellow)":  380_000,
-    # Sorghum: Market Naija ₦44k/100kg = ₦440k/MT
-    "Sorghum":         440_000,
-    # Soybeans: Market Naija ₦79k/100kg = ₦790k/MT, CEIC ~₦786k
-    "Soybeans":        750_000,
-    # Beans: WFP March 2026 confirmed
-    "Beans (white)":   820_000,
-    "Beans (red)":     915_000,
-}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # VALIDATION SETTINGS
@@ -170,86 +103,31 @@ def latest_fresh_real_price(commodity: str, today=None):
         return None, None
 
 
-def get_reference_price(commodity: str) -> tuple[float, str]:
+def newest_real_date(commodity: str):
+    """Date of the newest real price in master, however old (None if none)."""
+    m = _master_for_reference
+    if m is None:
+        return None
+    sub = m[(m["commodity"] == commodity) & m["data_source"].isin(REAL_SOURCES)
+            & m["price_ngn_mt"].notna()]
+    return None if sub.empty else sub["date"].max().date()
+
+
+def get_reference_price(commodity: str) -> tuple[float | None, str]:
     """
-    Get the best available reference price for a commodity.
-    Priority:
-      1. Latest real price from master (Agricome/WFP/primary, or an accepted
-         web-sourced price) if at most FRESH_REFERENCE_DAYS old
-      2. Hand-entered MANUAL_PRICES (fallback — goes stale unless edited)
-      3. WEB_REFERENCE_PRICES anchors
-    Returns (price, source_description)
+    The latest real price from master (partner, exchange, market monitor or
+    an accepted web price) if at most FRESH_REFERENCE_DAYS old.
+    Returns (price, source_description), or (None, why there is none).
+    No typed-in fallback, and no scraped "live" price: a scrape of NEPC's
+    indicative-price page used to override even a fresh real price (it never
+    once returned a number in 166 runs; removed Nov 2026).
     """
     price, source = latest_fresh_real_price(commodity)
     if price is not None:
         return price, source
-
-    # 2. Manual price (hand-entered fallback)
-    if commodity in MANUAL_PRICES and MANUAL_PRICES[commodity] is not None:
-        return float(MANUAL_PRICES[commodity]), "Agricom manual entry"
-
-    # 3. Web research anchor
-    if commodity in WEB_REFERENCE_PRICES:
-        return float(WEB_REFERENCE_PRICES[commodity]), "Web research (NGX/WFP/Market data)"
-
-    return None, "No reference available"
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# LIVE WEB FETCH (runs on your machine — internet connected)
-# ─────────────────────────────────────────────────────────────────────────────
-
-def try_fetch_live_price(commodity: str) -> tuple[float | None, str]:
-    """
-    Attempt to fetch a live price from the web.
-    Returns (price_ngn_mt, source) or (None, error_message).
-    This runs silently — failures fall back to reference anchors.
-    """
-    try:
-        import requests
-        from bs4 import BeautifulSoup
-
-        # Map commodities to search queries
-        search_map = {
-            "Cocoa":         "Nigeria cocoa price per ton NGN today",
-            "Ginger":        "Nigeria ginger price per ton NGN today",
-            "Sesame":        "Nigeria sesame seed price per ton NGN today",
-            "Hibiscus":      "Nigeria hibiscus zobo price per ton NGN today",
-            "Cashew Nuts":   "Nigeria cashew nut price per ton NGN today",
-            "Soybeans":      "Nigeria soybean price per ton NGN today",
-            "Sorghum":       "Nigeria sorghum price per ton NGN today",
-            "Maize (white)": "Nigeria maize white price per ton NGN today",
-            "Maize (yellow)":"Nigeria maize yellow price per ton NGN today",
-            "Beans (white)": "Nigeria beans white price per ton NGN today",
-            "Beans (red)":   "Nigeria beans red price per ton NGN today",
-        }
-
-        # Try NEPC price page directly
-        nepc_url = "https://nepc.gov.ng/indicative-market-prices/"
-        r = requests.get(nepc_url, timeout=10,
-                        headers={"User-Agent": "Mozilla/5.0"})
-        if r.status_code == 200:
-            soup = BeautifulSoup(r.text, "html.parser")
-            text = soup.get_text(separator=" ").lower()
-            # Look for commodity name near a price pattern
-            import re
-            comm_lower = commodity.lower().replace(" (white)","").replace(" (yellow)","")
-            idx = text.find(comm_lower)
-            if idx > 0:
-                snippet = text[idx:idx+200]
-                prices = re.findall(r'[\d,]+(?:\.\d+)?', snippet.replace(",",""))
-                prices_clean = [float(p) for p in prices if 100 < float(p) < 100_000_000]
-                if prices_clean:
-                    # Convert to NGN/MT if needed (assume per ton if > 100,000)
-                    price = max(prices_clean)
-                    if price < 100_000:
-                        price *= 1000  # per kg → per MT
-                    return price, "NEPC live"
-
-    except Exception:
-        pass
-
-    return None, "Live fetch unavailable"
+    newest = newest_real_date(commodity)
+    return None, (f"No real price in the last {FRESH_REFERENCE_DAYS} days to check "
+                  f"against (newest: {newest})" if newest else "No real price to check against")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -355,27 +233,33 @@ def validate_commodity(
 
     ref_price, ref_source = get_reference_price(commodity)
 
-    # Try live fetch first (may upgrade the reference)
-    live_price, live_source = try_fetch_live_price(commodity)
-    if live_price is not None:
-        ref_price  = live_price
-        ref_source = live_source
-        logger.debug(f"  [{commodity}] Live price fetched: ₦{live_price:,.0f} ({live_source})")
-
-    if ref_price is None:
-        logger.warning(f"  [{commodity}] No reference price — skipping validation")
-        fc_data["validation"] = {"status": "skipped", "reason": "no_reference"}
-        return fc_data
-
     # Get daily forecast (our anchor for correction)
     daily_fc  = fc_data["horizons"]["daily"]["ensemble"]["values"][0]
+
+    if ref_price is None:
+        # Nothing recent and real to check against: say so, change nothing.
+        # Goes through the same finish_validation (no correction) so the
+        # output has the same shape as a checked forecast. There are no
+        # error fields, and within_target is None ("not checked"), not False:
+        # False showed "Within target: No" on the site.
+        logger.info(f"  [{commodity}] {ref_source} - unchecked")
+        return finish_validation(fc_data, daily_fc, daily_fc, {
+            "status":             "unchecked",
+            "reason":             "no_recent_real_price",
+            "note":               ref_source,
+            "forecast_before":    round(daily_fc, 2),
+            "forecast_after":     round(daily_fc, 2),
+            "correction_applied": "none: no recent real price to check against",
+            "within_target":      None,
+            "validated_at":       datetime.now().isoformat(),
+        })
+
     error_pct = compute_error(daily_fc, ref_price)
 
     # The champion forecast is built from the latest real price (05_forecast
     # last_real_price) and carried forward by a method tested on real prices.
-    # Pulling it toward a reference would only re-apply that same price, or a
-    # hand-typed MANUAL_PRICES fallback that goes stale, and undo the tested
-    # move since then. So it is checked, not corrected: the "error" is how far
+    # Pulling it toward a reference would only re-apply that same price and
+    # undo the tested move since then. So it is checked, not corrected: the "error" is how far
     # its starting real price is from the reference.
     models_used = fc_data["horizons"]["daily"]["ensemble"].get("models_used", [])
     built_from_real = (fc_data.get("last_real_price")
@@ -395,6 +279,23 @@ def validate_commodity(
     else:
         corrected_daily, correction_type = apply_correction(daily_fc, ref_price, error_pct)
 
+    return finish_validation(fc_data, daily_fc, corrected_daily, {
+        "status":             "validated",
+        "reference_price":    round(ref_price, 2),
+        "reference_source":   ref_source,
+        "forecast_before":    round(daily_fc, 2),
+        "forecast_after":     round(corrected_daily, 2),
+        "error_pct_before":   round(error_pct, 2),
+        "error_pct_after":    round(error_pct if built_from_real else compute_error(corrected_daily, ref_price), 2),
+        "correction_applied": correction_type,
+        "within_target":      (error_pct if built_from_real else compute_error(corrected_daily, ref_price)) <= MAX_ERROR_PCT,
+        "validated_at":       datetime.now().isoformat(),
+    })
+
+
+def finish_validation(fc_data: dict, daily_fc: float, corrected_daily: float,
+                      validation_meta: dict) -> dict:
+    """Scale every horizon by the daily correction and attach the metadata."""
     # Scale all horizons by the same correction ratio
     validated_horizons = {}
     for h_name, h_data in fc_data["horizons"].items():
@@ -430,20 +331,6 @@ def validate_commodity(
             }
 
         validated_horizons[h_name] = h_copy
-
-    # Build validation metadata
-    validation_meta = {
-        "status":             "validated",
-        "reference_price":    round(ref_price, 2),
-        "reference_source":   ref_source,
-        "forecast_before":    round(daily_fc, 2),
-        "forecast_after":     round(corrected_daily, 2),
-        "error_pct_before":   round(error_pct, 2),
-        "error_pct_after":    round(error_pct if built_from_real else compute_error(corrected_daily, ref_price), 2),
-        "correction_applied": correction_type,
-        "within_target":      (error_pct if built_from_real else compute_error(corrected_daily, ref_price)) <= MAX_ERROR_PCT,
-        "validated_at":       datetime.now().isoformat(),
-    }
 
     result = dict(fc_data)
     result["horizons"]   = validated_horizons
@@ -484,6 +371,14 @@ def load_latest_forecast() -> tuple[dict, str]:
 # ─────────────────────────────────────────────────────────────────────────────
 # UPDATE MASTER WITH VALIDATED PRICES
 # ─────────────────────────────────────────────────────────────────────────────
+
+def check_note(vld: dict) -> str:
+    """The reference and error for the master notes, or why there was none."""
+    if vld.get("reference_price") is None:
+        return "unchecked: no recent real price"
+    return (f"ref: N{vld['reference_price']:,.0f} "
+            f"err: {vld.get('error_pct_after', vld.get('error_after_pct', 0)):.1f}%")
+
 
 def update_master_with_validated(validated: dict, run_date: datetime):
     """Append validated forecast prices to master CSV."""
@@ -553,11 +448,7 @@ def update_master_with_validated(validated: dict, run_date: datetime):
                     "rainfall_index":     np.nan,
                     "data_quality_score": 0.90,
                     "is_validated":       True,
-                    "notes": (
-                        f"Validated daily price — "
-                        f"ref: N{vld.get('reference_price',0):,.0f} "
-                        f"err: {vld.get('error_pct_after', vld.get('error_after_pct', 0)):.1f}%"
-                    ),
+                    "notes":              f"Validated daily price — {check_note(vld)}",
                     "data_source":        "Agrolinking_validated",
                     "record_type":        "validated_actual",
                     "outlier_flag":       False,
@@ -607,11 +498,7 @@ def update_master_with_validated(validated: dict, run_date: datetime):
                 "rainfall_index":     np.nan,
                 "data_quality_score": 0.80,
                 "is_validated":       True,
-                "notes": (
-                    f"Validated forecast — "
-                    f"ref: N{vld.get('reference_price',0):,.0f} "
-                    f"err: {vld.get('error_pct_after', vld.get('error_after_pct', 0)):.1f}%"
-                ),
+                "notes":              f"Validated forecast — {check_note(vld)}",
                 "data_source":        "Agrolinking_validated",
                 "record_type":        "forecast",
                 "outlier_flag":       False,
@@ -937,7 +824,7 @@ def generate_validated_alert(validated: dict, run_date: datetime) -> str:
     """
     Generate the daily alert using validated prices.
     Shows:
-      - Validated price (post-correction, anchored to MANUAL_PRICES)
+      - Validated price (built from the latest real price)
       - % change vs reference price (not vs stale last_known_price)
       - Trend direction based on daily vs monthly horizon
     """
@@ -969,7 +856,7 @@ def generate_validated_alert(validated: dict, run_date: datetime) -> str:
             lines.append(f"{commodity:<22} {'n/a':>15} {'':>8}  {'':>6}")
             continue
 
-        # % vs reference price (MANUAL_PRICE) — clean market signal
+        # % vs the recent real reference price (last_known_price if unchecked)
         ref_price = vld.get("reference_price", 0) or fc.get("last_known_price", price)
         pct_vs_ref = (price - ref_price) / ref_price * 100 if ref_price > 0 else 0
 
@@ -1047,12 +934,17 @@ def run_validation() -> dict:
         validated[commodity] = validated_fc
 
         v       = validated_fc.get("validation", {})
+        action  = v.get("correction_applied", "none")
+        fc_p    = v.get("forecast_before", 0)
+        if v.get("status") == "unchecked":
+            logger.info(f"  {commodity:<20} ₦{fc_p:>12,.0f}  {'unchecked':>14}  {v.get('note', '')}")
+            results.append({"commodity": commodity, "forecast_price": fc_p,
+                            "reference": None, "error_before": None, "error_after": None,
+                            "action": action, "within_target": None})
+            continue
         before  = v.get("error_pct_before", 0)
         after   = v.get("error_pct_after", 0)
-        action  = v.get("correction_applied", "none")
         ref_p   = v.get("reference_price", 0)
-        fc_p    = v.get("forecast_before", 0)
-        fc_corr = v.get("forecast_after", fc_p)
         status  = "✅" if after <= MAX_ERROR_PCT else ("⚠️" if after <= 15 else "❌")
 
         logger.info(
@@ -1074,13 +966,15 @@ def run_validation() -> dict:
             "within_target":  after <= MAX_ERROR_PCT,
         })
 
-    # Summary stats
-    within_target = sum(1 for r in results if r["within_target"])
-    avg_err_before = np.mean([r["error_before"] for r in results]) if results else 0
-    avg_err_after  = np.mean([r["error_after"]  for r in results]) if results else 0
+    # Summary stats - over the forecasts that had a recent real price to check
+    checked = [r for r in results if r["within_target"] is not None]
+    within_target = sum(1 for r in checked if r["within_target"])
+    avg_err_before = np.mean([r["error_before"] for r in checked]) if checked else 0
+    avg_err_after  = np.mean([r["error_after"]  for r in checked]) if checked else 0
 
     logger.info(f"\n  {'-' * 85}")
-    logger.info(f"  Within <3% target : {within_target}/{len(results)} commodities")
+    logger.info(f"  Within <3% target : {within_target}/{len(checked)} checked "
+                f"({len(results) - len(checked)} unchecked: no recent real price)")
     logger.info(f"  Avg error before  : {avg_err_before:.1f}%")
     logger.info(f"  Avg error after   : {avg_err_after:.1f}%")
 
@@ -1117,6 +1011,7 @@ def run_validation() -> dict:
         "run_date":         run_date.isoformat(),
         "forecast_file":    forecast_file,
         "commodities":      len(results),
+        "checked":          len(checked),
         "within_5pct":      within_target,
         "avg_error_before": round(avg_err_before, 2),
         "avg_error_after":  round(avg_err_after,  2),
@@ -1131,7 +1026,7 @@ def run_validation() -> dict:
     logger.info("=" * 65)
     logger.success(
         f"VALIDATION COMPLETE — "
-        f"{within_target}/{len(results)} within <3% target | "
+        f"{within_target}/{len(checked)} checked within <3% target | "
         f"avg error {avg_err_after:.1f}%"
     )
     logger.info("=" * 65)

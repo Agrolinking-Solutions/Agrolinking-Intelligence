@@ -138,18 +138,21 @@ def run_cleaning():
     # the last real price were drawn toward a real point that no longer
     # exists (e.g. a web-sourced price later removed from web_prices.csv),
     # so they'd keep pulling the series toward a number we've withdrawn.
+    # Same before the first: WFP's mis-dated Jan 2016 month (01_ingest
+    # WFP_MISDATED) left eggs "N5,800" in early 2016, drawn from N6,200
+    # towards the real N957 of July.
     orphaned = 0
     for commodity in COMMODITIES:
         real_dates = df.loc[(df["commodity"] == commodity) & df["data_source"].isin(ANCHOR_SOURCES), "date"]
         if real_dates.empty:
             continue
         mask = ((df["commodity"] == commodity) & (df["data_source"] == "Interpolated")
-                & (df["date"] > real_dates.max()))
+                & ((df["date"] > real_dates.max()) | (df["date"] < real_dates.min())))
         if mask.any():
             orphaned += int(mask.sum())
             df = df[~mask]
     if orphaned:
-        logger.info(f"  Removed {orphaned} interpolated row(s) past the last real price")
+        logger.info(f"  Removed {orphaned} interpolated row(s) outside the first-to-last real price")
 
     # Redraw saved daily estimates (validated_actual) that sit between the
     # last real price and the newest estimate. They were made before that

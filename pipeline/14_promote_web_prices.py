@@ -15,6 +15,9 @@ A web price is promoted only if ALL of these hold:
   - the model's own confidence is "high" or "medium"
   - it is a wholesale or exchange price (the platform's price basis);
     retail, farm-gate and rows saved before the level was recorded are not
+  - it is a national price, or one state's price converted with that
+    state's MEASURED price gap (pipeline/locations.py); a state price with
+    no measured gap is not used. Every check below uses the national price
   - it names a source URL
   - its source date parses, is not in the future, and is at most
     MAX_SOURCE_AGE_DAYS old
@@ -45,6 +48,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES, READ_DIRECTLY
 from pipeline.pg_commodities import ensure_web_estimates_schema
 from pipeline.page_dates import fetch_page_dates, confirm_source_date
+from pipeline.locations import national_equivalent
 
 logger.remove()
 logger.add(sys.stdout,
@@ -52,6 +56,7 @@ logger.add(sys.stdout,
     level="INFO")
 
 HIGH_QUALITY_SOURCES = set(PARTNER_SOURCES)
+WFP_SOURCES          = {"WFP", "WFP_provisional"}     # judged on WFP's 45-day window
 ANY_REAL_SOURCES     = HIGH_QUALITY_SOURCES | {"Web_search"}
 # Baseline for the sanity band / "is it newer" checks: the latest Agricome/
 # WFP/primary price or World Bank estimate. Earlier web prices are NOT a
@@ -190,10 +195,10 @@ def load_master_state(today=None):
         hq = sub[sub["data_source"].isin(HIGH_QUALITY_SOURCES)]
         out[c] = {
             "hq_date":    hq["date"].max().date() if len(hq) else None,
-            "wfp_date":   (hq.loc[hq["data_source"] == "WFP", "date"].max().date()
-                           if (hq["data_source"] == "WFP").any() else None),
-            "direct_date": (hq.loc[hq["data_source"] != "WFP", "date"].max().date()
-                            if (hq["data_source"] != "WFP").any() else None),
+            "wfp_date":   (hq.loc[hq["data_source"].isin(WFP_SOURCES), "date"].max().date()
+                           if hq["data_source"].isin(WFP_SOURCES).any() else None),
+            "direct_date": (hq.loc[~hq["data_source"].isin(WFP_SOURCES), "date"].max().date()
+                            if (~hq["data_source"].isin(WFP_SOURCES)).any() else None),
             "real_date":  sub["date"].iloc[-1].date() if len(sub) else None,
             "real_price": float(sub["price_ngn_mt"].iloc[-1]) if len(sub) else None,
         }
@@ -283,6 +288,18 @@ def append_rows(rows):
         w.writerows(rows)
 
 
+def as_national(cand):
+    """The candidate with its national-equivalent price (locations.py), or
+    None when it is one state's price with no measured gap to national."""
+    price = cand.get("price")
+    if not price:
+        return cand
+    nat, _, how = national_equivalent(cand["commodity"], price, cand.get("market_location"))
+    if nat is None:
+        return None
+    return cand if how is None else {**cand, "price": nat, "price_as_found": price, "conversion": how}
+
+
 def promote(candidates, state, today, page_lookup=None):
     """Decision logic over already-fetched candidates. Returns (rows_to_append, decisions).
     page_lookup(url) -> {'published', 'modified', 'error'}; opens the page by default."""
@@ -317,8 +334,14 @@ def promote(candidates, state, today, page_lookup=None):
         if when:
             d.update(accepted=False, reason=f"withdrawn after review ({when}) - see web_prices_withdrawn.csv")
             decisions.append(d); continue
-        peers = [p for p in candidates if p is not c and p["commodity"] == com]
-        ok, reason, sd = evaluate_candidate(c, st.get("real_price"), st.get("real_date"),
+        nat = as_national(c)
+        if nat is None:
+            d.update(accepted=False, reason=national_equivalent(com, c["price"], c.get("market_location"))[2])
+            decisions.append(d); continue
+        if nat.get("conversion"):
+            d.update(national_price=round(nat["price"]), conversion=nat["conversion"])
+        peers = [q for q in (as_national(p) for p in candidates if p is not c and p["commodity"] == com) if q]
+        ok, reason, sd = evaluate_candidate(nat, st.get("real_price"), st.get("real_date"),
                                             c["query_date"], peers)
         if ok and (com, str(sd)) in seen:
             ok, reason = False, "already promoted"
@@ -333,11 +356,13 @@ def promote(candidates, state, today, page_lookup=None):
         if ok:
             seen.add((com, str(sd)))
             # later candidates for the same commodity must beat this one
-            st["real_date"], st["real_price"] = sd, c["price"]
+            st["real_date"], st["real_price"] = sd, nat["price"]
             note = (f"Web search (Claude API), {c['confidence']} confidence, {c.get('price_level')} "
-                    f"price ({c.get('market_location') or 'location not stated'}) - source: "
+                    f"price ({c.get('market_location') or 'location not stated'})"
+                    + (f" - {nat['conversion']}" if nat.get("conversion") else "") + " - source: "
                     f"{c['source_title'] or 'untitled'} <{c['source_url']}> dated {sd}")
-            rows.append([com, str(sd), f"{c['price']}", "NGN", "NGN/MT", "Web search", "wholesale",
+            rows.append([com, str(sd), f"{nat['price']:.0f}" if nat.get("conversion") else f"{c['price']}",
+                         "NGN", "NGN/MT", "Web search", "wholesale",
                          "National", "", "", str(today), "0.7", "False", note, "historical"])
     return rows, decisions
 

@@ -23,6 +23,8 @@ PATHS = {
     "raw_wfp":          os.path.join(ROOT, "data", "raw", "wfp_food_prices_nga.csv"),
     # Web-sourced prices that passed 14_promote_web_prices.py's checks
     "raw_web_prices":   os.path.join(ROOT, "data", "raw", "web_prices.csv"),
+    # Prices Agrolinking collects itself (trader quotes, field visits), typed in by hand
+    "raw_field_prices": os.path.join(ROOT, "data", "raw", "field_prices.csv"),
 
     # Processed / living master dataset (the recycling file)
     "master":           os.path.join(ROOT, "data", "processed", "agrolinking_master.csv"),
@@ -98,12 +100,18 @@ WFP_NAME_MAP = {
 # ─── PRICE SOURCES ───────────────────────────────────────────────────────────
 # data_source values in the master that are REAL observed prices. Every step
 # imports these instead of keeping its own list (they had drifted apart).
-#   PARTNER_SOURCES - partner, exchange and market-monitor data; what the
-#                     forecast backtests and accuracy scores are measured on
-#   REAL_SOURCES    - the above plus vetted web prices (still real, observed)
+#   PARTNER_SOURCES - partner, exchange and market-monitor data
+#   SCORED_SOURCES  - the above minus provisional months; what the forecast
+#                     backtests and accuracy scores are measured on
+#   REAL_SOURCES    - partner data plus vetted web prices (still real, observed)
 # Everything else (Interpolated, Synthetic, WB_RTP_estimate,
 # Agrolinking_validated) is an estimate.
-PARTNER_SOURCES = frozenset({"Agricome", "WFP", "Agrolinking_primary", "AFEX", "FEWS_NET"})
+# WFP_provisional: WFP's newest month while only a few of its ~20 markets have
+# reported (01_ingest.py) - real observations, but a provisional national
+# figure, replaced when WFP completes the month. Never scored against.
+PROVISIONAL_SOURCES = frozenset({"WFP_provisional"})
+PARTNER_SOURCES = frozenset({"Agricome", "WFP", "Agrolinking_primary", "AFEX", "FEWS_NET"}) | PROVISIONAL_SOURCES
+SCORED_SOURCES  = PARTNER_SOURCES - PROVISIONAL_SOURCES
 REAL_SOURCES    = PARTNER_SOURCES | {"Web_search"}
 # Websites a dedicated daily reader already covers, so the web search neither
 # uses them nor has its copies promoted or cross-checked. A web copy skipped

@@ -236,6 +236,21 @@ jobs:
         continue-on-error: true
         run: python pipeline/15_track_accuracy.py
 
+      # The fair accuracy figure: replays history the way forecasts are
+      # really used (method chosen only from results known at the time,
+      # started from the last REAL price) and writes
+      # outputs/backtest/forecast_audit.json, served in /accuracy next to the
+      # daily-selection figure. It was last run by hand on 16 Oct 2026.
+      # ~9 minutes, so Mondays only.
+      - name: 06c - Weekly fair accuracy audit
+        continue-on-error: true
+        run: |
+          if [ "$(date -u +%u)" = "1" ]; then
+            python scripts/research/forecast_audit.py --rebuild --no-variants
+          else
+            echo "The fair audit runs on Mondays."
+          fi
+
       # TSDB_URL was missing on these two steps — each step's env is
       # scoped to itself, not inherited from step 06, so the zonal and
       # intelligence dual-writes to Postgres have been silently failing
@@ -287,6 +302,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python pipeline/17_price_alerts.py
+
+      # One GitHub issue (label data-feed) per price feed that has stopped:
+      # Agricome over 10 days, AFEX over 7. Closes itself when prices return.
+      - name: 09e - Feed alerts
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python pipeline/19_feed_alerts.py
+
+      # First run of each month: last month's accuracy report to
+      # outputs/reports/ and a GitHub issue (label accuracy-report). Needs
+      # 06b's forecast log and 06c's latest fair audit. From 1 Dec 2026.
+      - name: 09f - Monthly accuracy report
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python pipeline/18_accuracy_report.py
 
       # Every commodity, every day: unit errors, one-off spikes, sources that
       # disagree, shop prices in a wholesale series, data age, forecast sanity
