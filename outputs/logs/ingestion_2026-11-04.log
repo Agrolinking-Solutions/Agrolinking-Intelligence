@@ -1,0 +1,94 @@
+2026-11-04 04:31:39.215 | INFO     | __main__:run_ingestion:904 - ============================================================
+2026-11-04 04:31:39.215 | INFO     | __main__:run_ingestion:905 - STEP 1 — DATA INGESTION
+2026-11-04 04:31:39.215 | INFO     | __main__:run_ingestion:906 - ============================================================
+2026-11-04 04:31:39.215 | INFO     | __main__:load_agricome:37 - Loading Agricome raw data...
+2026-11-04 04:31:39.227 | INFO     | __main__:load_agricome:84 -   149 rows tagged as World Bank estimates (not real prices)
+2026-11-04 04:31:39.227 | SUCCESS  | __main__:load_agricome:86 - Agricome loaded: 1,679 rows | 16 commodities
+2026-11-04 04:31:39.227 | DEBUG    | __main__:load_agricome:87 -   Commodities: ['Beans (red)', 'Beans (white)', 'Cashew Nuts', 'Cocoa', 'Eggs', 'Fish (dried)', 'Ginger', 'Hibiscus', 'Maize (white)', 'Maize (yellow)', 'Meat (beef)', 'Meat (goat)', 'Rice', 'Sesame', 'Sorghum', 'Soybeans']
+2026-11-04 04:31:39.228 | DEBUG    | __main__:load_agricome:88 -   Date range:  2003-09-15 → 2026-10-23
+2026-11-04 04:31:39.228 | INFO     | __main__:load_wfp:403 - Loading WFP Nigeria data...
+2026-11-04 04:31:39.351 | INFO     | __main__:load_wfp:420 -   WFP: dropped 2341 cross-border market rows before 2017 (prices in CFA francs)
+2026-11-04 04:31:39.626 | INFO     | __main__:load_wfp:426 -   WFP: dropped 25 rows from market-months dated to the wrong year (WFP_MISDATED)
+2026-11-04 04:31:39.881 | SUCCESS  | __main__:load_wfp:471 - WFP fuel data: 113 weekly rows
+2026-11-04 04:31:39.943 | INFO     | __main__:load_wfp:502 -   WFP: Beans (red) Retail 2026-10-15 kept as provisional - PROVISIONAL: 5 of ~18 WFP markets have reported Oct 2026; their -0.4% change since Sep 2026 applied to that month's national average. Replaced when WFP completes the month
+2026-11-04 04:31:39.944 | INFO     | __main__:load_wfp:502 -   WFP: Beans (white) Retail 2026-10-15 kept as provisional - PROVISIONAL: 5 of ~18 WFP markets have reported Oct 2026; their -1.7% change since Sep 2026 applied to that month's national average. Replaced when WFP completes the month
+2026-11-04 04:31:39.945 | INFO     | __main__:load_wfp:502 -   WFP: Eggs Retail 2026-10-15 kept as provisional - PROVISIONAL: 5 of ~18 WFP markets have reported Oct 2026; their -5.2% change since Sep 2026 applied to that month's national average. Replaced when WFP completes the month
+2026-11-04 04:31:39.946 | INFO     | __main__:load_wfp:502 -   WFP: Meat (beef) Retail 2026-10-15 kept as provisional - PROVISIONAL: 5 of ~18 WFP markets have reported Oct 2026; their +0.8% change since Sep 2026 applied to that month's national average. Replaced when WFP completes the month
+2026-11-04 04:31:39.947 | INFO     | __main__:load_wfp:502 -   WFP: Meat (goat) Retail 2026-10-15 kept as provisional - PROVISIONAL: 5 of ~18 WFP markets have reported Oct 2026; their +1.8% change since Sep 2026 applied to that month's national average. Replaced when WFP completes the month
+2026-11-04 04:31:39.948 | INFO     | __main__:load_wfp:502 -   WFP: Rice (foreign) Retail 2026-10-15 kept as provisional - PROVISIONAL: 4 of ~16 WFP markets have reported Oct 2026; their +2.2% change since Sep 2026 applied to that month's national average. Replaced when WFP completes the month
+2026-11-04 04:31:39.948 | INFO     | __main__:load_wfp:502 -   WFP: Rice (local) Retail 2026-10-15 kept as provisional - PROVISIONAL: 5 of ~18 WFP markets have reported Oct 2026; their +1.0% change since Sep 2026 applied to that month's national average. Replaced when WFP completes the month
+2026-11-04 04:31:39.949 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Sorghum Wholesale 2014-05-15 - 1 market(s) vs ~6 usually
+2026-11-04 04:31:39.949 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Maize (white) Wholesale 2014-05-15 - 1 market(s) vs ~6 usually
+2026-11-04 04:31:39.949 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Maize (white) Wholesale 2014-06-15 - 1 market(s) vs ~6 usually
+2026-11-04 04:31:39.950 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Sorghum Wholesale 2014-06-15 - 1 market(s) vs ~6 usually
+2026-11-04 04:31:39.950 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Maize (yellow) Retail 2019-07-15 - 1 market(s) vs ~12 usually
+2026-11-04 04:31:39.950 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Rice (local) Retail 2023-12-15 - 8 market(s) vs ~27 usually
+2026-11-04 04:31:39.950 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Beans (red) Retail 2023-12-15 - 8 market(s) vs ~27 usually
+2026-11-04 04:31:39.950 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Beans (white) Retail 2023-12-15 - 8 market(s) vs ~27 usually
+2026-11-04 04:31:39.950 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Eggs Retail 2023-12-15 - 8 market(s) vs ~27 usually
+2026-11-04 04:31:39.950 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Fish (dried) Retail 2023-12-15 - 7 market(s) vs ~26 usually
+2026-11-04 04:31:39.951 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Rice (local) Retail 2024-07-15 - 5 market(s) vs ~20 usually
+2026-11-04 04:31:39.951 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Rice (foreign) Retail 2024-07-15 - 5 market(s) vs ~18 usually
+2026-11-04 04:31:39.951 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Meat (goat) Retail 2024-07-15 - 5 market(s) vs ~18 usually
+2026-11-04 04:31:39.951 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Meat (beef) Retail 2024-07-15 - 5 market(s) vs ~18 usually
+2026-11-04 04:31:39.951 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Sorghum Retail 2024-07-15 - 5 market(s) vs ~20 usually
+2026-11-04 04:31:39.951 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Eggs Retail 2024-07-15 - 5 market(s) vs ~19 usually
+2026-11-04 04:31:39.951 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Beans (white) Retail 2024-07-15 - 5 market(s) vs ~20 usually
+2026-11-04 04:31:39.951 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Beans (red) Retail 2024-07-15 - 5 market(s) vs ~19 usually
+2026-11-04 04:31:39.952 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Fish (dried) Retail 2024-07-15 - 5 market(s) vs ~20 usually
+2026-11-04 04:31:39.952 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Fish (dried) Retail 2026-10-15 - 4 market(s) vs ~18 usually
+2026-11-04 04:31:39.952 | WARNING  | __main__:load_wfp:506 -   WFP: dropping Sorghum Retail 2026-10-15 - 5 market(s) vs ~18 usually
+2026-11-04 04:31:39.958 | INFO     | __main__:load_wfp:534 -   WFP: Sorghum retail-only months scaled by 0.995 to wholesale-equivalent (44 months)
+2026-11-04 04:31:39.960 | INFO     | __main__:load_wfp:534 -   WFP: Rice (local) retail-only months scaled by 0.943 to wholesale-equivalent (46 months)
+2026-11-04 04:31:39.961 | INFO     | __main__:load_wfp:534 -   WFP: Rice (foreign) retail-only months scaled by 0.880 to wholesale-equivalent (45 months)
+2026-11-04 04:31:39.962 | INFO     | __main__:load_wfp:542 -   WFP: Beans (red) retail scaled by 0.902 (Cowpeas (brown) wholesale/retail) to wholesale-equivalent (115 months)
+2026-11-04 04:31:39.963 | INFO     | __main__:load_wfp:542 -   WFP: Beans (white) retail scaled by 0.927 (Cowpeas (white) wholesale/retail) to wholesale-equivalent (115 months)
+2026-11-04 04:31:39.970 | SUCCESS  | __main__:load_wfp:571 - WFP commodities loaded: 1,621 rows | 11 commodities
+2026-11-04 04:31:39.971 | DEBUG    | __main__:load_wfp:575 -   Commodities: ['Beans (red)', 'Beans (white)', 'Eggs', 'Fish (dried)', 'Maize (white)', 'Maize (yellow)', 'Meat (beef)', 'Meat (goat)', 'Rice (foreign)', 'Rice (local)', 'Sorghum']
+2026-11-04 04:31:39.971 | DEBUG    | __main__:load_wfp:576 -   Date range:  2003-08-15 → 2026-10-15
+2026-11-04 04:31:39.974 | SUCCESS  | __main__:load_web_prices:109 - Web-sourced prices loaded: 6 rows | 3 commodities
+2026-11-04 04:31:39.985 | SUCCESS  | __main__:load_afex_prices:207 - AFEX exchange prices loaded: 4 rows | ['Maize (yellow)']
+2026-11-04 04:31:40.095 | SUCCESS  | __main__:load_fews_prices:254 - FEWS NET wholesale prices loaded: 1,097 weekly rows | ['Maize (white)', 'Rice (foreign)']
+2026-11-04 04:31:40.100 | INFO     | __main__:merge_sources:654 - Merging Agricome and WFP data sources...
+2026-11-04 04:31:40.111 | INFO     | __main__:place_legacy_wfp:632 -   Beans (red): older WFP extract - dropped 1 leftover month(s) more than 2.5x off the current data within 183 days
+2026-11-04 04:31:40.112 | INFO     | __main__:place_legacy_wfp:639 -   Beans (red): older WFP extract - 106 months already in the current data dropped, 1 months kept (scaled x0.920)
+2026-11-04 04:31:40.115 | INFO     | __main__:place_legacy_wfp:632 -   Beans (white): older WFP extract - dropped 1 leftover month(s) more than 2.5x off the current data within 183 days
+2026-11-04 04:31:40.116 | INFO     | __main__:place_legacy_wfp:639 -   Beans (white): older WFP extract - 105 months already in the current data dropped, 1 months kept (scaled x0.951)
+2026-11-04 04:31:40.119 | INFO     | __main__:place_legacy_wfp:639 -   Maize (white): older WFP extract - 200 months already in the current data dropped, 1 months kept (scaled x1.000)
+2026-11-04 04:31:40.122 | INFO     | __main__:place_legacy_wfp:639 -   Maize (yellow): older WFP extract - 103 months already in the current data dropped, 0 months kept (scaled x1.022)
+2026-11-04 04:31:40.128 | INFO     | __main__:merge_sources:699 -   Deduplication: removed 922 overlapping rows (Agricome priority)
+2026-11-04 04:31:40.130 | SUCCESS  | __main__:merge_sources:709 - Merged dataset: 2,926 rows | 17 commodities
+2026-11-04 04:31:40.130 | INFO     | __main__:merge_sources:715 -   Coverage per commodity:
+2026-11-04 04:31:40.131 | INFO     | __main__:merge_sources:718 -     Beans (red)           116 rows | 2016-06-13 → 2026-10-12
+2026-11-04 04:31:40.132 | INFO     | __main__:merge_sources:718 -     Beans (white)         116 rows | 2016-06-13 → 2026-10-12
+2026-11-04 04:31:40.132 | INFO     | __main__:merge_sources:718 -     Cashew Nuts            54 rows | 2025-01-06 → 2026-10-19
+2026-11-04 04:31:40.133 | INFO     | __main__:merge_sources:718 -     Cocoa                  54 rows | 2025-01-06 → 2026-10-19
+2026-11-04 04:31:40.133 | INFO     | __main__:merge_sources:718 -     Eggs                  119 rows | 2016-07-11 → 2026-10-12
+2026-11-04 04:31:40.134 | INFO     | __main__:merge_sources:718 -     Fish (dried)          119 rows | 2016-06-13 → 2026-09-14
+2026-11-04 04:31:40.134 | INFO     | __main__:merge_sources:718 -     Ginger                 50 rows | 2025-01-06 → 2026-10-19
+2026-11-04 04:31:40.135 | INFO     | __main__:merge_sources:718 -     Hibiscus               49 rows | 2025-01-06 → 2026-10-19
+2026-11-04 04:31:40.135 | INFO     | __main__:merge_sources:718 -     Maize (white)         699 rows | 2003-08-11 → 2026-10-05
+2026-11-04 04:31:40.136 | INFO     | __main__:merge_sources:718 -     Maize (yellow)        150 rows | 2014-05-12 → 2026-11-02
+2026-11-04 04:31:40.137 | INFO     | __main__:merge_sources:718 -     Meat (beef)           121 rows | 2016-06-13 → 2026-10-12
+2026-11-04 04:31:40.137 | INFO     | __main__:merge_sources:718 -     Meat (goat)           121 rows | 2016-06-13 → 2026-10-12
+2026-11-04 04:31:40.138 | INFO     | __main__:merge_sources:718 -     Rice (foreign)        598 rows | 2012-05-14 → 2026-11-02
+2026-11-04 04:31:40.138 | INFO     | __main__:merge_sources:718 -     Rice (local)          148 rows | 2014-05-12 → 2026-10-12
+2026-11-04 04:31:40.139 | INFO     | __main__:merge_sources:718 -     Sesame                 46 rows | 2025-06-09 → 2026-10-19
+2026-11-04 04:31:40.139 | INFO     | __main__:merge_sources:718 -     Sorghum               312 rows | 2003-08-11 → 2026-10-19
+2026-11-04 04:31:40.140 | INFO     | __main__:merge_sources:718 -     Soybeans               54 rows | 2025-01-06 → 2026-10-19
+2026-11-04 04:31:40.182 | INFO     | __main__:save_outputs:780 -   Existing master found: 16,927 rows (14,275 historical + 108 forecast + 46 validated_actual)
+2026-11-04 04:31:40.219 | INFO     | __main__:save_outputs:841 -   [DIAG] validated_actual: 46 entered dedup, 42 survived, 4 lost
+2026-11-04 04:31:40.225 | INFO     | __main__:save_outputs:858 -     [DIAG]   Meat (beef)          week-of 2026-10-12 lost to data_source=WFP_provisional (_priority=1.1)
+2026-11-04 04:31:40.226 | INFO     | __main__:save_outputs:858 -     [DIAG]   Meat (goat)          week-of 2026-10-12 lost to data_source=WFP_provisional (_priority=1.1)
+2026-11-04 04:31:40.227 | INFO     | __main__:save_outputs:858 -     [DIAG]   Rice (foreign)       week-of 2026-10-12 lost to data_source=WFP_provisional (_priority=1.1)
+2026-11-04 04:31:40.227 | INFO     | __main__:save_outputs:858 -     [DIAG]   Rice (foreign)       week-of 2026-11-02 lost to data_source=Web_search (_priority=1.5)
+2026-11-04 04:31:40.319 | SUCCESS  | __main__:save_outputs:865 -   Master updated: 16,830 total rows → /home/runner/work/Agrolinking-Intelligence/Agrolinking-Intelligence/data/processed/agrolinking_master.csv
+2026-11-04 04:31:40.389 | INFO     | __main__:save_outputs:895 -   Ingestion metadata saved → /home/runner/work/Agrolinking-Intelligence/Agrolinking-Intelligence/outputs/logs/ingestion_meta.json
+2026-11-04 04:31:40.391 | INFO     | __main__:run_ingestion:915 - ============================================================
+2026-11-04 04:31:40.391 | SUCCESS  | __main__:run_ingestion:916 - INGESTION COMPLETE
+2026-11-04 04:31:40.391 | INFO     | __main__:run_ingestion:917 - ============================================================
+2026-11-04 04:36:06.218 | WARNING  | 01_ingest:load_field_prices:140 -   Field quote skipped (needs a known commodity, a wholesale price and a unit from ['100kg bag', '25kg bag', '50kg bag', 'crate', 'kg', 'tonne']): 2026-11-05 Wheat 800 kg retail
+2026-11-04 04:36:06.218 | WARNING  | 01_ingest:load_field_prices:140 -   Field quote skipped (needs a known commodity, a wholesale price and a unit from ['100kg bag', '25kg bag', '50kg bag', 'crate', 'kg', 'tonne']): 2026-11-05 Wheat 70000 bag wholesale
+2026-11-04 04:36:06.221 | SUCCESS  | 01_ingest:load_field_prices:159 - Field quotes loaded: 2 quotes -> 1 weekly rows | 1 commodities
+2026-11-04 04:36:06.289 | INFO     | 01_ingest:place_legacy_wfp:639 -   Beans (red): older WFP extract - 20 months already in the current data dropped, 4 months kept (scaled x0.926)
+2026-11-04 04:36:07.239 | SUCCESS  | 01_ingest:load_afex_prices:207 - AFEX exchange prices loaded: 2 rows | ['Maize (yellow)']
