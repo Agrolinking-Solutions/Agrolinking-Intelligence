@@ -36,6 +36,8 @@ Daily wholesale price intelligence and forecasts for Nigerian agricultural commo
 | **Agrolinking field collection** | Wheat, across 10 states | Stopped 13 April 2026 | Real |
 | **ColdHubs Market Weekly** | Bag prices by zone from ColdHubs' hub managers: tomatoes (50 kg), pepper (25 kg) | Weekly (step 00i) | Farm crop prices only (see below) |
 | **Business A.M.** | A weekly wholesale list with bag sizes: tomatoes, onions, tatashe/rodo/shombo pepper, sweet potatoes. Market not named | Weekly (step 00i) | Farm crop prices only |
+| **Eurostat Comext** (DS-045409) | The EU's imports from Nigeria by product: value and weight, so a price per tonne landed at the EU border. Sesame, cocoa, cashew kernels, ginger, soybeans | Monthly, about 10 weeks late (step 00k) | Export prices only (see below) |
+| **West African markets** (via FAO's price API) | Niger, Cameroon, Benin, Togo and Chad: their statistics offices, FEWS NET and Afrique Verte. Maize, sorghum, cowpeas, imported rice | Monthly, 1-3 months late (step 00k) | Export prices only |
 
 **Supporting data, all real:** inflation and the official US$ rate from the **Central Bank of Nigeria** (step 00g), petrol prices from WFP, NOAA's El Niño index, world benchmark prices for maize, wheat, rice, soybeans and cocoa (Mansa Markets, step 00e), and weather (NASA POWER history, refreshed daily for the last 45 days, plus MET Norway's ~9-day forecast for 23 places, step 00). After the latest real figure each series is carried forward flat, never projected. Until October 2026 these files ran on as smooth projections.
 
@@ -61,6 +63,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | 00g | `fetch_macro.py` | CBN inflation and exchange rate, WFP petrol: rebuilds `inflation.csv`, `fx_rates.csv` and `fuel_prices.csv` |
 | 00i | `fetch_produce_prices.py` | ColdHubs and Business A.M. fresh-produce prices to `data/raw/produce_prices.csv` |
 | 00j | `farm_prices.py` | ₦/kg for the AgLens farm crops, served at `/farm-prices` |
+| 00k | `fetch_export_prices.py` | EU import prices (Eurostat) and West African market prices (FAO) to `data/raw/export_prices.csv` |
 | 01 | `01_ingest.py` | Merges all sources into `data/processed/agrolinking_master.csv`, ranked by source priority |
 | 02 | `02_clean.py` | Fills gaps between real prices (labelled), drops outdated estimates; never edits real prices |
 | 03 | `03_features.py` | Per-commodity feature tables |
@@ -71,6 +74,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | 06b | `15_track_accuracy.py` | Scores past published forecasts against the real prices that arrived |
 | 07 | `07_zonal_forecast.py` | State and zone prices |
 | 08 | `08_intelligence.py` | Food price index, movers, early warnings, arbitrage, confidence |
+| 08a | `20_export_prices.py` | Prices abroad vs today's prices, and each zone state's cost to get a commodity to the port or border, served at `/export-prices` |
 | 08b | `price_drivers.py` | Price-driver cards per commodity (weather, season, climate, fuel, exchange rate, inflation, world price), served at `/drivers` |
 | 09 | `09_staleness_check.py` | Flags commodities without a recent real price |
 | 09b | `16_cross_check.py` | Our prices vs AFEX and web wholesale prices (agree / check / disagree) |
@@ -147,6 +151,27 @@ AgLens puts a naira value on each farm's harvest. For seven crops it grows that 
   - `/farm-prices` and `/farm-prices/{crop}` take `?state=` to pick the farm's zone. The single-crop endpoint also lists the price in every zone and the other varieties.
   - `/forecasts/{crop}` returns the national price in the shape AgLens already reads, with `price_only: true` and no horizons.
 
+## Export prices
+
+What buyers outside Nigeria pay, and what it costs to get each commodity to them from each of the 12 zone states. Built by `20_export_prices.py` from `data/raw/export_prices.csv`. Settings are in `config/settings.py` (`EU_PRODUCTS`, `WA_PRODUCTS`, `EXPORT_PROHIBITED`, `STATE_MARKETS`).
+
+- **EU price:** declared value over weight of the EU's imports from Nigeria (Eurostat). This is a landed price at the EU border, with sea freight and insurance paid. It is not a price at Lagos port. A month counts only on 10 tonnes or more.
+- **West African price:** the market's own price in Niger, Cameroon, Benin, Togo or Chad. Wholesale comes before retail.
+- **Conversion to naira:** the latest CBN euro rate, so prices compare with today's. CFA francs convert through the fixed rate of 655.957 per euro.
+- **Per state:**
+  - **Buy price:** the state's price today, or an Agrolinking field quote from that state in the last 30 days. The state price is measured from market data or estimated where there is none; `buy_price_basis` says which.
+  - **Freight:** road freight to the exit point, an estimate. For the EU the exit is the nearer of Lagos and Onne ports; for West Africa it is the market itself.
+  - **Cost at exit:** buy price plus freight.
+  - **Room:** what is left of the price abroad after the cost at exit. It still has to cover export charges, sea freight or border costs, and margin.
+- **Listed, never compared:**
+  - What Nigeria prohibits exporting: maize, beans, rice and imported food (Export (Prohibition) Act 1989).
+  - Cashew kernels, because our cashew price is for raw nuts.
+  - Retail prices abroad.
+  - Prices more than 6 months old.
+- **Endpoints:**
+  - `/export-prices` (`?region=EU` or `West Africa`).
+  - `/export-prices/{commodity}` (24 months' history and every state's row; `?state=`).
+
 ---
 
 ## API
@@ -163,6 +188,7 @@ FastAPI, `api.py`. Interactive reference: [pis-api.agrolinking.com/docs](https:/
 | Price drivers | `/drivers` (all commodities), `/drivers/{commodity}` (full cards with sources and dates). The older `/factors` is superseded |
 | Weather | `/weather/today` (today and the next 6 days for 23 places, by zone; `?zone=`, `?main_cities_only=true`), `/weather/{commodity}` (7-day card for its main producing states, with an outlook and general guidance) |
 | Farm crops (AgLens) | `/farm-prices`, `/farm-prices/{crop}` (₦/kg for cassava, yam, groundnut, tomato, sweet potato, onion and pepper; `?state=`) |
+| Export prices | `/export-prices` (EU import prices and West African market prices; `?region=`), `/export-prices/{commodity}` (history and each zone state's cost to the port or border; `?state=`) |
 | Data quality | `/accuracy`, `/checks`, `/crosscheck` |
 | Alerts | `/alerts/latest` (WhatsApp/email-ready text); `/alerts/saved` (GET, POST), `/alerts/saved/{alert_id}` (DELETE) and `/alerts/check`, which need a Google sign-in token |
 

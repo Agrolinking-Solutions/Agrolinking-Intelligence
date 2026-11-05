@@ -129,6 +129,93 @@ READ_DIRECTLY = {"mansamarkets.com": "pipeline/fetch_afex_prices.py (AFEX exchan
 SIBLING_PRICES = {"Maize (yellow)": ("Maize (white)", 1.023)}
 SIBLING_SOURCE = "Sibling_estimate"
 SIBLING_AFTER_DAYS = 45   # sibling rows start this long after the commodity's own last real price
+# Units a price in data/raw/field_prices.csv (Agrolinking's own quotes) may be
+# in -> how many fit in a tonne. Crate of 30: the Eggs series is NGN/crate.
+FIELD_UNITS = {"100kg bag": 10.0, "50kg bag": 20.0, "25kg bag": 40.0, "tonne": 1.0, "kg": 1000.0,
+               "crate": 1.0}
+
+# ─── FREIGHT ─────────────────────────────────────────────────────────────────
+# Road haulage, NGN per kg per 100 km - an ESTIMATE, set in July 2026 without a
+# cited source ("diesel haulage rates June 2026"). Outside figures put it lower:
+# ~5 (Kaduna-Ibadan grain ~N35,000/t in 2025, one trader's analysis) to ~9
+# (Lagos-Kano truck N1.6m for 30 t in 2023-24, scaled to 2026 fuel). Replace
+# with transporters' quotes. Used by /arbitrage and the export view.
+FREIGHT_NGN_PER_KG_PER_100KM = 12.0
+
+# ─── EXPORT AND NEIGHBOURING-MARKET PRICES ───────────────────────────────────
+# What buyers outside Nigeria pay (pipeline/fetch_export_prices.py ->
+# data/raw/export_prices.csv; pipeline/20_export_prices.py -> the export view).
+#
+# EU: Eurostat Comext DS-045409 - the declared value and weight of the EU's
+# imports FROM NIGERIA, by product, monthly, ~10 weeks late. A landed price at
+# the EU border (cost, insurance and freight paid), not a price at Lagos port.
+# Free to reuse with attribution. {our commodity: (CN8 code, product)}
+EU_PRODUCTS = {
+    "Sesame":      ("12074090", "Sesame seeds"),
+    "Cocoa":       ("18010000", "Cocoa beans, whole or broken, raw"),
+    "Cashew Nuts": ("08013200", "Cashew kernels (shelled)"),
+    "Ginger":      ("09101100", "Ginger, dried, whole or split (not crushed or ground)"),
+    "Soybeans":    ("12019000", "Soya beans"),
+}
+EU_MIN_TONNES = 10   # a month's EU price counts only on at least this much trade
+# EU products that are not the product our Nigerian price is for: shown, never compared
+EU_NOT_COMPARABLE = {
+    "Cashew Nuts": "The EU buys Nigeria's cashew as shelled kernels; our price is for raw nuts in shell "
+                   "(4-5 kg of raw nuts make 1 kg of kernels), so the two prices are not compared.",
+}
+
+# West Africa: neighbouring countries' market prices from FAO's price API (as
+# fetch_fao_prices.py), reported by national statistics offices, FEWS NET and
+# Afrique Verte, monthly. All CFA-franc countries: 655.957 CFA = 1 euro
+# (fixed), so they convert to naira through the CBN euro rate.
+# Ghana (cedi; its series end in mid-2026) is not included yet.
+WA_COUNTRIES = {"NER": ("Niger", "XOF"), "CMR": ("Cameroon", "XAF"), "BEN": ("Benin", "XOF"),
+                "TGO": ("Togo", "XOF"), "TCD": ("Chad", "XAF")}
+CFA_PER_EUR = 655.957
+# {FAO commodity name: our commodity}
+WA_PRODUCTS = {
+    "Maize (white)": "Maize (white)", "Maize": "Maize (white)", "Maize (imported)": "Maize (white)",
+    "Sorghum": "Sorghum", "Sorghum (white)": "Sorghum",
+    "Cowpeas (white)": "Beans (white)", "Niebe": "Beans (white)", "Niebe (cowpea)": "Beans (white)",
+    "Cowpeas (red)": "Beans (red)",
+    "Rice (imported)": "Rice (foreign)", "Rice (25% broken, imported)": "Rice (foreign)",
+}
+# Markets close enough to the 12 zone states to compare with: name -> (country, lat, lon)
+WA_MARKETS = {
+    "Maradi": ("Niger", 13.50, 7.10), "Zinder": ("Niger", 13.81, 8.99), "Niamey": ("Niger", 13.51, 2.11),
+    "Diffa": ("Niger", 13.32, 12.61),
+    "Kousseri": ("Cameroon", 12.08, 15.03), "Maroua": ("Cameroon", 10.59, 14.32),
+    "Garoua": ("Cameroon", 9.30, 13.40),
+    "N'Djamena": ("Chad", 12.13, 15.06),
+    "Cotonou": ("Benin", 6.37, 2.39), "Parakou": ("Benin", 9.34, 2.63),
+    "Lomé": ("Togo", 6.13, 1.22), "DAGL (Lomé) Region": ("Togo", 6.13, 1.22),
+}
+
+# Nigeria's Export (Prohibition) Act 1989 (Cap E22, LFN 2004), Schedule:
+# beans, cassava tuber, maize, rice, yam tuber, their products, and all
+# imported food. Nigeria Customs' 2026 export prohibition list names maize.
+# These show the price abroad for information, never an export cost from a state.
+EXPORT_PROHIBITED = {
+    "Maize (white)": "maize", "Maize (yellow)": "maize",
+    "Beans (white)": "beans", "Beans (red)": "beans",
+    "Rice (local)": "rice", "Rice (foreign)": "rice (and all imported food)",
+    "Wheat": "all imported food",
+}
+EXPORT_LAW = "Export (Prohibition) Act 1989, Schedule (Cap E22, Laws of the Federation 2004)"
+
+# Where each zone state's goods are bought, and the export ports: (place, lat,
+# lon). Road distance = straight line x ROAD_FACTOR - an estimate; it gives
+# Kano-Lagos ~1,090 km (road ~1,050), Maiduguri-Kousseri ~270 (road ~250).
+STATE_MARKETS = {
+    "Kano": ("Kano (Dawanau)", 12.07, 8.45), "Kaduna": ("Kaduna", 10.52, 7.44),
+    "Plateau": ("Jos", 9.90, 8.86), "Kogi": ("Lokoja", 7.80, 6.74),
+    "Adamawa": ("Yola", 9.21, 12.48), "Borno": ("Maiduguri", 11.83, 13.15),
+    "Oyo": ("Ibadan (Bodija)", 7.42, 3.92), "Lagos": ("Lagos (Mile 12)", 6.61, 3.40),
+    "Anambra": ("Onitsha", 6.15, 6.79), "Imo": ("Owerri", 5.48, 7.03),
+    "Rivers": ("Port Harcourt", 4.82, 7.03), "Delta": ("Asaba", 6.20, 6.73),
+}
+EXPORT_PORTS = {"Lagos ports (Apapa)": (6.44, 3.37), "Onne port": (4.71, 7.15)}
+ROAD_FACTOR = 1.3
 
 # ─── FORECAST HORIZONS ───────────────────────────────────────────────────────
 FORECAST_HORIZONS = {

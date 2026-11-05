@@ -80,6 +80,8 @@ All responses are JSON. All prices in NGN/MT unless otherwise stated. CORS is cu
 | GET | /alerts/check | Check all alerts against current prices |
 | GET | /factors | Forecast factor drivers per commodity (Rainfall/FX/Fuel/Harvest/Policy) |
 | GET | /meta | Platform metadata, source counts, field documentation |
+| GET | /export-prices | What buyers abroad pay: EU import prices, West African market prices. ?region=EU or West Africa |
+| GET | /export-prices/{commodity} | One commodity abroad: 24 months' history and each zone state's cost to the port or border. ?state= |
 
 **Valid horizons:** daily | weekly | 2_weeks | monthly | 3_months | 6_months
 
@@ -130,6 +132,22 @@ All additions; nothing existing was removed or renamed.
 | Field | Where | Values | Show |
 |---|---|---|---|
 | `start_from` | /forecasts/latest, /forecasts/{c} | `null`, or `{price, date, source: "Sibling_estimate", note}` | Set when the commodity has no recent real price of its own and the forecast starts from an estimate: today only Yellow maize (white maize's real price x 1.023 - AFEX's maize is white maize). Show "Estimated from white maize" next to the price, with `note` as the tooltip. `start_is_estimate` is `true`; `latest_real_price` stays the commodity's own (Jan 2023). History points from it have `source: "estimate"`. |
+
+### GET /export-prices/{commodity} (new, 5 Nov 2026)
+
+Prices abroad for one commodity (unit NGN/t). The response has the commodity's `export_allowed` and `export_note`, its `national_price_ngn_t`, and a list of `destinations`. Each destination has these fields:
+
+| Field | Show |
+|---|---|
+| `region`, `country`, `market`, `product`, `price_type`, `period`, `months_old`, `source` | Where the price is from, what product it is, and which month it covers. EU prices are `import value (CIF, EU border)`: landed in the EU, about 10 weeks old. |
+| `price_local_t`, `currency`, `price_ngn_t`, `volume_t` | The price in its own currency (EUR, XOF or XAF per tonne) and in naira at today's CBN rate (`fx` at the top level). `volume_t` is the EU tonnage traded that month. |
+| `compared`, `note` | When `compared` is false, show the price as information only, with `note`. Reasons: export prohibited (maize, beans, rice), a different product (cashew kernels), a retail price, or more than 6 months old. `gap_vs_national_pct` and `by_state` are then empty. |
+| `gap_vs_national_pct` | The price abroad against today's Nigerian national price. |
+| `by_state[]` | One row per zone state, cheapest at the exit first. Each row gives `buy_price_ngn_t` and `buy_price_basis` (`measured`, `estimated` or `field quote`), the `exit` and `distance_km`, `freight_ngn_t` (always an estimate), `cost_at_exit_ngn_t`, and `room_ngn_t` / `room_pct` (what is left for export charges, sea freight or border costs, and margin). Label estimated values as estimates. |
+| `cheapest_state` | `{state, cost_at_exit_ngn_t, buy_price_basis, note}`. When `note` is set, the ranking rests on estimated state prices, so show it. |
+| `history[]` | `{period, price_local_t, price_ngn_t, volume_t}`. `price_ngn_t` uses each month's own exchange rate. |
+
+`/export-prices` returns the same fields for every commodity, without `by_state` and `history`.
 
 ### GET /forecasts/{commodity}/{horizon}
 ```

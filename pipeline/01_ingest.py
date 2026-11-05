@@ -17,7 +17,7 @@ from datetime import datetime
 
 # ── Allow imports from project root ──────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, WFP_NAME_MAP, STANDARD_UNIT, SIBLING_SOURCE
+from config.settings import PATHS, COMMODITIES, WFP_NAME_MAP, STANDARD_UNIT, SIBLING_SOURCE, FIELD_UNITS
 
 # ── Logger setup ─────────────────────────────────────────────────────────────
 logger.remove()
@@ -118,9 +118,7 @@ def load_web_prices() -> pd.DataFrame:
 # run. Started Nov 2026 for wheat, which has had no other real source since
 # Agrolinking's April 2026 field collection (those rows live in the master).
 FIELD_QUOTES_SOURCE = "Agrolinking field quotes"
-FIELD_UNITS = {"100kg bag": 10.0, "50kg bag": 20.0, "25kg bag": 40.0, "tonne": 1.0, "kg": 1000.0,
-               "crate": 1.0}    # crate of 30: the Eggs series is NGN/crate (see WFP_UNIT_TO_MT)
-
+# Units a quote may be in: FIELD_UNITS in config/settings.py
 
 def load_field_prices() -> pd.DataFrame:
     cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",

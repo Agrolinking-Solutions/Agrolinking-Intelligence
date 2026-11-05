@@ -101,6 +101,15 @@ def rebuild_fx(today):
     usd = usd.dropna(subset=["date", "central"]).sort_values("date").drop_duplicates("date", keep="last")
     usd[["date", "central"]].rename(columns={"central": "ngn_per_usd"}).to_csv(
         os.path.join(EXT, "cbn_usd_daily.csv"), index=False)
+    # Euro: converts EU import prices and (at the fixed 655.957 CFA per euro)
+    # West African CFA-franc prices to naira - fetch_export_prices.py
+    eur = d[d["currency"].str.strip().str.upper() == "EURO"].copy()
+    eur["date"] = pd.to_datetime(eur["ratedate"], errors="coerce")
+    eur["ngn_per_eur"] = pd.to_numeric(eur["centralrate"], errors="coerce")
+    eur = eur.dropna(subset=["date", "ngn_per_eur"]).sort_values("date").drop_duplicates("date", keep="last")
+    if len(eur):
+        eur[["date", "ngn_per_eur"]].to_csv(os.path.join(EXT, "cbn_eur_daily.csv"), index=False)
+        logger.success(f"  Euro: CBN official N{eur['ngn_per_eur'].iloc[-1]:,.2f}/EUR on {eur['date'].iloc[-1].date()}")
     usd["week"] = usd["date"] - pd.to_timedelta(usd["date"].dt.dayofweek, unit="D")
     wk = usd.groupby("week")["central"].mean()
     grid = weekly_grid("2002-01-07", today)

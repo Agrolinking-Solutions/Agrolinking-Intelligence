@@ -31,6 +31,8 @@ NEW ENDPOINTS (v2):
   GET /farm-prices               NGN/kg for AgLens farm crops (cassava, yam, groundnut, tomato,
                                  sweet potato, onion, pepper); ?state= picks the zone's price
   GET /farm-prices/{crop}        One farm crop: price, every zone, other varieties
+  GET /export-prices             What buyers abroad pay: EU import prices, West African markets
+  GET /export-prices/{commodity} One commodity abroad: history, each zone state's cost to get it there
   GET /docs                      Auto-generated Swagger UI
 """
 
@@ -2136,6 +2138,64 @@ def farm_crops_as_commodities():
             "price_type": p["price_type"], "is_farm_gate": p["is_farm_gate"], "price_label": p["label"],
         })
     return rows
+
+
+def load_latest_export_prices():
+    files = sorted(glob.glob(os.path.join(INTEL_DIR, "export_prices_*.json")))
+    if not files:
+        raise HTTPException(status_code=404, detail="No export prices yet - they are built by the daily pipeline.")
+    with open(files[-1], encoding="utf-8") as f:
+        return json.load(f)
+
+
+EXPORT_META = ["as_of", "unit", "about", "fx", "freight", "eu_min_tonnes", "max_age_months", "sources"]
+
+
+@app.get("/export-prices", tags=["Export prices"])
+def export_prices(region: Optional[str] = Query(None, description="EU or West Africa")):
+    """
+    What buyers outside Nigeria pay: the EU's import price for Nigerian
+    sesame, cocoa, cashew kernels, ginger and soybeans (Eurostat, landed at
+    the EU border, ~10 weeks late) and neighbouring West African market
+    prices (FAO: Niger, Cameroon, Benin, Togo, Chad). Per destination: the
+    price in its own currency and in naira, the gap to today's Nigerian
+    national price, and the cheapest of the 12 zone states to send it from.
+    Prices of what Nigeria prohibits exporting (maize, beans, rice) are
+    listed with export_allowed false and never compared. Per-state detail
+    and 24 months' history: /export-prices/{commodity}. Built every morning
+    by pipeline/20_export_prices.py.
+    """
+    rep = load_latest_export_prices()
+    out = {}
+    for c, e in rep["commodities"].items():
+        dests = [{k: v for k, v in d.items() if k not in ("by_state", "history")}
+                 for d in e["destinations"] if not region or d["region"].lower() == region.strip().lower()]
+        if dests:
+            out[c] = {**{k: v for k, v in e.items() if k != "destinations"}, "destinations": dests}
+    return {**{k: rep.get(k) for k in EXPORT_META}, "commodities": out}
+
+
+@app.get("/export-prices/{commodity}", tags=["Export prices"])
+def export_price(commodity: str,
+                 state: Optional[str] = Query(None, description="Only this zone state's row, e.g. Kano")):
+    """
+    One commodity's prices abroad (see /export-prices), each with 24 months'
+    history and, where it is compared, every zone state's cost to get it
+    there: buy price in the state (measured, estimated or an Agrolinking
+    field quote - buy_price_basis says which), estimated road freight to the
+    port or border, cost at the exit, and the room left before export
+    charges, sea freight or border costs and margin.
+    """
+    rep = load_latest_export_prices()
+    key, entry = find_commodity(rep.get("commodities", {}), commodity)
+    if not key:
+        raise HTTPException(status_code=404,
+                            detail=f"No export prices for '{commodity}'. Available: {sorted(rep.get('commodities', {}))}")
+    if state:
+        s = normalise(state)
+        entry = {**entry, "destinations": [{**d, "by_state": [r for r in d["by_state"] if normalise(r["state"]) == s]}
+                                           for d in entry["destinations"]]}
+    return {**{k: rep.get(k) for k in EXPORT_META}, "commodity": key, **entry}
 
 
 @app.get("/checks", tags=["Accuracy"])

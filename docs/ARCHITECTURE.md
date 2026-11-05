@@ -47,7 +47,9 @@ and are scored on, observed prices only (`config/settings.py`):
 | Sibling estimate | `pipeline/02_clean.py` (`SIBLING_PRICES` in `config/settings.py`) | yellow maize = white maize's real price x 1.023 (measured, WFP 2014-23); labelled an estimate, never scored |
 | Agrolinking field data | `data/raw/field_prices.csv` | trader quotes; weekly median |
 | Web prices | `pipeline/10_web_price_search.py` → `14_promote_web_prices.py` | checks: level, date (page opened), age, band, corroboration, location (`pipeline/locations.py`), blocked/withdrawn lists |
-| CBN exchange rate, inflation; WFP fuel | `pipeline/fetch_macro.py` | |
+| CBN exchange rate (US$, euro), inflation; WFP fuel | `pipeline/fetch_macro.py` | |
+| EU imports from Nigeria | `pipeline/fetch_export_prices.py` (Eurostat Comext DS-045409) | monthly, ~10 weeks late; landed EU-border price; export view only (`pipeline/20_export_prices.py`, `/export-prices`) |
+| West African markets | `pipeline/fetch_export_prices.py` (FAO FPMA API) | Niger, Cameroon, Benin, Togo, Chad; monthly, 1-3 months late; export view only |
 | Weather, El Niño | `pipeline/11_external_factors.py`, `pipeline/weather_report.py` | context only |
 
 `docs/API.md` lists the endpoints. The internal "PIS System Map" page has

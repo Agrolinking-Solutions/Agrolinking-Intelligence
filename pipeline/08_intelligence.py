@@ -130,7 +130,8 @@ ALPS_THRESHOLDS = {
 }
 
 # ── Freight cost assumptions (NGN per kg per 100km) ──────────────────────────
-FREIGHT_NGN_PER_KG_PER_100KM = 12.0   # based on diesel haulage rates June 2026
+# An estimate, shared with the export view - see config/settings.py
+from config.settings import FREIGHT_NGN_PER_KG_PER_100KM
 
 # State capital distances from Kano (km) - major sourcing hub
 STATE_DISTANCES_FROM_KANO = {
