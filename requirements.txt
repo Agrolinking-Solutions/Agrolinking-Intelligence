@@ -1,30 +1,30 @@
 # Core pipeline
-pandas>=2.0.0
-numpy>=1.24.0
-scikit-learn>=1.3.0
+pandas==2.3.3
+numpy==2.2.6
+scikit-learn==1.7.2
 
 # Time series models
-pmdarima>=2.0.0
-prophet>=1.1.0
-statsmodels>=0.14.0
-lightgbm>=4.0.0
-xgboost>=2.0.0
+pmdarima==2.1.1
+prophet==1.5.0
+statsmodels==0.15.0
+lightgbm==4.7.0
+xgboost==3.2.0
 
 # Dashboard
-streamlit>=1.28.0
-plotly>=5.18.0
+streamlit==1.65.0
+plotly==7.1.0
 
 # Utilities
-loguru>=0.7.0
-requests>=2.31.0
-beautifulsoup4>=4.12.0
-pyarrow>=14.0.0
-anthropic>=1.11.0   # pipeline/10_web_price_search.py — soft dependency, skips cleanly if unset. Version pinned to what was actually tested; older versions may also support the web_search tool but weren't verified here.
+loguru==0.7.3
+requests==2.34.2
+beautifulsoup4==4.15.0
+pyarrow==25.0.1
+anthropic==2.3.0   # pipeline/10_web_price_search.py — soft dependency, skips cleanly if unset. Version pinned to what was actually tested; older versions may also support the web_search tool but weren't verified here.
 
 # API server
-fastapi>=0.110.0
-uvicorn>=0.29.0
-slowapi>=0.1.9
+fastapi==0.162.0
+uvicorn==0.54.0
+slowapi==0.1.10
 
 
-psycopg2-binary
+psycopg2-binary==2.9.13

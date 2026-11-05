@@ -1,353 +1,132 @@
 # Security & Operations Guide
 
-## Critical Issues Fixed (Sept 2026)
+Rewritten 3 Nov 2026 after a review against the code. Status is marked
+**Done** (in the code and checked) or **Open** (with who acts next).
 
-See [FIXES_AND_IMPROVEMENTS.md](FIXES_AND_IMPROVEMENTS.md) for the full list of recent corrections.
+## Status
 
-## Current Security Posture
+| Area | Status | Where / next step |
+|---|---|---|
+| Repository private | Done (2 Nov 2026) | GitHub settings |
+| Secrets out of the code | Done | GitHub Actions secrets: `TSDB_URL`, `PGPASSWORD`, `ANTHROPIC_API_KEY`, `ANTHROPIC_WORKSPACE_ID`; the server's environment. Issues use the built-in `GITHUB_TOKEN` |
+| HTTPS | Done | API and website |
+| CORS | Done | `api.py` `CORS_ALLOWED_ORIGINS`: pis.agrolinking.com, agrolinking.com, www.agrolinking.com; local origins only with `ALLOW_LOCAL_DEV_CORS=1` |
+| Rate limits | Done | slowapi: 60/min per IP, 20/min on alert writes, `/health` exempt |
+| Saved alerts | Done | Google ID token verified in `auth.py`; each user sees only their own; Postgres only |
+| Pinned packages | Done (3 Nov 2026) | `requirements.txt` exact pins; `constraints.txt` pins every package installed by the workflows; see "Updating packages" |
+| Pinned GitHub actions | Done (3 Nov 2026) | `uses:` references are commit SHAs with the version in a comment |
+| Uptime monitoring | Done (backstop, 3 Nov 2026) / Open (fast checks) | `pipeline/uptime_check.py` every 3 hours, issue label `uptime`. For 5-minute checks see "Uptime" - John to set up |
+| Database connection and rights | Open - checking | `pipeline/db_security_check.py` (daily, step 09g) reports encryption and rights; fix with `scripts/migration/least_privilege.sql` - Victor / database admin |
+| API server packages | Open | `requirements_api.txt` still has `>=` versions. Pin to the server's `pip freeze` - Victor |
+| Price data readable by anyone | Open - decision | No key on read endpoints; `/docs` public. See "API access" - John |
+| Data rights | Open | Agricome agreement, Mansa Markets (AFEX prices) terms, FarmPaddy permission - John |
+| Dependabot alerts | Open | Repository Settings → Code security → enable Dependabot alerts (free; alerts only) - John |
 
-### ✅ Strengths
+## Updating packages
 
-- **No secrets in git history:** TSDB_URL passed as GitHub secret, never committed
-- **Read-only external data:** WFP HDX API calls public datasets only
-- **Model verification:** Forecasts validated against live market prices before publication
-- **Quality gate:** Data with NaN, conflict markers, or missing commodities is rejected
-- **Reproducible builds:** Pin requirements files to exact versions
-
-### ⚠️ Areas Requiring Attention
-
-## Authentication & Authorization
-
-### Alert Endpoints (FIXED — October 2026)
-
-~~The `/alerts/saved` endpoints expose personal data and allow write operations without authentication~~ — fixed. All four endpoints (`GET/POST /alerts/saved`, `DELETE /alerts/saved/{id}`, `GET /alerts/check`) now require a verified Google login token (`Authorization: Bearer <google_id_token>`), checked in `auth.py` against Google's own public keys — no shared secret needed, the frontend's existing Google Sign-In is the trust anchor. Alerts are scoped to the caller's own `user_id`; trying to read or delete another user's alert returns the same 404 as a nonexistent ID (never reveals that it exists but belongs to someone else).
-
-Storage moved from the world-readable `outputs/alerts/saved_alerts.json` file to Postgres (`users`/`alerts` tables in `scripts/migration/schema.sql`). Unlike the other Postgres-backed endpoints, there's deliberately no JSON-file fallback here — a fallback would have meant falling back to the old unscoped, no-login file, silently undoing the fix. If Postgres is unreachable, these endpoints return 503 instead.
-
-Verified: user-isolation tested directly (a second simulated user cannot see, list, or delete a first user's alert — confirmed via FastAPI dependency override in lieu of a real Google token, which requires a browser flow), forged-JWT rejection tested (a token with a fake signature and a spoofed `email` claim is correctly rejected — confirms real cryptographic verification is happening, not just structural checks), and the full trigger-on-threshold-crossed logic tested against real price data.
-
-See `docs/FIXES_AND_IMPROVEMENTS.md` for the full record. Email/phone are no longer stored per-alert at all — they live once in `users`, not duplicated and exposed on every alert row.
-
-## CORS Configuration — FIXED
-
-Origins restricted to the real Agrolinking domains instead of `*`:
-
-```python
-CORS_ALLOWED_ORIGINS = [
-    "https://pis.agrolinking.com",   # the live web frontend (VPS)
-    "https://agrolinking.com",
-    "https://www.agrolinking.com",
-]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ALLOWED_ORIGINS,
-    allow_credentials=False,   # alerts auth uses Authorization: Bearer, not cookies —
-                               # credentialed cross-origin requests were never needed
-    allow_methods=["GET", "POST", "DELETE"],
-    allow_headers=["*"],
-)
-```
-
-Local dev origins (`localhost:3000`/`5173`) are only added when `ALLOW_LOCAL_DEV_CORS=1` is set in the environment — never set on the deployed VPS. If another real frontend origin appears, add it to `CORS_ALLOWED_ORIGINS` in `api.py` rather than reopening this to `*`.
-
-## Rate Limiting — FIXED
-
-`slowapi` added, per-IP, in-memory (fine for the single VPS instance this
-runs on; would need a shared Redis backend if this ever scales to multiple
-instances behind a load balancer):
-
-```python
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"], headers_enabled=True)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(SlowAPIMiddleware)
-```
-
-- **60/minute per IP by default**, applied automatically to every route via
-  the middleware — no per-route decoration needed for the ~35 read
-  endpoints. Generous enough to cover a dashboard's ~15-20 calls on page
-  load plus several refreshes, while still blocking scraping/abuse.
-- **`/health` is exempt** so uptime monitors aren't throttled.
-- **`POST`/`DELETE /alerts/saved` get a stricter explicit `20/minute`**
-  (`@limiter.limit(...)`, which overrides the default) since each call is
-  a real Postgres write, not a cached read.
-- Degrades gracefully if `slowapi` isn't installed — the API still starts
-  with no rate limiting rather than failing to boot, the same
-  soft-dependency pattern `db.py` uses for Postgres.
-- `X-RateLimit-*` and `Retry-After` headers are sent on every response so
-  clients (and the frontend) can see their remaining quota.
-
-Verified via `TestClient`: the default limit trips at the 61st call in a
-minute, the strict alert-mutation limit trips at the 21st, `/health` never
-trips even past 70 calls, and FastAPI's path/query parameter handling for
-the decorated alert routes is unaffected (checked against the generated
-OpenAPI schema).
-
-## Input Validation
-
-### Current Issues
-
-- `/history?days=99999999999` accepted before fix (now bounded 1–3650)
-- `/alerts/saved?threshold_price=0` causes divide-by-zero (now rejected)
-- Email/phone format never validated
-- No max length on commodity/alert label fields
-
-**Fix:** Stricter Pydantic models
-
-```python
-from pydantic import BaseModel, Field, EmailStr, conint
-
-class CreateAlertRequest(BaseModel):
-    commodity: str = Field(..., min_length=1, max_length=50)
-    threshold_price: float = Field(..., gt=0, le=1e12)
-    direction: Literal["above", "below"]
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = Field(None, regex=r"^\+?1?\d{9,15}$")
-    label: Optional[str] = Field(None, max_length=100)
-
-@app.post("/alerts/saved")
-async def create_alert(request: CreateAlertRequest):
-    # Request automatically validated
-    ...
-```
-
-## Data Integrity
-
-### Source Validation
-
-The WFP HDX download is unvalidated:
-
-```python
-csv_resp = requests.get(download_url, timeout=120)
-csv_resp.raise_for_status()
-with open(out_path, "wb") as f:
-    f.write(csv_resp.content)  # No validation
-```
-
-**Fix:** Validate before writing
-
-```python
-def validate_wfp_csv(path: str) -> bool:
-    """Check host, content type, and required columns."""
-    try:
-        df = pd.read_csv(path, nrows=100)
-        required = {"date", "commodity", "price", "pricetype"}
-        if not required.issubset(df.columns):
-            return False
-        if not df["date"].dtype in ("datetime64[ns]", "object"):
-            return False
-        return True
-    except:
-        return False
-
-csv_resp = requests.get(download_url, timeout=120)
-if csv_resp.headers.get("content-type") != "text/csv":
-    raise ValueError("Expected CSV, got " + csv_resp.headers["content-type"])
-# Write to temp file
-with tempfile.NamedTemporaryFile(mode="wb", suffix=".csv", delete=False) as f:
-    f.write(csv_resp.content)
-    temp_path = f.name
-if not validate_wfp_csv(temp_path):
-    os.remove(temp_path)
-    raise ValueError("WFP CSV validation failed")
-# Replace only after validation passes
-os.replace(temp_path, out_path)
-```
-
-## Database Security
-
-### Postgres Dual-Write
-
-If TSDB_URL is configured, the pipeline writes to a TimescaleDB instance.
-
-**Issues:**
-1. Database user likely has admin privileges
-2. Connection string contains plaintext password in environment variable
-3. No column-level encryption for sensitive fields
-
-**Fix:**
-
-1. Create a limited-privilege role:
-
-```sql
-CREATE ROLE pipeline_writer WITH PASSWORD '...';
-GRANT INSERT ON TABLE prices TO pipeline_writer;
-GRANT INSERT ON TABLE forecasts TO pipeline_writer;
-REVOKE ALL ON SCHEMA public FROM pipeline_writer;
-```
-
-2. Use `sslmode=verify-full` and pinned certificate:
-
-```python
-import psycopg2
-
-conn = psycopg2.connect(
-    os.environ["TSDB_URL"],
-    sslmode="verify-full",
-    sslcert="/path/to/cert.pem",
-    connect_timeout=5
-)
-```
-
-3. Store password in `.pgpass` (Unix) or use IAM (Cloud providers)
-
-## Dependency Management
-
-### Current Issues
-
-Both `requirements.txt` and `requirements_api.txt` use flexible versions:
-
-```
-pandas>=2.0.0
-prophet>=1.1.0
-```
-
-A future release could introduce a breaking change or security vulnerability silently.
-
-**Fix:** Pin exact versions
-
-```
-# requirements.txt
-pandas==2.1.4
-prophet==1.1.5
-pmdarima==2.0.4
-scikit-learn==1.3.2
-```
-
-Update only when intentional:
+Workflows install with `-c constraints.txt`, so nothing changes until the
+file does. To take updates (monthly, or when a security alert names a
+package), resolve again taking only releases at least a week old, on the
+same Python and platform as the runs:
 
 ```bash
-pip list --outdated
-pip install --upgrade pandas==2.2.0
-pip freeze > requirements.txt
+pip install --dry-run --ignore-installed --report report.json \
+  --uploaded-prior-to <date a week ago, e.g. 2026-11-24T00:00:00Z> \
+  --python-version 3.10 --implementation cp --only-binary=:all: \
+  --platform manylinux2014_x86_64 --platform manylinux_2_17_x86_64 \
+  --platform manylinux_2_28_x86_64 --platform linux_x86_64 \
+  -r requirements.txt pytest pip
 ```
 
-## Supply Chain Security
+Write the resolved versions into `constraints.txt` and the direct ones into
+`requirements.txt`, run `pytest tests/`, push, and check the next daily run.
+`outputs/logs/installed_packages.txt` records what each run installed.
+`tests/test_security.py` fails if a workflow installs without the
+constraints or uses an action not pinned to a commit.
 
-### GitHub Actions
+To update a GitHub action: look up the commit of the new release tag
+(`https://api.github.com/repos/actions/checkout/git/ref/tags/<tag>`) and
+replace the SHA and the version comment in all three workflows.
 
-Currently allows actions from any source. The workflow can execute arbitrary code.
+## Secrets
 
-**Fix:** Pin Actions to commit SHAs
+| Secret | Used by | Rotate when |
+|---|---|---|
+| `TSDB_URL`, `PGPASSWORD` | daily pipeline, web search, database check | after `least_privilege.sql`; if anyone with access leaves |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_WORKSPACE_ID` | web price search | if exposed; set a monthly spend limit in the Anthropic console |
+| Server environment (database login, Google client ID) | API | with the database rotation |
+| Server's GitHub access (deploy key) | the server's pull on push | if the server is rebuilt |
 
-```yaml
-# Before (flexible):
-- uses: actions/setup-python@v5
+Never paste a secret into chat, an issue or a commit. If one is exposed:
+rotate it first, then check the Actions logs and git history.
 
-# After (pinned):
-- uses: actions/setup-python@8877dd65e17d21883a2fb4d7103c01c2f9af88c5
-```
+## Database
 
-### Secrets Management
+1. Read the daily run's "Database security" summary or
+   `outputs/logs/db_security.json`. It shows whether the connection is
+   encrypted and whether the pipeline logs in as a superuser, without the
+   address, user or password.
+2. If not encrypted: turn on SSL on the server, then add `PGSSLMODE: require`
+   to the workflows' `env` and the server's environment (libpq reads it), or
+   `?sslmode=require` in `TSDB_URL`. Use `verify-full` once the server's CA
+   certificate is available to the clients.
+3. Run `scripts/migration/least_privilege.sql` as the admin (instructions in
+   the file): a `pis_pipeline` login (prices and forecasts, no user data) and
+   a `pis_api` login (reads prices; manages users, alerts, portfolios).
+   Update the secrets and the server, then change the admin password.
+4. Record where the database is hosted in this file.
 
-**Current:** GitHub Secrets hold `TSDB_URL`
+## Uptime
 
-**Risk:** Exposed in logs or error messages
+`pipeline/uptime_check.py` runs with every 3-hourly web search job (no extra
+job). It opens one issue labelled `uptime` while the API or website is down,
+or while the server is serving forecasts older than the newest daily run 45
+minutes after it was committed (a broken deploy). It closes the issue when
+all is well.
 
-**Mitigation:**
-- Never print secrets to logs
-- Use `echo "::add-mask::$SECRET"` to hide from Actions logs
-- Rotate secrets periodically (especially DB passwords)
+For checks every 5 minutes, add three monitors to a free outside service
+(e.g. UptimeRobot), with email alerts to the team:
 
-## Deployment Security
+- `https://pis-api.agrolinking.com/health`, keyword `operational`
+- `https://pis.agrolinking.com`
+- `https://pis-api.agrolinking.com/commodities` (any 200)
 
-### Streamlit Cloud
+## API access
 
-- **Read-only GitHub token:** Streamlit uses minimal permissions
-- **Data in repo:** Forecasts and outputs are public (by design for the API)
-- **No sensitive data:** Master CSV has no PII
+All read endpoints are public and `/docs` lists them. That suits the public
+website. Before price data is sold or licensed, choose one:
 
-### Render API
+- keep the website public and add **keys for partners** (AgLens, buyers),
+  with higher limits for key holders, or
+- **require keys everywhere**, with the website calling the API through its
+  own server so the key never reaches browsers (needs Victor's frontend
+  change), and turn off `/docs` in production.
 
-- **Free tier:** Limited to 0.5GB RAM, vulnerable to memory exhaustion
-- **No authentication:** Anyone can call any endpoint
-- **No HTTPS enforcement:** HTTPS available but not required
+## Data rights
 
-**Fix:**
-1. Set environment variables on Render for rate limiting
-2. Add basic auth or API key requirement
-3. Enable HTTPS redirect
+| Source | Status |
+|---|---|
+| Agricome | Prices typed in from public posts; agreement and back history requested Nov 2026 |
+| WFP (HDX) | Open data, attribution required |
+| FEWS NET via FAO | Public |
+| AFEX via Mansa Markets | Read from public pages (robots.txt allows); terms for reuse not cleared |
+| FarmPaddy (planned) | Terms forbid commercial republishing without written permission |
 
-## Monitoring & Alerting
+## Personal data
 
-### Current (None)
+`users` holds an email address and an optional WhatsApp number, created on
+Google sign-in; `alerts` and `portfolio_holdings` link to it. Nothing else
+in the platform is personal. The pipeline does not need these tables
+(`least_privilege.sql` removes its access). Delete a user's rows on request.
 
-Pipeline failures logged to GitHub Actions, but no external alert.
+## Incidents
 
-**Fix:** Add Slack/Email notifications
-
-```python
-# In pipeline after quality_gate.py fails
-import smtplib
-from email.mime.text import MIMEText
-
-if gate_failed:
-    msg = MIMEText("Pipeline quality gate failed - see GitHub Actions")
-    msg["Subject"] = "Agrolinking Pipeline Alert"
-    msg["From"] = os.environ["ALERT_EMAIL"]
-    msg["To"] = os.environ["ALERT_RECIPIENTS"]
-    
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(os.environ["ALERT_EMAIL"], os.environ["ALERT_PASSWORD"])
-        server.send_message(msg)
-```
-
-## Incident Response
-
-### What to do if...
-
-#### ...the API returns 500 errors
-
-1. Check the latest run log in `outputs/logs/`
-2. Run `python pipeline/quality_gate.py` locally
-3. If it fails, check for NaN or conflict markers
-4. Don't push until quality gate passes
-
-#### ...forecasts are obviously wrong
-
-1. Check `MANUAL_PRICES` in `pipeline/06_validate.py` — is it stale?
-2. Did the latest Agricome post arrive? Update the prices
-3. Run `python pipeline/run_pipeline.py`
-4. Check the validation report in `outputs/logs/validation_report_*.json`
-
-#### ...a data breach is suspected
-
-1. Rotate all GitHub secrets (TSDB_URL, API keys)
-2. Check GitHub access logs for unauthorized activity
-3. Review committed git history for accidentally-committed secrets
-4. If secrets were exposed, invalidate them immediately
-
-## Compliance
-
-### Data Retention
-
-- Master CSV kept for 2+ years (historical training data)
-- Outputs kept for 90 days in outputs/ folder
-- Logs kept for 30 days, then archived
-
-### Data Ownership
-
-- Agricome data: Licensed from Agricome Africa, attributed in outputs
-- WFP data: Public, CC-BY license
-- Agrolinking primary: Internal collection
-
-### Personal Data (Alerts)
-
-- User emails/phones stored only if user opts in
-- Never shared with third parties
-- Deleted on user request
-
-## Security Checklist
-
-- [ ] `requirements*.txt` pinned to exact versions
-- [ ] GitHub Actions all pinned to commit SHAs
-- [x] Authentication on `/alerts/*` endpoints (Google ID token, Oct 2026 — not API keys as originally planned, see above)
-- [x] CORS restricted to real Agrolinking domains (Oct 2026 — `pis.agrolinking.com`, `agrolinking.com`, `www.agrolinking.com`; `allow_credentials=False`, see above)
-- [x] Rate limiting enabled (slowapi — Oct 2026, 60/min default, 20/min on alert writes, see above)
-- [ ] Input validation on all endpoints
-- [ ] Database role limited to INSERT only
-- [ ] TSDB connection uses SSL + verify-full
-- [ ] WFP downloads validated before use
-- [ ] Secrets never logged or printed
-- [ ] Monitoring/alerting configured for production
-- [ ] Incident response plan documented and tested
+- **API errors or old data**: check the latest daily run; `pipeline/quality_gate.py`
+  locally; the `uptime` issue says which check failed. A stuck server needs
+  its deploy checked (Victor).
+- **Wrong prices**: the run page's "Real-data status", `/crosscheck`,
+  `/checks`. Remove a bad web price by moving it to
+  `data/raw/web_prices_withdrawn.csv`; block a bad site in
+  `data/raw/web_sources_blocked.csv`.
+- **Suspected breach**: rotate all secrets (table above), review Actions
+  logs and recent commits, check the database's users and alerts tables.

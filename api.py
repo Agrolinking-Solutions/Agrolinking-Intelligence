@@ -273,7 +273,9 @@ def run_date_from_file(fname: str) -> str:
 # V1 ENDPOINTS (existing, preserved)
 # ══════════════════════════════════════════════════════════════════════════════
 
-@app.get("/", tags=["Info"])
+# HEAD too: uptime monitors (UptimeRobot's HTTP check) send HEAD, and a
+# GET-only route answers 405, which they report as down (Nov 2026).
+@app.api_route("/", methods=["GET", "HEAD"], tags=["Info"])
 def root():
     """Health check and full API endpoint directory."""
     try:
@@ -338,7 +340,7 @@ def root():
 
 
 
-@app.get("/health", tags=["Info"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["Info"])
 @_exempt_from_rate_limit
 def health_check():
     """Dedicated health check endpoint for uptime monitoring services."""
@@ -407,7 +409,7 @@ def summary():
     }
 
 
-@app.get("/commodities", tags=["Commodities"])
+@app.api_route("/commodities", methods=["GET", "HEAD"], tags=["Commodities"])
 def list_commodities(
     include: Optional[str] = Query(None, description="farm_crops: also list the AgLens farm crops "
                                                      "(price only, no forecast; see /farm-prices)"),
