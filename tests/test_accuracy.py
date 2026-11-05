@@ -434,8 +434,10 @@ def test_no_real_price_far_out_of_line_with_the_real_prices_around_it(master):
 
 def test_filled_in_prices_only_between_real_prices(master):
     """A filled-in week is drawn between two real prices. Before the first one it copied it
-    back for years - white beans sat at the mis-dated Jan 2016 price all the way to 2002."""
-    anchors = REAL_SOURCES | {"WB_RTP_estimate"}
+    back for years - white beans sat at the mis-dated Jan 2016 price all the way to 2002.
+    (Estimates are fixed points too: World Bank's, and a sibling's real price x ratio.)"""
+    from config.settings import SIBLING_SOURCE
+    anchors = REAL_SOURCES | {"WB_RTP_estimate", SIBLING_SOURCE}
     for c, g in master.groupby("commodity"):
         a = g.loc[g["data_source"].isin(anchors), "date"]
         filled = g.loc[g["data_source"] == "Interpolated", "date"]
@@ -629,3 +631,41 @@ def test_feed_alert_opens_updates_and_closes():
     back = f.feed_status(pd.concat([master, master.iloc[[0]].assign(date=pd.Timestamp("2026-11-02"))]),
                          D("2026-11-04"))
     assert f.plan(back, [issue], D("2026-11-04"))[0]["do"] == "close"
+
+
+def test_afex_maize_is_white_and_yellow_is_a_labelled_estimate():
+    """Mansa Markets, 3 Nov 2026: AFEX's maize is white maize. It had been yellow maize's real price
+    since 15 Oct. Yellow maize (no real price since Jan 2023) is now white's real price x 1.023,
+    labelled an estimate, and replaces World Bank's yellow proxy (691K in Jul 2026 vs real ~377K)."""
+    from config.settings import SIBLING_PRICES, SIBLING_SOURCE
+    from pipeline.fetch_afex_prices import MANSA_TO_OURS
+    assert load("01_ingest").AFEX_AS_REAL == {"maize": ["Maize (white)"]}
+    assert MANSA_TO_OURS["maize"] == ["Maize (white)"]
+    assert SIBLING_SOURCE not in REAL_SOURCES
+    ratio = SIBLING_PRICES["Maize (yellow)"][1]
+    clean = load("02_clean")
+    df = pd.DataFrame({
+        "commodity": ["Maize (yellow)", "Maize (yellow)", "Maize (white)", "Maize (white)", "Maize (yellow)"],
+        "date": pd.to_datetime(["2023-01-09", "2026-07-27", "2026-07-20", "2026-11-02", "2026-11-02"]),
+        "price_ngn_mt": [220_420.0, 690_974.0, 377_750.0, 416_520.0, 999.0],
+        "data_source": ["WFP", "WB_RTP_estimate", "FEWS_NET", "AFEX", "Interpolated"],
+        "record_type": "historical", "notes": "", "source": ""})
+    y = clean.add_sibling_estimates(df).query("commodity == 'Maize (yellow)'").set_index("date")
+    assert list(y["data_source"]) == ["WFP", SIBLING_SOURCE, SIBLING_SOURCE]
+    assert y.loc["2026-11-02", "price_ngn_mt"] == pytest.approx(416_520 * ratio)
+    assert "no real Maize (yellow) price since 2023-01-09" in y.loc["2026-11-02", "notes"]
+    # rebuilt every run, never stacked; and only after the commodity's own real price
+    again = clean.add_sibling_estimates(clean.add_sibling_estimates(df))
+    assert (again["data_source"] == SIBLING_SOURCE).sum() == 2
+    # a recent real price of its own (within 45 days) is never overwritten or estimated over...
+    fresh = pd.concat([df, df.iloc[[0]].assign(date=pd.Timestamp("2026-10-26"), data_source="Web_search")])
+    out = clean.add_sibling_estimates(fresh).query("commodity == 'Maize (yellow)'").set_index("date")
+    assert out.loc["2026-11-02", "data_source"] != SIBLING_SOURCE
+    # ...but one real price doesn't undo the estimates for the years before it
+    assert out.loc["2026-07-20", "data_source"] == SIBLING_SOURCE
+    # and no estimates before its first real price (history isn't invented), unless it has none
+    early = df.assign(date=pd.to_datetime(["2026-08-03", "2026-07-27", "2026-07-20", "2026-11-02", "2026-11-02"]))
+    assert list(clean.add_sibling_estimates(early).query("data_source == @SIBLING_SOURCE")["date"]) == [
+        pd.Timestamp("2026-11-02")]
+    nothing_own = df[df.commodity != "Maize (yellow)"]
+    assert (clean.add_sibling_estimates(nothing_own)["data_source"] == SIBLING_SOURCE).sum() == 2

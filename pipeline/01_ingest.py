@@ -17,7 +17,7 @@ from datetime import datetime
 
 # ── Allow imports from project root ──────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, WFP_NAME_MAP, STANDARD_UNIT
+from config.settings import PATHS, COMMODITIES, WFP_NAME_MAP, STANDARD_UNIT, SIBLING_SOURCE
 
 # ── Logger setup ─────────────────────────────────────────────────────────────
 logger.remove()
@@ -163,10 +163,12 @@ def load_field_prices() -> pd.DataFrame:
 
 # AFEX commodity-exchange prices (data/raw/afex_prices.csv, read daily from
 # Mansa Markets by fetch_afex_prices.py) used as REAL prices, per commodity,
-# only where a person decided they fit. Yellow maize (John, 15 Oct 2026): no
-# real price since 2023; AFEX lists one "maize" price without saying white or
-# yellow, and the two trade within ~2% (WFP, 1,320 market-months).
-AFEX_AS_REAL = {"maize": ["Maize (yellow)"]}
+# only where a person decided they fit. Maize: white maize (Mansa Markets,
+# 3 Nov 2026: "white maize, not yellow or a mix"; no delivery location or
+# warehouse). It was used for yellow maize from 15 Oct 2026 while the grade
+# was unknown; yellow maize is now white x SIBLING_PRICES, labelled an estimate.
+AFEX_AS_REAL = {"maize": ["Maize (white)"]}
+AFEX_GRADE = {"maize": "white maize"}
 
 
 def load_afex_prices() -> pd.DataFrame:
@@ -199,7 +201,7 @@ def load_afex_prices() -> pd.DataFrame:
                              "rainfall_index": np.nan, "data_quality_score": 0.9, "is_validated": True,
                              "notes": (f"AFEX exchange price, median of {n_days} trading days to "
                                        f"{r['as_of_date'].date()} (that day: {r['price_as_shown']}; "
-                                       f"{slug}, type not stated) - {r['url']}"),
+                                       f"{AFEX_GRADE.get(slug, slug)}) - {r['url']}"),
                              "data_source": "AFEX"})
     if not rows:
         return pd.DataFrame(columns=cols)
@@ -763,10 +765,11 @@ def save_outputs(master_df: pd.DataFrame, fuel_df: pd.DataFrame):
         legacy_wfp = ((existing["data_source"] == "Agricome")
                       & (existing["source"].astype(str) == LEGACY_WFP_SOURCE))
         # (provisional WFP months, too: rebuilt from the WFP file, gone once WFP completes the month;
-        # and field quotes, rebuilt from data/raw/field_prices.csv)
+        # field quotes, rebuilt from data/raw/field_prices.csv; and sibling estimates, rebuilt by
+        # 02_clean.py - kept, an unranked one would outrank a new real price the same week)
         existing_historical = existing[(existing["record_type"] == "historical")
                                        & ~existing["data_source"].isin(["Web_search", "AFEX", "FEWS_NET",
-                                                                        "WFP_provisional"])
+                                                                        "WFP_provisional", SIBLING_SOURCE])
                                        & (existing["source"].astype(str) != FIELD_QUOTES_SOURCE)
                                        & ~stale_wfp & ~mislabelled_estimate & ~legacy_wfp]
         forecast_rows = existing[existing["record_type"] == "forecast"]

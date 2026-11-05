@@ -26,13 +26,13 @@ import os, sys
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, REAL_SOURCES
+from config.settings import PATHS, REAL_SOURCES, SIBLING_PRICES
 
 BASE     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_PATH = os.path.join(BASE, "data", "external", "fpi_base_2025.csv")
 YEAR     = ("2025-01-01", "2025-12-31")
 MIN_MONTHS = 6
-SIBLINGS = {"Maize (yellow)": ("Maize (white)", 1.023)}
+SIBLINGS = SIBLING_PRICES
 
 
 def build(commodities, master=None):

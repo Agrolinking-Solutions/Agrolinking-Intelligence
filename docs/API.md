@@ -125,6 +125,12 @@ All additions; nothing existing was removed or renamed.
 | `fair_test` | /accuracy, per commodity | `1_month` ... `6_months`, `price_holds_1_month`, `in_range_pct_1_month`, `test_points_1_month`, `verdict`, `issues` | The honest accuracy figure (weekly replay of history as forecasts are really made). Quote this rather than `backtest`. `fair_test_summary` / `fair_test_updated` sit at the top level. |
 | `in_range_pct`, `ranges_scored`, `price_holds_pct`, `direction_scored` | /accuracy `live` blocks | numbers | How often the real price fell inside the range we showed (aim 80%). `direction_hit_pct` now counts only forecasts that called a move, so it is `null` while every forecast is "price holds". |
 
+### Field added 5 Nov 2026
+
+| Field | Where | Values | Show |
+|---|---|---|---|
+| `start_from` | /forecasts/latest, /forecasts/{c} | `null`, or `{price, date, source: "Sibling_estimate", note}` | Set when the commodity has no recent real price of its own and the forecast starts from an estimate: today only Yellow maize (white maize's real price x 1.023 - AFEX's maize is white maize). Show "Estimated from white maize" next to the price, with `note` as the tooltip. `start_is_estimate` is `true`; `latest_real_price` stays the commodity's own (Jan 2023). History points from it have `source: "estimate"`. |
+
 ### GET /forecasts/{commodity}/{horizon}
 ```
 GET /forecasts/Rice/monthly

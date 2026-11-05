@@ -623,6 +623,7 @@ def latest_forecast(
                 "last_known_date":  data.get("last_known_date", ""),
                 "latest_real_price": latest_real(name, data),
                 "start_is_estimate": data.get("start_is_estimate"),
+                "start_from":       data.get("start_from"),
                 "today_price":      today_price,
                 "today_date":       today_date,
                 "validation":       {
@@ -690,10 +691,13 @@ def commodity_forecast(commodity: str):
         # The real price the forecast is built from. last_known_price/date
         # above is this week's starting point: the real price itself, or
         # carried forward to this week by the chosen method when it is older
-        # (start_is_estimate). today_price below moves along the forecast
-        # curve every day the pipeline runs.
+        # (start_is_estimate). start_from is set when there is no recent real
+        # price of its own and the start is a labelled estimate instead (yellow
+        # maize = white maize's real price x 1.023). today_price below moves
+        # along the forecast curve every day the pipeline runs.
         "latest_real_price":      latest_real(key, data),
         "start_is_estimate":      data.get("start_is_estimate"),
+        "start_from":             data.get("start_from"),
         "today_price":            today_price,
         "today_price_per_unit":   today_per_kg,
         "today_date":             today_date,
@@ -1722,6 +1726,7 @@ SOURCE_CATEGORY = {
     "Web_search": "web",
     "Agrolinking_validated": "model",
     "WB_RTP_estimate": "estimate",
+    "Sibling_estimate": "estimate",
     "Interpolated": "interpolated",
 }
 SOURCE_RANK = {"real": 0, "provisional": 1, "web": 2, "model": 3, "estimate": 4, "interpolated": 5,
@@ -1735,7 +1740,8 @@ SOURCE_LEGEND = {
                     "national average; replaced when WFP completes the month",
     "web":          "Real price - published online by a named, dated source and cross-checked",
     "model":        "Estimate - the platform's daily figure between real prices, anchored to the latest one",
-    "estimate":     "Estimate - World Bank Real-Time Prices model, where no real price exists",
+    "estimate":     "Estimate, where no real price exists - World Bank Real-Time Prices model, or a closely "
+                    "related commodity's real price x their measured price ratio (yellow maize = white maize x 1.023)",
     "interpolated": "Estimate - filled in between two real prices",
     "synthetic":    "Estimate - rebuilt from international prices x FX (no Nigerian market data for this period)",
     "other":        "Other",

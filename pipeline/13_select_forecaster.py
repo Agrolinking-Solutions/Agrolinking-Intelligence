@@ -50,6 +50,11 @@ HORIZONS     = (4, 8, 13, 26)
 HORIZON_W    = {4: 0.4, 8: 0.3, 13: 0.2, 26: 0.1}
 WINDOW_WEEKS = 104
 MIN_TARGETS  = 6
+# Accuracy is reported only for a commodity with a real price this recent:
+# yellow maize's last real price is WFP's Jan 2023, and its 104-week window
+# then scored 95.1% on 2021-23 prices while its forecast starts from an
+# estimate (white maize x 1.023). The method is still chosen on that history.
+STALE_WEEKS  = 52
 MIN_GAIN     = 0.3        # accuracy points a challenger must beat naive by
 # Rows that did not exist yet at a past forecast date: prices interpolated
 # towards the NEXT real price, and the platform's own model rows. Starting a
@@ -101,7 +106,8 @@ def score_commodity(commodity):
             age = (o - last_real).days / 7.0
             for m in CANDIDATES:
                 rows.append({"method": m, "h": h, "actual": float(t["price_ngn_mt"]),
-                             "pred": float(preds[m]), "origin": last, "age_weeks": age})
+                             "pred": float(preds[m]), "origin": last, "age_weeks": age,
+                             "target_date": t["date"]})
     return pd.DataFrame(rows) if rows else None
 
 
@@ -229,16 +235,21 @@ def run_selection():
             "tie_break": tie_break,
             "updated": today,
         }
-        if n4 < MIN_TARGETS:
+        last_real = res["target_date"].max()
+        stale = (pd.Timestamp(today) - last_real).days > STALE_WEEKS * 7
+        if n4 < MIN_TARGETS or stale:
             # One or two real prices can't measure accuracy (Yellow maize had
-            # 1 AFEX price on 15 Oct 2026 and scored "99.1%"). Report none, so
-            # the dashboard confidence and the averages leave it out.
+            # 1 AFEX price on 15 Oct 2026 and scored "99.1%"), nor can prices
+            # years old (STALE_WEEKS). Report none, so the dashboard
+            # confidence and the averages leave it out.
             for k in ("mape_4w", "mape_8w", "accuracy_4w", "accuracy_4w_fresh_data", "accuracy_8w", "accuracy_13w",
                       "accuracy_26w", "accuracy_26w_short_method", "naive_accuracy_4w", "naive_accuracy_26w",
                       "direction_hit_4w"):
                 out[c][k] = None
             out[c]["error_fresh_data_pct"] = {}
-            out[c]["note"] = f"only {n4} real price(s) to test against - accuracy not measured yet"
+            out[c]["note"] = (f"only {n4} real price(s) to test against - accuracy not measured yet"
+                              if n4 < MIN_TARGETS else
+                              f"no real price since {last_real:%Y-%m-%d} - accuracy not measured on current prices")
         logger.info(f"  {c:<16} -> {best:<12}{' (tie)' if tie_break else ''}"
                     f"{f' then {long_method} (6 mo)' if long_method else ''} acc 4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "
                     f"(naive {out[c]['naive_accuracy_4w']}% / {out[c]['naive_accuracy_26w']}%) n={n4}")

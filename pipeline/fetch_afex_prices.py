@@ -11,10 +11,10 @@ retail rows on the same pages are kept too, labelled as such.
 
 How the prices are used (see MANSA_TO_OURS):
   - 16_cross_check compares our prices with the AFEX price every day.
-  - They are NOT yet fed into the price history as real prices: AFEX's maize
-    grade (white or yellow) is not stated, its rice is probably paddy, and its
-    ginger and soybean grades differ from Agricome's. That is a decision for a
-    person, per commodity.
+  - Only maize is fed into the price history as a real price, as white maize
+    (01_ingest AFEX_AS_REAL; Mansa Markets confirmed the grade, 3 Nov 2026).
+    Its rice is probably paddy, and its ginger and soybean grades differ from
+    Agricome's. Using another one is a decision for a person, per commodity.
 
 The same pages show a monthly world benchmark price (US$/tonne); it is saved
 to data/raw/world_prices.csv for the price-drivers panel. Mansa's own "+x%"
@@ -48,7 +48,7 @@ WORLD_COLUMNS = ["as_of_date", "mansa_commodity", "usd_per_tonne", "change_pct_s
 
 # Mansa page -> our commodities it can be compared with. Empty = stored only.
 MANSA_TO_OURS = {
-    "maize":   ["Maize (white)", "Maize (yellow)"],   # grade not stated on the page
+    "maize":   ["Maize (white)"],    # white maize (Mansa Markets, 3 Nov 2026)
     "sorghum": ["Sorghum"],
     "soybean": ["Soybeans"],
     "cocoa":   ["Cocoa"],

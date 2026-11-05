@@ -125,7 +125,7 @@ def usable(cand, today):
 
 AFEX_PATH = os.path.join(os.path.dirname(PATHS["master"]), "..", "raw", "afex_prices.csv")
 AFEX_NOTES = {
-    "maize":  "AFEX does not say whether its maize is white or yellow.",
+    "maize":  "AFEX's maize is white maize (Mansa Markets, 3 Nov 2026); no delivery location is given.",
     "ginger": "AFEX ginger is a different grade (fresh or unsplit) from Agricome's dried split ginger, "
               "so it is listed for reference but not compared.",
 }

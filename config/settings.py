@@ -119,6 +119,16 @@ REAL_SOURCES    = PARTNER_SOURCES | {"Web_search"}
 # "real" price, and AFEX's fresh ginger was compared with Agricome's dried
 # ginger (Oct 2026). {site: the reader that covers it}
 READ_DIRECTLY = {"mansamarkets.com": "pipeline/fetch_afex_prices.py (AFEX exchange prices)"}
+# A commodity with no recent real price of its own is estimated from a sibling
+# commodity's real price x their measured price ratio: {commodity: (sibling,
+# ratio)}. Yellow maize trades ~2% above white maize (WFP wholesale, same market
+# and month, 2014-2023: median 1.023, IQR 1.00-1.07, 1,320 market-months).
+# Yellow maize has no real price since WFP's Jan 2023: AFEX's maize, used for it
+# from 15 Oct 2026, is white maize (Mansa Markets confirmed, 3 Nov 2026).
+# 02_clean.py writes these weekly as SIBLING_SOURCE rows - an estimate, labelled.
+SIBLING_PRICES = {"Maize (yellow)": ("Maize (white)", 1.023)}
+SIBLING_SOURCE = "Sibling_estimate"
+SIBLING_AFTER_DAYS = 45   # sibling rows start this long after the commodity's own last real price
 
 # ─── FORECAST HORIZONS ───────────────────────────────────────────────────────
 FORECAST_HORIZONS = {

@@ -14,7 +14,8 @@ import numpy as np
 from loguru import logger
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, REAL_SOURCES
+from config.settings import (PATHS, COMMODITIES, REAL_SOURCES, SIBLING_PRICES, SIBLING_SOURCE,
+                             SIBLING_AFTER_DAYS)
 
 logger.remove()
 logger.add(sys.stdout,
@@ -28,7 +29,65 @@ logger.add(sys.stdout,
 # estimates. Estimates only fill time not covered by Agricome/WFP data — see
 # the step that drops them where real coverage exists.
 ESTIMATE_SOURCES = {"WB_RTP_estimate"}
-ANCHOR_SOURCES = REAL_SOURCES | ESTIMATE_SOURCES
+# (sibling estimates are anchors too, but only ever fill weeks without a
+# recent real price of the commodity's own - add_sibling_estimates)
+ANCHOR_SOURCES = REAL_SOURCES | ESTIMATE_SOURCES | {SIBLING_SOURCE}
+
+
+def add_sibling_estimates(df):
+    """
+    Weekly estimates for SIBLING_PRICES commodities (config/settings.py): the
+    sibling's real price x their measured ratio, for weeks when the
+    commodity's own latest real price is more than SIBLING_AFTER_DAYS old
+    (never before its first one, unless it has none). Rebuilt on every run. The commodity's other non-real rows
+    in those weeks give way: yellow maize's World Bank proxy (white x 1.0777,
+    World Bank's own maize model) ran ~40% above real maize prices - 691K in
+    Jul 2026 when white maize traded at 377K (FEWS NET).
+    """
+    df = df[df["data_source"] != SIBLING_SOURCE].reset_index(drop=True)
+    real = df["data_source"].isin(REAL_SOURCES) & df["price_ngn_mt"].gt(0)
+    added = []
+    for commodity, (sibling, ratio) in SIBLING_PRICES.items():
+        own = np.sort(df.loc[(df["commodity"] == commodity) & real, "date"].unique())
+
+        def own_before(dates):
+            """The commodity's latest real date on or before each date (NaT if none)."""
+            if len(own) == 0:
+                return pd.Series(pd.NaT, index=dates.index, dtype="datetime64[ns]")
+            i = np.searchsorted(own, dates.values, side="right") - 1
+            return pd.Series(np.where(i >= 0, own[np.maximum(i, 0)], np.datetime64("NaT")), index=dates.index)
+
+        def uncovered(dates):
+            """Weeks without a recent own real price - after the first one, if any (no invented past)."""
+            last = own_before(dates)
+            return (last.isna() & (len(own) == 0)) | ((dates - last).dt.days > SIBLING_AFTER_DAYS)
+
+        sib = df[(df["commodity"] == sibling) & real]
+        sib = sib[uncovered(sib["date"])]
+        if sib.empty:
+            continue
+        rows = sib.copy()
+        rows["commodity"] = commodity
+        rows["price_ngn_mt"] = sib["price_ngn_mt"] * ratio
+        rows["notes"] = [f"Estimate: {sibling} real price {p:,.0f} ({src}, {d:%Y-%m-%d}) x {ratio} - "
+                         + (f"no real {commodity} price since {o:%Y-%m-%d}" if pd.notna(o)
+                            else f"no real {commodity} price")
+                         for p, src, d, o in zip(sib["price_ngn_mt"], sib["data_source"], sib["date"],
+                                                 own_before(sib["date"]))]
+        rows["source"] = f"{sibling} x {ratio}"
+        rows["data_source"] = SIBLING_SOURCE
+        rows["record_type"] = "historical"
+        rows["is_validated"] = False
+        mine = df[(df["commodity"] == commodity) & ~df["data_source"].isin(REAL_SOURCES)
+                  & (df["record_type"] != "forecast")
+                  & (df["date"] >= rows["date"].min()) & (df["date"] <= rows["date"].max())]
+        gives_way = mine.index[uncovered(mine["date"])]
+        df = df.drop(index=gives_way)
+        added.append(rows)
+        logger.info(f"  {commodity}: {len(rows)} weekly estimates from {sibling} x {ratio} "
+                    f"({rows['date'].min().date()} -> {rows['date'].max().date()}; "
+                    f"replaced {len(gives_way)} other non-real rows)")
+    return pd.concat([df] + added, ignore_index=True) if added else df
 
 HARD_BOUNDS = {
     "Sorghum":       {"floor":50_000,    "ceil":1_000_000},
@@ -66,6 +125,8 @@ def run_cleaning():
     df = df.drop_duplicates(subset=["commodity","date"], keep="first")
     removed = before - len(df)
     logger.info(f"  Duplicates removed: {removed}" if removed else "  No duplicates found")
+
+    df = add_sibling_estimates(df).sort_values(["commodity", "date"]).reset_index(drop=True)
 
     # Estimates only fill time NOT covered by observed prices: drop any
     # estimate dated on or before the commodity's last Agricome/WFP/primary

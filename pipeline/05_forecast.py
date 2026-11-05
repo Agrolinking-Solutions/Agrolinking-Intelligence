@@ -29,7 +29,7 @@ logging.getLogger("prophet").setLevel(logging.WARNING)
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, REAL_SOURCES
+from config.settings import PATHS, COMMODITIES, REAL_SOURCES, SIBLING_SOURCE
 
 logger.remove()
 logger.add(sys.stdout,
@@ -669,9 +669,21 @@ def forecast_commodity(commodity, run_date):
         real_price  = float(real_rows["price_ngn_mt"].iloc[-1])
         real_date   = real_rows["date"].iloc[-1]
         real_source = real_rows["data_source"].iloc[-1]
+    # No recent real price of its own: start from the sibling estimate that is
+    # newer (02_clean.py; yellow maize = white maize's real price x 1.023),
+    # labelled start_from + start_is_estimate. last_real_* stays its own.
+    start_from = None
+    sib_rows = comm_master[(comm_master["data_source"] == SIBLING_SOURCE) & comm_master["price_ngn_mt"].gt(0)]
+    if len(sib_rows) and (real_date is None or sib_rows["date"].iloc[-1] > real_date):
+        s = sib_rows.iloc[-1]
+        start_from = {"price": round(float(s["price_ngn_mt"]), 2), "date": f"{s['date']:%Y-%m-%d}",
+                      "source": SIBLING_SOURCE, "note": str(s["notes"])}
+    start_price = start_from["price"] if start_from else real_price
+    start_date  = pd.Timestamp(start_from["date"]) if start_from else real_date
+    if start_price is not None:
         week_monday = pd.Timestamp(run_date.date()) - pd.Timedelta(days=run_date.weekday())
-        last_date   = max(real_date, week_monday)
-        last_price  = real_price          # replaced by the champion's value on last_date below
+        last_date   = max(start_date, week_monday)
+        last_price  = start_price         # replaced by the champion's value on last_date below
     elif len(comm_master) > 0:
         # Fall back to any row (carry_forward etc) but never validated forecast
         non_fc = comm_master[comm_master["record_type"] != "forecast"]
@@ -723,8 +735,8 @@ def forecast_commodity(commodity, run_date):
     # actually scored best. "shadow" (default) computes it and stores it
     # next to the live ensemble without changing what clients see; "live"
     # replaces the ensemble; "off" skips it. Set FORECAST_CHAMPION_MODE.
-    champion = (build_champion(commodity, hist_df, real_price, real_date, last_date, future_df)
-                if real_price is not None else None)
+    champion = (build_champion(commodity, hist_df, start_price, start_date, last_date, future_df)
+                if start_price is not None else None)
     if champion and CHAMPION_MODE == "live":
         last_price = champion["anchor_price"]
     # The champion needs no trained models, so in live mode a commodity
@@ -840,7 +852,9 @@ def forecast_commodity(commodity, run_date):
         "last_real_price":   round(real_price, 2) if real_price is not None else None,
         "last_real_date":    str(real_date.date()) if real_date is not None else None,
         "last_real_source":  real_source,
-        "start_is_estimate": bool(real_date is not None and last_date > real_date),
+        "start_is_estimate": bool(start_from) or bool(real_date is not None and last_date > real_date),
+        # set when the forecast starts from a sibling estimate, not a real price
+        "start_from":        start_from,
         "forecast_start":    str(forecast_start.date()),
         "currency":          "NGN",
         "unit":              "NGN/MT",

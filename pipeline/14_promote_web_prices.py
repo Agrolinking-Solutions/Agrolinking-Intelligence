@@ -45,7 +45,7 @@ import pandas as pd
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES, READ_DIRECTLY
+from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES, READ_DIRECTLY, SIBLING_PRICES
 from pipeline.pg_commodities import ensure_web_estimates_schema
 from pipeline.page_dates import fetch_page_dates, confirm_source_date
 from pipeline.locations import national_equivalent
@@ -90,13 +90,12 @@ CORROBORATE_ABOVE    = 0.15
 CORROBORATION_TOLERANCE = 0.10
 ACCEPT_CONFIDENCE    = {"high", "medium"}
 # Yardstick for commodities with no recent real price of their own: a sibling
-# commodity's latest real price x their measured price ratio. Yellow maize
-# trades ~2% above white maize (WFP wholesale, same market and month,
-# 2014-2023: median 1.023, IQR 1.00-1.07, 1,320 market-months). Without this
-# its yardstick was a World Bank estimate (691K, Jul 2026) - and World Bank
+# commodity's latest real price x their measured price ratio (SIBLING_PRICES,
+# config/settings.py: yellow maize = white maize x 1.023). Without this its
+# yardstick was a World Bank estimate (691K, Jul 2026) - and World Bank
 # overstates maize by ~40% (white: 641K vs real 450K) - so a plausible 425.6K
 # wholesale price was rejected as 38% off.
-SIBLING_YARDSTICK    = {"Maize (yellow)": ("Maize (white)", 1.023)}
+SIBLING_YARDSTICK    = SIBLING_PRICES
 OWN_REAL_MAX_DAYS    = 365    # an own Agricome/WFP/primary price newer than this keeps priority
 RECENT_REAL_DAYS     = 45     # an accepted web or sibling price must be this recent to be the yardstick
 ACCEPT_LEVELS        = {"wholesale", "exchange"}

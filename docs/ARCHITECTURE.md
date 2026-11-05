@@ -43,7 +43,8 @@ and are scored on, observed prices only (`config/settings.py`):
 | Agricome weekly prices (7 crops) | typed into `data/raw/agricome_raw.csv` | from public posts; no agreement yet |
 | WFP market monitor | `pipeline/refresh_wfp_hdx.py` (HDX) | monthly, ~4-6 weeks late; newest partial month kept as WFP_provisional; download checked before use |
 | FEWS NET | `pipeline/fetch_fao_prices.py` (FAO FPMA API) | weekly wholesale white maize, imported rice |
-| AFEX exchange | `pipeline/fetch_afex_prices.py` (Mansa Markets pages) | real for yellow maize only (5-day median, `pipeline/afex_median.py`) |
+| AFEX exchange | `pipeline/fetch_afex_prices.py` (Mansa Markets pages) | real for white maize only (grade confirmed by Mansa Markets, 3 Nov 2026; 5-day median, `pipeline/afex_median.py`) |
+| Sibling estimate | `pipeline/02_clean.py` (`SIBLING_PRICES` in `config/settings.py`) | yellow maize = white maize's real price x 1.023 (measured, WFP 2014-23); labelled an estimate, never scored |
 | Agrolinking field data | `data/raw/field_prices.csv` | trader quotes; weekly median |
 | Web prices | `pipeline/10_web_price_search.py` → `14_promote_web_prices.py` | checks: level, date (page opened), age, band, corroboration, location (`pipeline/locations.py`), blocked/withdrawn lists |
 | CBN exchange rate, inflation; WFP fuel | `pipeline/fetch_macro.py` | |

@@ -163,6 +163,15 @@ def check_start(fc, rows):
     start = fc.get("last_known_price")
     if not finite(start):
         return result("start", "problem", "Forecast has no starting price")
+    if fc.get("start_from"):
+        # no recent real price of its own: 05_forecast starts from the sibling estimate (02_clean)
+        # (06_validate writes its daily figure over that week's estimate row, so only a newer one is wrong)
+        sf = fc["start_from"]
+        held = rows[(rows["data_source"] == sf.get("source")) & rows["price_ngn_mt"].gt(0)]
+        msg = f"Built from an estimate, N{sf['price']:,.0f} ({sf['date']}): {sf.get('note', '')}"
+        if len(held) and held["date"].max() > pd.Timestamp(sf["date"]):
+            return result("start", "problem", msg + f" - but a newer estimate is held ({held['date'].max():%Y-%m-%d})")
+        return result("start", "check", msg)
     if fc.get("last_real_price") is not None:
         # 05_forecast builds the forecast from the latest real price and carries it to this week
         real = rows[rows["data_source"].isin(REAL_SOURCES) & rows["price_ngn_mt"].gt(0)]
@@ -223,7 +232,8 @@ def check_sane(fc, sel):
 def check_tested(sel):
     acc, naive = sel.get("accuracy_4w"), sel.get("naive_accuracy_4w")
     if acc is None:
-        return result("tested", "check", f"Too few real prices to measure accuracy (n={sel.get('n_4w')})")
+        note = sel.get("note") or "accuracy not measured"
+        return result("tested", "check", note[:1].upper() + note[1:] + f" (n={sel.get('n_4w')})")
     fresh = sel.get("accuracy_4w_fresh_data")
     msg = (f"1-month accuracy {acc:.1f}% on real prices (n={sel.get('n_4w')}"
            + (f"; {fresh:.1f}% when the latest real price is under 4 weeks old" if fresh is not None else "")
