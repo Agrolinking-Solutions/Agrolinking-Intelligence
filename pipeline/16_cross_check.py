@@ -137,7 +137,7 @@ AFEX_DIFFERENT_GRADE = {"ginger"}
 
 # AFEX's price = the median of its last AFEX_DAYS trading days (afex_median.py,
 # shared with 01_ingest.py): one day's figure swings.
-from pipeline.afex_median import afex_median, AFEX_DAYS
+from pipeline.afex_median import afex_median, unchanged_run, AFEX_DAYS, FROZEN_DAYS
 
 
 def afex_candidates(path=AFEX_PATH):
@@ -153,13 +153,23 @@ def afex_candidates(path=AFEX_PATH):
     for slug, g in df.groupby("mansa_commodity"):
         r = g.iloc[-1]
         price, n_days = afex_median(g, pd.to_datetime(g["as_of_date"]).max())
+        # a price frozen for FROZEN_DAYS trading days is listed, not compared (afex_median.py)
+        run, since = unchanged_run(g)
+        frozen = run >= FROZEN_DAYS
+        level = ("exchange, different grade" if slug in AFEX_DIFFERENT_GRADE
+                 else "exchange, unchanged" if frozen else "exchange")
+        note = AFEX_NOTES.get(slug)
+        if frozen:
+            note = ((note + " ") if note else "") + (
+                f"AFEX's {slug} price has not changed in {run} trading days (since {since}), although the "
+                f"page says it updates daily - likely a standing listing, so it is listed but not compared.")
         for ours in MANSA_TO_OURS.get(slug, []):
             out.append({"commodity": ours, "query_date": r["as_of_date"], "price": price,
                         "afex_days": n_days,
                         "source_url": r["url"], "source_date": r["as_of_date"], "confidence": "high",
-                        "price_level": "exchange, different grade" if slug in AFEX_DIFFERENT_GRADE else "exchange",
+                        "price_level": level,
                         "market_location": "national (AFEX exchange)",
-                        "note": AFEX_NOTES.get(slug), "is_afex": True})
+                        "note": note, "is_afex": True})
     return out
 
 

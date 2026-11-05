@@ -669,3 +669,26 @@ def test_afex_maize_is_white_and_yellow_is_a_labelled_estimate():
         pd.Timestamp("2026-11-02")]
     nothing_own = df[df.commodity != "Maize (yellow)"]
     assert (clean.add_sibling_estimates(nothing_own)["data_source"] == SIBLING_SOURCE).sum() == 2
+
+
+def test_frozen_afex_price_is_listed_not_compared():
+    """AFEX sesame showed 2,300/kg on all 16 trading days from 14 Oct 2026 (the page says it updates
+    daily) and kept a '+51% disagree' alert open against Agricome's 1.52M. A price unchanged for
+    FROZEN_DAYS trading days is a standing listing: listed for reference, never compared or used."""
+    from pipeline.afex_median import unchanged_run, FROZEN_DAYS
+    days = pd.bdate_range("2026-10-14", periods=16)
+    frozen = pd.DataFrame({"as_of_date": days.strftime("%Y-%m-%d"), "price_ngn_mt": 2_300_000.0})
+    assert unchanged_run(frozen) == (16, "2026-10-14")
+    assert unchanged_run(frozen, days[4])[0] == 5 < FROZEN_DAYS
+    moving = frozen.assign(price_ngn_mt=[400_000.0 + i for i in range(16)])
+    assert unchanged_run(moving)[0] == 1
+    cc = load("16_cross_check")
+    rows = [{"as_of_date": d, "mansa_commodity": "sesame", "price_type": "exchange", "price_ngn_mt": 2_300_000.0,
+             "price_as_shown": "2,300 NGN / kg", "url": "https://www.mansamarkets.com/commodities/sesame"}
+            for d in frozen["as_of_date"]]
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "afex.csv")
+        pd.DataFrame(rows).to_csv(path, index=False)
+        cand = [c for c in cc.afex_candidates(path) if c["commodity"] == "Sesame"][0]
+    assert cand["price_level"] not in cc.COMPARE_LEVELS and "not changed in 16 trading days" in cand["note"]

@@ -179,7 +179,7 @@ def load_afex_prices() -> pd.DataFrame:
     single latest print, so yellow maize jumped +39% on one day's 470,870
     when the 5-day median was 337,700 (2 Nov 2026).
     """
-    from pipeline.afex_median import afex_median
+    from pipeline.afex_median import afex_median, unchanged_run, FROZEN_DAYS
     cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",
             "region", "fx_rate", "rainfall_index", "data_quality_score", "is_validated",
             "notes", "data_source"]
@@ -193,6 +193,11 @@ def load_afex_prices() -> pd.DataFrame:
     rows = []
     for slug, g in a.groupby("mansa_commodity"):
         for _, r in g.sort_values("as_of_date").groupby("week").tail(1).iterrows():
+            run, since = unchanged_run(g, r["as_of_date"])
+            if run >= FROZEN_DAYS:      # a standing listing, not a traded price (afex_median.py)
+                logger.warning(f"  AFEX {slug}: price unchanged for {run} trading days since {since} - "
+                               f"week of {r['week'].date()} not used")
+                continue
             price, n_days = afex_median(g, r["as_of_date"])
             for ours in AFEX_AS_REAL[slug]:
                 rows.append({"commodity": ours, "date": r["as_of_date"], "price_ngn_mt": price,

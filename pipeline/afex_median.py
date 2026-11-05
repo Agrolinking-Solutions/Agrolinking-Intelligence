@@ -11,6 +11,12 @@ import pandas as pd
 
 AFEX_DAYS = 5           # median over AFEX's last 5 trading days...
 AFEX_WINDOW_DAYS = 10   # ...that fall within 10 days of the date
+# The same price this many trading days running is a standing listing, not a
+# traded price: sesame (2,300/kg) and cashew (1,719.50/kg) never changed in
+# 16 trading days from 14 Oct 2026, while maize, soybean and sorghum moved
+# daily - yet the page says the price "updates each trading day". Sesame's
+# frozen figure kept a "+51% disagree" price alert open.
+FROZEN_DAYS = 10
 
 
 def afex_median(prints: pd.DataFrame, as_of) -> tuple[float, int]:
@@ -24,3 +30,21 @@ def afex_median(prints: pd.DataFrame, as_of) -> tuple[float, int]:
     recent = prints[(dates <= as_of) & (dates >= as_of - pd.Timedelta(days=AFEX_WINDOW_DAYS))]
     recent = recent.assign(_d=pd.to_datetime(recent["as_of_date"])).sort_values("_d").tail(AFEX_DAYS)
     return float(recent["price_ngn_mt"].median()), len(recent)
+
+
+def unchanged_run(prints: pd.DataFrame, as_of=None) -> tuple[int, str]:
+    """
+    How many trading days running, up to as_of (default: the latest), AFEX
+    showed exactly the price it showed on as_of, and the first of those days.
+    prints: one commodity's rows with as_of_date and price_ngn_mt.
+    """
+    p = prints.assign(_d=pd.to_datetime(prints["as_of_date"])).sort_values("_d")
+    if as_of is not None:
+        p = p[p["_d"] <= pd.Timestamp(as_of)]
+    if p.empty:
+        return 0, ""
+    prices = p["price_ngn_mt"].tolist()
+    run = 1
+    while run < len(prices) and prices[-run - 1] == prices[-1]:
+        run += 1
+    return run, f"{p['_d'].iloc[-run]:%Y-%m-%d}"
