@@ -432,6 +432,25 @@ def test_no_real_price_far_out_of_line_with_the_real_prices_around_it(master):
     assert not bad, bad
 
 
+def test_wfp_unit_slips_are_not_in_the_national_series(master):
+    """Yobe's retail measures doubled Jul 2017 - May 2018 and fell back to exactly half; white beans'
+    national price read 472-587K for 11 months against ~290K either side. Borno/Yobe eggs, beef, goat
+    and fish halved for single months. 01_ingest WFP_UNIT_SLIPS drops them (found 5 Nov 2026)."""
+    real = master[master["data_source"].isin(REAL_SOURCES) & (master["record_type"] == "historical")]
+    def s(c):
+        return real[real["commodity"] == c].set_index("date")["price_ngn_mt"].sort_index()
+    for beans in ("Beans (white)", "Beans (red)"):
+        b = s(beans)
+        before = b["2017-01-01":"2017-06-30"].median()
+        assert b["2017-07-01":"2018-05-31"].max() < 1.5 * before, beans
+    for c, month in (("Eggs", "2017-06"), ("Eggs", "2022-04"), ("Meat (beef)", "2022-04"), ("Meat (goat)", "2022-04")):
+        x = s(c)
+        m = pd.Period(month)
+        around = x[((x.index.to_period("M") == m - 1) | (x.index.to_period("M") == m + 1))].median()
+        here = x[x.index.to_period("M") == m]
+        assert here.empty or here.min() > 0.75 * around, (c, month)
+
+
 def test_filled_in_prices_only_between_real_prices(master):
     """A filled-in week is drawn between two real prices. Before the first one it copied it
     back for years - white beans sat at the mis-dated Jan 2016 price all the way to 2002.

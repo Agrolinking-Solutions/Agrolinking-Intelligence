@@ -318,6 +318,31 @@ CBM_NAIRA_FROM = pd.Timestamp("2017-01-01")   # cross-border markets in CFA fran
 # national price and put a 98%-error year into the eggs accuracy test (found
 # 3 Nov 2026). No other month matches it, so it is dropped, not re-dated.
 WFP_MISDATED = {("Abba Gamaram", "2016-01-15")}
+# WFP state-months with a unit slip: every market in one state moved ~2x (or
+# ~0.5x) at once and moved back later, while the neighbouring state did not.
+# Dropped, not rescaled. Found by scanning every state-month (5 Nov 2026);
+# 2021 and 2024 jumps that every state shared are real and kept.
+#   - Yobe, Jul 2017 - May 2018: retail per small measure (2.5-2.8 kg) doubled,
+#     then fell to exactly half (white beans 1,667 -> 833, Jun 2018); Borno
+#     stayed at 673-962 and Yobe's 100 kg wholesale rice stayed flat. White
+#     beans' national price read 472-587K instead of ~290K for 11 months.
+#   - Borno, Aug 2017: the same measures ~1.9x (beans 1,851; 950 and 962 either side).
+#   - Yobe, Jun 2017; Borno, Apr 2022: eggs, beef, goat and fish at half for one
+#     month in every market (Borno eggs 1,900 -> 950 -> 1,902).
+#   - Yobe, May 2021: eggs 600 (1,400 before, 1,500 after; Borno 1,334).
+MEASURES = {"2.5 KG", "2.7 KG", "2.8 KG"}
+PER_ITEM = {"Eggs", "Meat (beef)", "Meat (goat)", "Fish"}
+WFP_UNIT_SLIPS = [
+    {"admin1": "Yobe",  "from": "2017-07-01", "to": "2018-05-31", "units": MEASURES},
+    {"admin1": "Borno", "from": "2017-08-01", "to": "2017-08-31", "units": MEASURES},
+    {"admin1": "Yobe",  "from": "2017-06-01", "to": "2017-06-30", "commodities": PER_ITEM},
+    {"admin1": "Borno", "from": "2022-04-01", "to": "2022-04-30", "commodities": PER_ITEM},
+    {"admin1": "Yobe",  "from": "2021-05-01", "to": "2021-05-31", "commodities": {"Eggs"}},
+]
+# (our commodity, month) pairs that lost rows to WFP_UNIT_SLIPS, set by
+# load_wfp: the older WFP extract (place_legacy_wfp) is national averages of
+# the same survey, slip included, so it must not fill those months back in.
+SLIPPED_MONTHS: set = set()
 # The platform prices everything at wholesale. WFP has only ever published
 # RETAIL prices for beans (Borno/Yobe/Adamawa), but it published both retail
 # and wholesale for cowpeas - the same product family - in the same markets
@@ -433,6 +458,17 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
         logger.info(f"  WFP: dropped {int(misdated.sum())} rows from market-months dated to the wrong "
                     f"year (WFP_MISDATED)")
         wfp = wfp[~misdated].copy()
+    slipped = pd.Series(False, index=wfp.index)
+    for slip in WFP_UNIT_SLIPS:
+        slipped |= ((wfp["admin1"] == slip["admin1"]) & (wfp["pricetype"] == "Retail")
+                    & wfp["date"].between(pd.Timestamp(slip["from"]), pd.Timestamp(slip["to"]))
+                    & (wfp["unit"].isin(slip["units"]) if "units" in slip
+                       else wfp["commodity"].isin(slip["commodities"])))
+    if slipped.any():
+        logger.info(f"  WFP: dropped {int(slipped.sum())} rows from state-months with a unit slip (WFP_UNIT_SLIPS)")
+        gone = wfp[slipped]
+        SLIPPED_MONTHS.update(zip(gone["commodity"].map(WFP_COMMODITIES_WANTED), gone["date"].dt.to_period("M")))
+        wfp = wfp[~slipped].copy()
     proxy_ratios = wholesale_proxy_ratios(wfp)
 
     # Filter to only the commodities we need
@@ -628,6 +664,11 @@ def place_legacy_wfp(agricome_df: pd.DataFrame, current: pd.DataFrame) -> pd.Dat
             continue
         ratio = float(np.median(ratios))
         rest["price_ngn_mt"] = rest["price_ngn_mt"] / ratio
+        slip = [(c, m) in SLIPPED_MONTHS for m in rest["date"].dt.to_period("M")]
+        if any(slip):
+            logger.info(f"  {c}: older WFP extract - dropped {sum(slip)} leftover month(s) with a unit slip "
+                        f"(WFP_UNIT_SLIPS)")
+            rest = rest[[not x for x in slip]]
         # A leftover month far from the current data around it is the same
         # error the current file had: the extract's Jan 2016 beans (N4,200 per
         # 2.5kg, ~7x June's) is Abba Gamaram's mis-dated month (WFP_MISDATED).
