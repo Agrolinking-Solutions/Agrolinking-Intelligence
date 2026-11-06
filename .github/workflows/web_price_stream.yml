@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   search:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: ubuntu-latest is moving to 26.04, which may not offer Python 3.10
     timeout-minutes: 30
     env:
       PGPASSWORD: ${{ secrets.PGPASSWORD }}

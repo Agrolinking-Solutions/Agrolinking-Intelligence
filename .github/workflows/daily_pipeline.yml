@@ -37,7 +37,7 @@ concurrency:
 
 jobs:
   gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: ubuntu-latest is moving to 26.04, which may not offer Python 3.10
     outputs:
       run: ${{ steps.check.outputs.run }}
     steps:
@@ -58,7 +58,7 @@ jobs:
   run-pipeline:
     needs: gate
     if: needs.gate.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # pinned: ubuntu-latest is moving to 26.04, which may not offer Python 3.10
     timeout-minutes: 180   # ARIMA order search + Prophet can be slow; generous ceiling
 
     # The TSDB_URL secret has no password in it, so every Postgres step was

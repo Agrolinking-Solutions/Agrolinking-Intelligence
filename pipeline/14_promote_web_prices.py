@@ -14,7 +14,9 @@ A web price is promoted only if ALL of these hold:
     FRESH_DAYS and WFP older than FRESH_DAYS_WFP
   - the model's own confidence is "high" or "medium"
   - it is a wholesale or exchange price (the platform's price basis);
-    retail, farm-gate and rows saved before the level was recorded are not
+    retail, farm-gate and rows saved before the level was recorded are not.
+    Pages a person found to be shop prices (web_sources_levels.csv) count
+    as retail whatever level the model gave
   - it is a national price, or one state's price converted with that
     state's MEASURED price gap (pipeline/locations.py); a state price with
     no measured gap is not used. Every check below uses the national price
@@ -72,6 +74,10 @@ WITHDRAWN_PATH       = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "w
 # from them is promoted or used in the cross-check, and the search is told
 # to skip them.
 BLOCKED_SITES_PATH   = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "web_sources_blocked.csv")
+# Pages whose price level the model misreads: the level a person set after
+# review replaces the model's. Nairametrics' Lagos food-price survey was read
+# as wholesale and opened alerts #7 and #9 at 2-2.6x the wholesale price.
+SOURCE_LEVELS_PATH   = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "web_sources_levels.csv")
 
 # Freshness windows live in pipeline/freshness.py so this step and the
 # 3-hourly web search agree on which commodities are gaps.
@@ -259,6 +265,24 @@ def load_blocked_sites():
     return {str(r["site"]).strip().lower(): str(r.get("reason", "")) for _, r in df.iterrows()}
 
 
+def load_source_levels():
+    """[(site, url_contains, level, reason)] from web_sources_levels.csv (empty if missing)."""
+    if not os.path.exists(SOURCE_LEVELS_PATH):
+        return []
+    df = pd.read_csv(SOURCE_LEVELS_PATH)
+    return [(str(r["site"]).strip().lower(), str(r["url_contains"]).strip().lower(),
+             str(r["level"]).strip().lower(), str(r.get("reason", ""))) for _, r in df.iterrows()]
+
+
+def with_source_level(cand, levels):
+    """The candidate with the level set for its page after review (and why), else unchanged."""
+    url = str(cand.get("source_url") or "").lower()
+    for site, part, level, reason in levels:
+        if source_site(url) == site and part in url:
+            return {**cand, "price_level": level, "note": reason}
+    return cand
+
+
 def withdrawn_match(cand, withdrawn):
     site = source_site(cand.get("source_url"))
     for com, w_site, w_price, when in withdrawn:
@@ -306,6 +330,8 @@ def promote(candidates, state, today, page_lookup=None):
     seen = existing_web_keys()
     withdrawn = load_withdrawn()
     blocked = load_blocked_sites()
+    levels = load_source_levels()
+    candidates = [with_source_level(c, levels) for c in candidates]
     decisions, rows = [], []
     for c in sorted(candidates, key=lambda x: (x["commodity"], x["query_date"])):
         com = c["commodity"]
@@ -314,6 +340,8 @@ def promote(candidates, state, today, page_lookup=None):
              "source_url": c["source_url"], "source_date": c["source_date"],
              "confidence": c["confidence"], "price_level": c.get("price_level"),
              "market_location": c.get("market_location")}
+        if c.get("note"):
+            d["level_note"] = c["note"]
         if st.get("yardstick"):
             d["yardstick"] = st["yardstick"]
         hq = st.get("hq_date")

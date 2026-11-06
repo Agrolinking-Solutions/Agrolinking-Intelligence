@@ -595,6 +595,32 @@ def test_state_price_with_measured_gap_is_converted():
     assert "measured Lagos gap" in rows[0][13]
 
 
+SURVEY_URL = ("https://nairametrics.com/2026/11/01/"
+              "lagos-food-prices-maize-ogbono-and-garri-record-sharp-increases-in-october/")
+
+
+def test_a_page_found_to_be_shop_prices_is_listed_not_compared_or_promoted():
+    """Nairametrics' Lagos food-price survey (50kg maize bag N55,000 = N1.1m/t), read as
+    wholesale, opened alerts #7 and #9 at 2.6x AFEX (Nov 2026). web_sources_levels.csv"""
+    pr, cc = load("14_promote_web_prices"), load("16_cross_check")
+    survey = {"commodity": "Maize (white)", "query_date": D("2026-11-03"), "price": 1_100_000.0,
+              "source_url": SURVEY_URL, "source_title": "t", "source_date": "2026-10-01", "confidence": "high",
+              "price_level": "wholesale", "market_location": "Mile 12, Mushin, Daleko, Oyingbo markets, Lagos"}
+    master = pd.DataFrame({"commodity": "Maize (white)", "date": pd.to_datetime(["2026-11-02"]),
+                           "price_ngn_mt": [416_520.0], "data_source": "AFEX", "market_type": "wholesale"})
+    current = lambda url: {"published": D("2026-11-01"), "modified": None, "error": None}
+    e = cc.build_report(master, [survey], D("2026-11-03"), page_lookup=current)["commodities"]["Maize (white)"]
+    assert e["status"] == "no web price" and e["other_web_prices"][0]["level"] == "retail"
+    assert any("shop (retail) price" in n for n in e["notes"])
+    state = {"Maize (white)": {"hq_date": D("2026-08-01"), "direct_date": D("2026-08-01"), "wfp_date": None,
+                               "real_date": D("2026-08-01"), "real_price": 378_500.0}}
+    rows, decisions = pr.promote([survey], state, D("2026-11-03"), page_lookup=current)
+    assert not rows and "retail" in decisions[0]["reason"] and decisions[0]["level_note"]
+    # only that survey: other Nairametrics pages keep the level the model gave
+    other = {**survey, "source_url": "https://nairametrics.com/2026/06/02/nbs-garri-prices-tumble/"}
+    assert pr.with_source_level(other, pr.load_source_levels()) == other
+
+
 # ── Measuring and reporting ──────────────────────────────────────────────────
 
 def scored_rows(rows):

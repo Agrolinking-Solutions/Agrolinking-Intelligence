@@ -113,6 +113,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 - **Human review lists:**
   - `data/raw/web_prices_withdrawn.csv` removes a specific bad web price.
   - `data/raw/web_sources_blocked.csv` blocks a whole website.
+  - `data/raw/web_sources_levels.csv` sets the price level for pages the search misreads. Nairametrics' monthly Lagos food-price survey is a shop price: it was read as wholesale and opened maize alerts #7 and #9 at 2 to 2.6 times the wholesale price. Its prices are listed, not compared or used.
 - **Cross-check:** the daily `/crosscheck` report flags commodities where independent prices disagree with ours by more than 30%. AFEX ginger is a different grade (fresh, not dried split), so it is listed but not compared. The AFEX price used is the middle of its last 5 trading days, because single days swing (soybean ₦598K → ₦645K → ₦549K in three days).
 - **AFEX comes only through its own reader.** `fetch_afex_prices.py` knows each commodity's grade, so the web search skips Mansa Markets, and web copies of its prices are never promoted or cross-checked (`READ_DIRECTLY` in `config/settings.py`). AFEX maize is white maize (Mansa Markets, 3 Nov 2026) and counts for White maize; from 15 Oct to 5 Nov 2026, while the grade was unknown, it was used for Yellow maize.
 - **Yellow maize has no real price of its own since January 2023.** It is shown as white maize's real price × 1.023 (yellow's measured premium: WFP, same market and month, 2014–2023, 1,320 market-months), labelled an estimate on the charts and in `start_from`, and its accuracy is not reported (`13_select_forecaster.py` reports none for a commodity with no real price in the last year).
@@ -270,6 +271,7 @@ python pipeline/quality_gate.py
 | **Add Agricome prices** | Append rows to `data/raw/agricome_raw.csv`: commodity, week_start_date, price (NGN/MT), source `Agricom`, notes. They take effect on the next run. |
 | **Remove a bad web price** | Add commodity, site and price to `data/raw/web_prices_withdrawn.csv`, and delete the row from `data/raw/web_prices.csv`. |
 | **Block an unreliable website** | Add the site and reason to `data/raw/web_sources_blocked.csv`. |
+| **Mark a page as shop (retail) prices** | Add the site, a part of its URL, `retail` and the reason to `data/raw/web_sources_levels.csv`. |
 | **Use another exchange or market-monitor commodity as a real price** | Add it to `AFEX_AS_REAL` or `FEWS_AS_REAL` in `pipeline/01_ingest.py`, after checking how its level compares with existing real data. |
 | **Add a commodity** | Add it to `COMMODITIES` in `config/settings.py` and to its source mappings. New Postgres rows are created automatically. |
 | **Rebuild the Food Price Index base** | `python pipeline/build_fpi_base.py` rebuilds `data/external/fpi_base_2025.csv` from real 2025 prices. The base is fixed on purpose, so only rebuild it when the 2025 history itself changes. |

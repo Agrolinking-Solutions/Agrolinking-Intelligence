@@ -17,7 +17,8 @@ commodities where they disagree so a person checks them before customers do.
 
 Web prices only count if the model gave medium or high confidence, named a
 URL, and the source date parses and is at most MAX_SOURCE_AGE_DAYS old.
-Retail and unlabelled web prices are listed for context but not compared.
+Retail and unlabelled web prices are listed for context but not compared;
+so are pages a person found to be shop prices (web_sources_levels.csv).
 AFEX exchange prices (data/raw/afex_prices.csv, read daily from Mansa Markets
 by fetch_afex_prices.py) are always included as one more website.
 
@@ -191,6 +192,7 @@ def build_report(master, candidates, today, coverage=None, page_lookup=None):
     """page_lookup(url) -> {'published', 'modified', 'error'}; opens the page by default."""
     ours = our_prices(master, coverage or {})
     blocked = load_blocked_sites()
+    levels = _promote.load_source_levels()
     page_lookup = page_lookup or fetch_page_dates
     report = {}
     for c in COMMODITIES:
@@ -199,6 +201,7 @@ def build_report(master, candidates, today, coverage=None, page_lookup=None):
         for cand in candidates:
             if cand["commodity"] != c:
                 continue
+            cand = _promote.with_source_level(cand, levels)
             if cand.get("is_afex") and mine and mine["source"] == "AFEX":
                 continue    # our price IS the AFEX price - nothing to compare
             if not cand.get("is_afex") and source_site(cand.get("source_url")) in READ_DIRECTLY:
