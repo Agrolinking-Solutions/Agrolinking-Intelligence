@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-05",
+  "run_date": "2026-11-06",
   "basis": "Wholesale, NGN per tonne (Eggs: NGN per crate of 30)",
   "thresholds": {
     "check_above_pct": 15.0,
@@ -8,11 +8,11 @@
     "max_source_age_days": 45
   },
   "summary": {
-    "no web price": 7,
-    "disagree": 2,
+    "no web price": 9,
     "check": 2,
-    "agree": 5,
-    "our price is old": 2
+    "agree": 3,
+    "disagree": 1,
+    "our price is old": 3
   },
   "commodities": {
     "Hibiscus": {
@@ -34,25 +34,24 @@
       "our_source": "Agricome",
       "our_level": "wholesale",
       "our_coverage": "Agricome",
-      "web_prices": [
+      "web_prices": [],
+      "other_web_prices": [
         {
           "price": 2300000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/sesame",
-          "source_date": "2026-11-04",
-          "level": "exchange",
+          "source_date": "2026-11-05",
+          "level": "exchange, unchanged",
           "location": "national (AFEX exchange)",
           "confidence": "high"
         }
       ],
-      "other_web_prices": [],
-      "status": "disagree",
-      "web_median": 2300000,
-      "gap_pct": 51.3,
-      "compared_with": "AFEX exchange",
+      "status": "no web price",
+      "web_median": null,
+      "gap_pct": null,
       "notes": [
-        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status.",
-        "Only one website - treat the comparison as a hint, not proof."
+        "AFEX's sesame price has not changed in 17 trading days (since 2026-10-14), although the page says it updates daily - likely a standing listing, so it is listed but not compared.",
+        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status."
       ]
     },
     "Ginger": {
@@ -64,10 +63,10 @@
       "web_prices": [],
       "other_web_prices": [
         {
-          "price": 2633430,
+          "price": 3028440,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/ginger",
-          "source_date": "2026-11-04",
+          "source_date": "2026-11-05",
           "level": "exchange, different grade",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -92,7 +91,7 @@
           "price": 7500000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/cocoa",
-          "source_date": "2026-11-04",
+          "source_date": "2026-11-05",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -116,10 +115,10 @@
       "our_coverage": "Agricome",
       "web_prices": [
         {
-          "price": 520830,
+          "price": 523840,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/soybean",
-          "source_date": "2026-11-04",
+          "source_date": "2026-11-05",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -127,8 +126,8 @@
       ],
       "other_web_prices": [],
       "status": "agree",
-      "web_median": 520830,
-      "gap_pct": -13.2,
+      "web_median": 523840,
+      "gap_pct": -12.7,
       "compared_with": "AFEX exchange",
       "notes": [
         "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status.",
@@ -141,25 +140,24 @@
       "our_source": "Agricome",
       "our_level": "wholesale",
       "our_coverage": "Agricome",
-      "web_prices": [
+      "web_prices": [],
+      "other_web_prices": [
         {
           "price": 1719500,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/cashew",
-          "source_date": "2026-11-04",
-          "level": "exchange",
+          "source_date": "2026-11-05",
+          "level": "exchange, unchanged",
           "location": "national (AFEX exchange)",
           "confidence": "high"
         }
       ],
-      "other_web_prices": [],
-      "status": "agree",
-      "web_median": 1719500,
-      "gap_pct": -4.5,
-      "compared_with": "AFEX exchange",
+      "status": "no web price",
+      "web_median": null,
+      "gap_pct": null,
       "notes": [
-        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status.",
-        "Only one website - treat the comparison as a hint, not proof."
+        "AFEX's cashew price has not changed in 17 trading days (since 2026-10-14), although the page says it updates daily - likely a standing listing, so it is listed but not compared.",
+        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status."
       ]
     },
     "Sorghum": {
@@ -173,7 +171,7 @@
           "price": 390000,
           "site": "mansamarkets.com",
           "url": "https://www.mansamarkets.com/commodities/sorghum",
-          "source_date": "2026-11-04",
+          "source_date": "2026-11-05",
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
@@ -216,21 +214,12 @@
       "notes": []
     },
     "Maize (white)": {
-      "our_price": 450000,
-      "our_date": "2026-10-05",
-      "our_source": "Web_search",
+      "our_price": 416520,
+      "our_date": "2026-11-02",
+      "our_source": "AFEX",
       "our_level": "wholesale",
-      "our_coverage": "a web price accepted earlier",
+      "our_coverage": "AFEX exchange",
       "web_prices": [
-        {
-          "price": 416520,
-          "site": "mansamarkets.com",
-          "url": "https://www.mansamarkets.com/commodities/maize",
-          "source_date": "2026-11-04",
-          "level": "exchange",
-          "location": "national (AFEX exchange)",
-          "confidence": "high"
-        },
         {
           "price": 450000,
           "site": "businessamlive.com",
@@ -253,24 +242,20 @@
         }
       ],
       "other_web_prices": [],
-      "status": "agree",
-      "web_median": 416520,
-      "gap_pct": -7.4,
-      "compared_with": "AFEX exchange",
+      "status": "disagree",
+      "web_median": 746822,
+      "gap_pct": 79.3,
+      "compared_with": "web prices from 2 site(s)",
       "notes": [
-        "Our latest price itself came from the web, so this compares web sources with each other.",
-        "AFEX does not say whether its maize is white or yellow.",
-        "Status uses the AFEX price; 2 other web price(s) listed for reference.",
-        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status.",
         "State prices are compared as national prices, converted with that state's measured price gap."
       ]
     },
     "Maize (yellow)": {
-      "our_price": 416520,
-      "our_date": "2026-11-02",
-      "our_source": "AFEX",
+      "our_price": 220420,
+      "our_date": "2023-01-09",
+      "our_source": "WFP",
       "our_level": "wholesale",
-      "our_coverage": "AFEX exchange",
+      "our_coverage": "WFP",
       "web_prices": [
         {
           "price": 934579,
@@ -282,16 +267,26 @@
           "confidence": "medium",
           "price_as_found": 1100000,
           "conversion": "Lagos price N1,100,000 / 1.177 (measured Lagos gap, measured_wfp_2019_2023) = N934,579 national"
+        },
+        {
+          "price": 934579,
+          "site": "legit.ng",
+          "url": "https://www.legit.ng/business-economy/economy/1739115-dealers-release-food-prices-maize-garri-items-record-rates/",
+          "source_date": "2026-10-01",
+          "level": "wholesale",
+          "location": "Mushin, Daleko, Mile 12 and Oyingbo markets, Lagos",
+          "confidence": "medium",
+          "price_as_found": 1100000,
+          "conversion": "Lagos price N1,100,000 / 1.177 (measured Lagos gap, measured_wfp_2019_2023) = N934,579 national"
         }
       ],
       "other_web_prices": [],
-      "status": "disagree",
+      "status": "our price is old",
       "web_median": 934579,
-      "gap_pct": 124.4,
-      "compared_with": "web prices from 1 site(s)",
+      "gap_pct": null,
       "notes": [
-        "State prices are compared as national prices, converted with that state's measured price gap.",
-        "Only one website - treat the comparison as a hint, not proof."
+        "Our latest real price is 1397 days old - nothing current to compare against.",
+        "State prices are compared as national prices, converted with that state's measured price gap."
       ]
     },
     "Wheat": {
@@ -306,11 +301,11 @@
       "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 206 days old - nothing current to compare against."
+        "Our latest real price is 207 days old - nothing current to compare against."
       ]
     },
     "Rice (local)": {
-      "our_price": 1076398,
+      "our_price": 1086727,
       "our_date": "2026-10-12",
       "our_source": "WFP_provisional",
       "our_level": "wholesale-equivalent",
@@ -368,7 +363,7 @@
       ],
       "status": "check",
       "web_median": 1270000,
-      "gap_pct": 18.0,
+      "gap_pct": 16.9,
       "compared_with": "web prices from 3 site(s)",
       "notes": [
         "2 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared."
@@ -409,7 +404,7 @@
           "url": "https://www.legit.ng/business-economy/economy/1739140-rice-dealers-announce-prices-50kg-bag/",
           "source_date": "2026-11-02",
           "level": "wholesale",
-          "location": "Lagos, Nigeria",
+          "location": "Lagos",
           "confidence": "medium",
           "price_as_found": 1067500,
           "conversion": "Lagos price N1,067,500 / 1.064 (measured Lagos gap, measured_fews_2023_2026) = N1,003,289 national"
@@ -490,7 +485,7 @@
       "gap_pct": null,
       "notes": [
         "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
-        "Our latest real price is 52 days old - nothing current to compare against."
+        "Our latest real price is 53 days old - nothing current to compare against."
       ]
     },
     "Eggs": {
