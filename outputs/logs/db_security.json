@@ -8,118 +8,81 @@
   "ssl_required": true,
   "login": {
     "superuser": false,
-    "can_create_roles": true,
-    "can_create_databases": true,
+    "can_create_roles": false,
+    "can_create_databases": false,
     "bypasses_row_security": false,
-    "replication": true
+    "replication": false
   },
   "password_storage": "scram-sha-256",
   "tables": {
     "prices": {
-      "owner": true,
+      "owner": false,
       "rights": [
         "SELECT",
         "INSERT",
         "UPDATE",
-        "DELETE",
-        "TRUNCATE"
+        "DELETE"
       ]
     },
     "forecasts": {
-      "owner": true,
+      "owner": false,
       "rights": [
         "SELECT",
         "INSERT",
         "UPDATE",
-        "DELETE",
-        "TRUNCATE"
+        "DELETE"
       ]
     },
     "commodities": {
-      "owner": true,
+      "owner": false,
       "rights": [
         "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE",
-        "TRUNCATE"
+        "INSERT"
       ]
     },
     "locations": {
-      "owner": true,
+      "owner": false,
       "rights": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE",
-        "TRUNCATE"
+        "SELECT"
       ]
     },
     "intelligence_metrics": {
-      "owner": true,
+      "owner": false,
       "rights": [
         "SELECT",
         "INSERT",
-        "UPDATE",
-        "DELETE",
-        "TRUNCATE"
+        "UPDATE"
       ]
     },
     "market_index": {
-      "owner": true,
+      "owner": false,
       "rights": [
         "SELECT",
         "INSERT",
-        "UPDATE",
-        "DELETE",
-        "TRUNCATE"
+        "UPDATE"
       ]
     },
     "web_price_estimates": {
-      "owner": true,
+      "owner": false,
       "rights": [
         "SELECT",
         "INSERT",
-        "UPDATE",
-        "DELETE",
-        "TRUNCATE"
+        "UPDATE"
       ]
     },
     "users": {
-      "owner": true,
-      "rights": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE",
-        "TRUNCATE"
-      ]
+      "owner": false,
+      "rights": []
     },
     "alerts": {
-      "owner": true,
-      "rights": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE",
-        "TRUNCATE"
-      ]
+      "owner": false,
+      "rights": []
     },
     "portfolio_holdings": {
-      "owner": true,
-      "rights": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE",
-        "TRUNCATE"
-      ]
+      "owner": false,
+      "rights": []
     }
   },
-  "checked": "2026-11-06",
-  "findings": [
-    "The pipeline's login can create roles or databases, which it never needs.",
-    "The pipeline's login owns 10 table(s) (prices, forecasts, commodities, locations, intelligence_metrics, market_index, web_price_estimates, users, alerts, portfolio_holdings), so it can also drop or restructure them.",
-    "The pipeline can read or change user data (users, alerts, portfolio_holdings); only the API needs that."
-  ]
+  "checked": "2026-11-07",
+  "findings": []
 }
