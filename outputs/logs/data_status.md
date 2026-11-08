@@ -1,17 +1,17 @@
-## Real-data status - 07 November 2026
+## Real-data status - 08 November 2026
 
 **15 of 18 commodities have a real price from the last 45 days.**
 
 | Still waiting for real data | Last real price | Days ago |
 |---|---|---|
-| Maize (yellow) | 2023-01-09 | 1398 |
-| Wheat | 2026-04-13 | 208 |
-| Fish (dried) | 2026-09-14 | 54 |
+| Maize (yellow) | 2023-01-09 | 1399 |
+| Wheat | 2026-04-13 | 209 |
+| Fish (dried) | 2026-09-14 | 55 |
 
 **Web prices added today: 0**
 - Fish (dried): 5 found, none used - 4x low confidence (forum, undated list or shop), 1x source too old
-- Maize (yellow): 22 found, none used - 11x website blocked after review - see web_sources_blocked.csv, 6x not a wholesale price (or level not recorded), 3x no exact date on the source, 2x source too old
-- Wheat: 13 found, none used - 13x withdrawn earlier after review
+- Maize (yellow): 22 found, none used - 10x website blocked after review - see web_sources_blocked.csv, 6x not a wholesale price (or level not recorded), 4x no exact date on the source, 2x source too old
+- Wheat: 15 found, none used - 15x withdrawn earlier after review
 
 **Our prices vs independent web prices:** 3 agree, 3 check, 9 no web price, 3 our price is old
 - CHECK: Cocoa - ours N6,000,000 (Agricome), web N7,500,000 from 1 site(s), +25%
