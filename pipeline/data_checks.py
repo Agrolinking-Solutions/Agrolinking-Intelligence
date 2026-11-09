@@ -54,6 +54,7 @@ logger.add(sys.stdout,
 OUT_PATH      = os.path.join(PATHS["logs_dir"], "data_checks.json")
 SHOP_PRICE_OK = {"Meat (beef)", "Meat (goat)", "Fish (dried)", "Eggs"}   # John, 14 Oct 2026: shop prices, labelled
 ACCURACY_GOAL = 95.0
+LIVE_MIN_PRICES = 3   # real prices a commodity's published record needs before it's judged
 RANK          = {"ok": 0, "check": 1, "problem": 2}
 
 
@@ -248,13 +249,18 @@ def check_live(c, live, sel):
     """Judged on the current method only; the published record before 13 Oct 2026 is the old ensemble."""
     by = live.get("by_commodity", {}).get(c, {}).get("1 month", {}) or {}
     cur, old = by.get("champion") or {}, by.get("all") or {}
-    if (cur.get("scored") or 0) < 6:
+    # Judged on distinct real prices: six forecasts made on six days can all
+    # be scored against the same one price.
+    real = lambda s: s.get("real_prices", s.get("scored")) or 0
+    if (cur.get("scored") or 0) < 6 or real(cur) < LIVE_MIN_PRICES:
         if (old.get("scored") or 0) >= 6:
-            return result("live", "ok", f"Current method not scored at 1 month yet; published forecasts so far "
-                          f"(mostly the method used until 13 Oct 2026) {old['accuracy_pct']:.1f}% ({old['scored']} scored)")
+            return result("live", "ok", f"Current method not scored on enough real prices yet; published forecasts "
+                          f"so far (mostly the method used until 13 Oct 2026) {old['accuracy_pct']:.1f}% "
+                          f"({old['scored']} forecasts on {real(old)} real prices)")
         return result("live", "ok", "Too few published forecasts scored yet")
     acc, tested = cur["accuracy_pct"], sel.get("accuracy_4w")
-    msg = f"Published 1-month forecasts {acc:.1f}% accurate ({cur['scored']} scored since {cur['first_forecast']})"
+    msg = (f"Published 1-month forecasts {acc:.1f}% accurate ({cur['scored']} forecasts on "
+           f"{real(cur)} real prices since {cur['first_forecast']})")
     if tested is not None and acc < tested - 5:
         return result("live", "check", msg + f" - below the tested {tested:.1f}%", accuracy=acc)
     return result("live", "ok", msg, accuracy=acc)

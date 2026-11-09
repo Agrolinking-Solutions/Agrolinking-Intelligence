@@ -54,7 +54,10 @@ MIN_TARGETS  = 6
 # yellow maize's last real price is WFP's Jan 2023, and its 104-week window
 # then scored 95.1% on 2021-23 prices while its forecast starts from an
 # estimate (white maize x 1.023). The method is still chosen on that history.
-STALE_WEEKS  = 52
+# 12 weeks, not a year: forecasts from a real price older than that score
+# about 34% (fair audit, Oct 2026), so Wheat's 97.2% - tested on 2024-26
+# field prices, last one 13 Apr 2026 - said nothing about its forecast in Nov.
+STALE_WEEKS  = 12
 MIN_GAIN     = 0.3        # accuracy points a challenger must beat naive by
 # Rows that did not exist yet at a past forecast date: prices interpolated
 # towards the NEXT real price, and the platform's own model rows. Starting a
@@ -240,7 +243,7 @@ def run_selection():
         if n4 < MIN_TARGETS or stale:
             # One or two real prices can't measure accuracy (Yellow maize had
             # 1 AFEX price on 15 Oct 2026 and scored "99.1%"), nor can prices
-            # years old (STALE_WEEKS). Report none, so the dashboard
+            # months old (STALE_WEEKS). Report none, so the dashboard
             # confidence and the averages leave it out.
             for k in ("mape_4w", "mape_8w", "accuracy_4w", "accuracy_4w_fresh_data", "accuracy_8w", "accuracy_13w",
                       "accuracy_26w", "accuracy_26w_short_method", "naive_accuracy_4w", "naive_accuracy_26w",

@@ -18,8 +18,8 @@ sync between runs:
                                         forecasting method
 
 "Real" means Agricome / WFP / Agrolinking_primary prices only (same as the
-backtest). A forecast is scored when a real price exists within MATCH_DAYS of
-its target date; until then it waits.
+backtest). A forecast is scored when a real price dated AFTER the forecast day
+exists within MATCH_DAYS of its target date; until then it waits.
 
 Run: python pipeline/15_track_accuracy.py
 """
@@ -99,19 +99,29 @@ def build_log():
     return pd.DataFrame(rows)
 
 
-def attach_actuals(log):
-    """Nearest real price within MATCH_DAYS of each forecast's target date."""
-    master = pd.read_csv(PATHS["master"], parse_dates=["date"])
-    real = master[master["data_source"].isin(REAL_SOURCES) & master["price_ngn_mt"].notna()]
+def attach_actuals(log, real=None):
+    """
+    Nearest real price within MATCH_DAYS of each forecast's target date,
+    dated after the day the forecast was made. Without that rule a 1-week
+    forecast made on a Monday was scored against that same Monday's price,
+    its own starting point: 113 of the 301 scored 1-week champion forecasts
+    in Nov 2026 (91.0% reported vs 88.8% on later prices).
+    """
+    if real is None:
+        master = pd.read_csv(PATHS["master"], parse_dates=["date"])
+        real = master[master["data_source"].isin(REAL_SOURCES) & master["price_ngn_mt"].notna()]
     real = (real.groupby(["commodity", "date"], as_index=False)["price_ngn_mt"].mean()
                 .rename(columns={"date": "actual_date", "price_ngn_mt": "actual"}))
     log = log.copy()
     log["target_date"] = pd.to_datetime(log["target_date"])
     log["_order"] = range(len(log))
-    merged = pd.merge_asof(
-        log.sort_values("target_date"), real.sort_values("actual_date"),
-        left_on="target_date", right_on="actual_date", by="commodity",
-        direction="nearest", tolerance=pd.Timedelta(days=MATCH_DAYS))
+    made = pd.to_datetime(log["made_on"])
+    real = real[real["actual_date"] > made.min()]
+    pairs = log[["_order", "commodity", "target_date"]].assign(made=made).merge(real, on="commodity")
+    pairs["gap"] = (pairs["actual_date"] - pairs["target_date"]).abs()
+    pairs = pairs[(pairs["actual_date"] > pairs["made"]) & (pairs["gap"] <= pd.Timedelta(days=MATCH_DAYS))]
+    best = pairs.sort_values(["_order", "gap", "actual_date"]).drop_duplicates("_order")
+    merged = log.merge(best[["_order", "actual_date", "actual"]], on="_order", how="left")
     return merged.sort_values("_order").drop(columns="_order").reset_index(drop=True)
 
 
@@ -133,6 +143,10 @@ def summarise(scored):
         r = df[df["lower"].notna()]
         inside = (r["actual"] >= r["lower"]) & (r["actual"] <= r["upper"])
         return {"scored": int(len(df)),
+                # Forecasts made on consecutive days share their real price, so
+                # "scored" overstates the evidence: 301 one-week forecasts in Nov
+                # 2026 rested on 27 real prices. This is the number to judge by.
+                "real_prices": int(df[["commodity", "actual_date"]].drop_duplicates().shape[0]),
                 "accuracy_pct": round(float(100 - ape.mean()), 1),
                 "median_error_pct": round(float(ape.median()), 1),
                 "direction_hit_pct": round(float(hit.mean() * 100), 1) if len(hit) else None,
@@ -189,7 +203,8 @@ def run_tracking():
             s = overall[h][m]
             if s:
                 logger.info(f"    {h:<9} {m:<9} accuracy {s['accuracy_pct']}%  direction "
-                            f"{s['direction_hit_pct']}%  in range {s['in_range_pct']}%  (n={s['scored']})")
+                            f"{s['direction_hit_pct']}%  in range {s['in_range_pct']}%  "
+                            f"(n={s['scored']} on {s['real_prices']} real prices)")
     return True
 
 

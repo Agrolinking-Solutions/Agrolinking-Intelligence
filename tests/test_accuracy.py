@@ -645,6 +645,43 @@ def test_live_range_coverage_and_no_direction_for_price_holds():
     assert s["price_holds_pct"] == 50.0
 
 
+def test_live_forecast_is_never_scored_against_a_price_known_when_it_was_made():
+    """A 1-week forecast made on Monday 19 Oct was scored against that Monday's own
+    price (its starting point): 113 of 301 champion forecasts in Nov 2026."""
+    t = load("15_track_accuracy")
+    real = pd.DataFrame({"commodity": "Sesame", "data_source": "Agricome", "price_ngn_mt": [100.0, 110.0],
+                         "date": pd.to_datetime(["2026-10-19", "2026-10-27"])})
+    log = pd.DataFrame({"made_on": ["2026-10-19", "2026-10-26"], "commodity": "Sesame", "horizon": "weekly",
+                        "target_date": ["2026-10-26", "2026-11-02"], "predicted": 100.0})
+    out = t.attach_actuals(log, real)
+    # 19 Oct -> 26 Oct: 19 Oct and 27 Oct are both within 7 days; only 27 Oct came after
+    assert out.loc[0, "actual_date"] == pd.Timestamp("2026-10-27") and out.loc[0, "actual"] == 110.0
+    # 26 Oct -> 2 Nov: 27 Oct is after the forecast day, so it counts
+    assert out.loc[1, "actual"] == 110.0
+    same_day = t.attach_actuals(log.iloc[:1].assign(made_on="2026-10-27"), real)
+    assert pd.isna(same_day.loc[0, "actual"]), "a price from the forecast day itself is not a test"
+
+
+def test_live_record_counts_distinct_real_prices():
+    t = load("15_track_accuracy")
+    rows = scored_rows([(100.0, 100.0, 90.0, 110.0, 105.0)] * 5)    # five forecast days, one real price
+    _, overall = t.summarise(rows)
+    s = overall["1 week"]["champion"]
+    assert s["scored"] == 5 and s["real_prices"] == 1
+
+
+def test_headline_and_fair_audit_use_the_same_rules():
+    """The site's figure (13_select_forecaster) and the weekly fair audit must leave out
+    the same commodities and count 'fresh data' the same way, or they can't be compared."""
+    sel = load("13_select_forecaster")
+    spec = importlib.util.spec_from_file_location("audit", os.path.join(ROOT, "scripts", "research", "forecast_audit.py"))
+    audit = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(audit)
+    assert sel.STALE_WEEKS == audit.STALE_WEEKS == 12, "a real price over 12 weeks old forecasts at ~34%"
+    for k in ("FRESH_WEEKS", "GAP_WEEKS", "WINDOW_WEEKS", "MIN_GAIN", "TIE_MARGIN", "LONG_MIN_GAIN"):
+        assert getattr(sel, k) == getattr(audit, k), k
+
+
 def test_monthly_report_is_written_once_per_month(tmp_path):
     r = load("18_accuracy_report")
     assert r.report_due(D("2026-11-03"), str(tmp_path)) is None, "first report is for November 2026"

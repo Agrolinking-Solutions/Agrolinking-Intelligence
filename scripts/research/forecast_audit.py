@@ -33,7 +33,7 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
-from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES
+from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES, SCORED_SOURCES
 from pipeline.drift_models import CANDIDATES, point_forecasts, range_halfwidth
 
 FEATURES_DIR = os.path.join(os.path.dirname(PATHS["master"]), "features")
@@ -48,6 +48,7 @@ SCORE_FROM = "2016-01-01"
 BAND_K = 1.6          # the old fixed rule (half-width = 1.6 x mean abs error), kept as a variant
 GAP_WEEKS = 12        # same as 13_select_forecaster: choose methods on normal-condition pairs
 FRESH_WEEKS = 4       # same as 13_select_forecaster: "fresh data" is a latest real price at most this old
+STALE_WEEKS = 12      # same as 13_select_forecaster: no real price this recent -> left out of the summary
 NOT_KNOWN_YET = {"Interpolated", "Agrolinking_validated"}
 
 
@@ -59,7 +60,9 @@ def pairs_for(commodity):
     df = pd.read_csv(os.path.join(FEATURES_DIR, f"features_{safe_name(commodity)}.csv"), parse_dates=["date"])
     df = df.sort_values("date").drop_duplicates("date", keep="last").reset_index(drop=True)
     df = df[[c for c in ("date", "price_ngn_mt", "data_source", "food_inflation_yoy") if c in df.columns]]
-    real = df[df["data_source"].isin(PARTNER_SOURCES)]
+    # Scored only on completed prices, as 13_select_forecaster and the live
+    # step are; a provisional WFP month may still be a forecast's start.
+    real = df[df["data_source"].isin(SCORED_SOURCES)]
     rows = []
     for _, t in real[real["date"] >= pd.Timestamp(SCORE_FROM) - pd.Timedelta(weeks=WINDOW_WEEKS + 26)].iterrows():
         for h in HORIZONS:
@@ -223,16 +226,25 @@ if __name__ == "__main__":
         recent = d[d["target"] > d["target"].max() - pd.Timedelta(weeks=RECENT_WEEKS)]
         s_recent = {f"{h}w": score(recent[recent["h"] == h]) for h in HORIZONS if (recent["h"] == h).sum() >= MIN_TARGETS}
         v, issues = verdict(s["4w"], s.get("26w"), rep)
+        last_real = p["target"].max()
+        stale = (pd.Timestamp.today().normalize() - last_real).days > STALE_WEEKS * 7
         report["commodities"][c] = {"verdict": v, "issues": issues, "reported_accuracy_4w": rep, "horizons": s,
-                                    "last_two_years": s_recent}
+                                    "last_two_years": s_recent, "last_real_price": f"{last_real:%Y-%m-%d}",
+                                    "in_summary": not stale}
         a4, a26 = s["4w"], s.get("26w", {})
         print(f"{c:15} {v:16} 1m {a4['accuracy_pct']:5.1f}% (naive {a4['naive_accuracy_pct']:5.1f}, filled-start {a4['naive_with_filled_start_accuracy_pct']:5.1f}, "
               f"bias {a4['bias_pct']:+.1f}, range {a4['range_coverage_pct']:.0f}%) | 6m {a26.get('accuracy_pct', float('nan')):5.1f}% "
               f"range {a26.get('range_coverage_pct', float('nan')):.0f}% | reported {rep} | n={a4['n']}")
-    acc = [v["horizons"]["4w"]["accuracy_pct"] for v in report["commodities"].values() if "horizons" in v]
+    # The summary covers the same commodities as the daily headline
+    # (13_select_forecaster): a past record says nothing about a forecast
+    # that today starts from a months-old price (Wheat, Yellow maize).
+    counted = {c: v for c, v in report["commodities"].items() if "horizons" in v and v["in_summary"]}
+    acc = [v["horizons"]["4w"]["accuracy_pct"] for v in counted.values()]
     report["summary"] = {"mean_1_month_accuracy_pct": round(float(np.mean(acc)), 1),
                          "commodities_at_95": int(sum(a >= 95 for a in acc)), "commodities_tested": len(acc),
-                         "passes": sum(v.get("verdict") == "passes" for v in report["commodities"].values())}
+                         "passes": sum(v.get("verdict") == "passes" for v in counted.values()),
+                         "left_out_no_recent_real_price": sorted(c for c, v in report["commodities"].items()
+                                                                 if "horizons" in v and not v["in_summary"])}
     print("SUMMARY", report["summary"])
     with open(OUT, "w") as f:
         json.dump(report, f, indent=2, default=str)

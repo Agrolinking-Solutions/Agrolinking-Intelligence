@@ -133,6 +133,17 @@ All additions; nothing existing was removed or renamed.
 |---|---|---|---|
 | `start_from` | /forecasts/latest, /forecasts/{c} | `null`, or `{price, date, source: "Sibling_estimate", note}` | Set when the commodity has no recent real price of its own and the forecast starts from an estimate: today only Yellow maize (white maize's real price x 1.023 - AFEX's maize is white maize). Show "Estimated from white maize" next to the price, with `note` as the tooltip. `start_is_estimate` is `true`; `latest_real_price` stays the commodity's own (Jan 2023). History points from it have `source: "estimate"`. |
 
+### Changes 9 Nov 2026 (accuracy figures)
+
+All additions; nothing existing was removed or renamed. The numbers themselves change: some go down, because they are now measured more strictly.
+
+| Field | Where | Values | Show |
+|---|---|---|---|
+| `real_prices` | /accuracy `live` blocks | number | How many distinct real prices the live figure rests on. Forecasts made on consecutive days share one real price, so `scored` overstates the evidence (301 forecasts were 27 prices). Show "N real prices", not "N scored". |
+| live `accuracy_pct`, `in_range_pct` | /accuracy `live` blocks | numbers | A forecast is now only checked against a real price dated after the day it was made. Before, some 1-week forecasts were checked against their own starting price: 1-week 91.0% becomes 88.8%, range 48% becomes 39%. |
+| `verified_accuracy`, `verified_accuracy_pct` | /summary, /meta `accuracy` | e.g. `"5/16"` | A commodity whose latest real price is over 12 weeks old (was 52) is left out: Wheat now, as well as Yellow maize. Show "16 of 18 measured" rather than a bare "5/16". |
+| `fair_test_summary.left_out_no_recent_real_price` | /accuracy | list | Commodities left out of the fair-test summary for the same reason; their per-commodity `fair_test` is still there. |
+
 ### GET /export-prices/{commodity} (new, 5 Nov 2026)
 
 Prices abroad for one commodity (unit NGN/t). The response has the commodity's `export_allowed` and `export_note`, its `national_price_ngn_t`, and a list of `destinations`. Each destination has these fields:
