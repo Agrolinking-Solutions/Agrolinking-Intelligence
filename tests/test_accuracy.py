@@ -390,6 +390,22 @@ def test_misdated_web_price_is_not_promoted():
     assert len(rows) == 1 and decisions[0]["accepted"]
 
 
+def test_a_stale_copy_does_not_corroborate_a_big_move():
+    pr = load("14_promote_web_prices")
+    rice = {"commodity": "Rice (foreign)", "query_date": D("2026-11-03"), "price": 1003289.0,
+            "source_url": "https://www.legit.ng/rice-dealers", "source_date": "2026-11-02",
+            "confidence": "medium", "price_level": "wholesale"}
+    # the Lagos tracker figure dated only "October 2026": 33 days old, rejected on its own
+    stale = {**rice, "price": 996241.0, "source_url": "https://lagosagric.com/price-tracker/",
+             "source_date": "October 2026"}
+    fresh = {**stale, "source_date": "2026-10-30"}
+    # 20% below FEWS NET's 1.26M (28 Sep), so it needs a second website
+    ok, reason, _ = pr.evaluate_candidate(rice, 1260667.0, D("2026-09-28"), D("2026-11-03"), [stale])
+    assert not ok and "second website" in reason
+    ok, _, _ = pr.evaluate_candidate(rice, 1260667.0, D("2026-09-28"), D("2026-11-03"), [fresh])
+    assert ok
+
+
 def test_misdated_web_price_is_not_cross_checked():
     cc = load("16_cross_check")
     master = pd.DataFrame({"commodity": "Wheat", "date": pd.to_datetime(["2026-10-26"]),

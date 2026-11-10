@@ -136,8 +136,25 @@ def source_site(url):
     return host[4:] if host.startswith("www.") else host
 
 
-def is_corroborated(cand, peers):
-    """True if a peer from a different website, at medium+ confidence, agrees on price."""
+def source_date_problem(cand, query_date, last_real_date):
+    """(reason the candidate's source date rules it out, or None; parsed source date)."""
+    sd = parse_source_date(cand.get("source_date"))
+    if sd is None:
+        return f"source date unusable ({cand.get('source_date')!r})", None
+    if sd > query_date:
+        return f"source date {sd} is in the future", sd
+    if (query_date - sd).days > MAX_SOURCE_AGE_DAYS:
+        return f"source is {(query_date - sd).days} days old (max {MAX_SOURCE_AGE_DAYS})", sd
+    if last_real_date is not None and sd <= last_real_date:
+        return f"not newer than latest known price ({last_real_date})", sd
+    return None, sd
+
+
+def is_corroborated(cand, peers, last_real_date=None):
+    """True if a peer from a different website, at medium+ confidence, agrees on price.
+    The peer must pass the same source-date checks as a candidate: on 4 Nov 2026
+    Lagos tracker copies dated only "October 2026" (26-33 days old, each rejected
+    on its own) corroborated a Rice (foreign) price 20% below FEWS NET's."""
     site = source_site(cand.get("source_url"))
     for p in peers:
         if not p.get("price") or source_site(p.get("source_url")) in ("", site):
@@ -145,6 +162,8 @@ def is_corroborated(cand, peers):
         if str(p.get("confidence") or "").strip().lower() not in ACCEPT_CONFIDENCE:
             continue
         if str(p.get("price_level") or "").strip().lower() not in ACCEPT_LEVELS:
+            continue
+        if source_date_problem(p, p.get("query_date") or cand["query_date"], last_real_date)[0]:
             continue
         if abs(p["price"] - cand["price"]) / cand["price"] <= CORROBORATION_TOLERANCE:
             return True
@@ -167,15 +186,9 @@ def evaluate_candidate(cand, last_real_price, last_real_date, query_date, peers=
         return False, f"price level '{level or 'not recorded'}' - we only use wholesale or exchange prices", None
     if not (cand.get("source_url") or "").strip():
         return False, "no source URL", None
-    sd = parse_source_date(cand.get("source_date"))
-    if sd is None:
-        return False, f"source date unusable ({cand.get('source_date')!r})", None
-    if sd > query_date:
-        return False, f"source date {sd} is in the future", sd
-    if (query_date - sd).days > MAX_SOURCE_AGE_DAYS:
-        return False, f"source is {(query_date - sd).days} days old (max {MAX_SOURCE_AGE_DAYS})", sd
-    if last_real_date is not None and sd <= last_real_date:
-        return False, f"not newer than latest known price ({last_real_date})", sd
+    problem, sd = source_date_problem(cand, query_date, last_real_date)
+    if problem:
+        return False, problem, sd
     if last_real_price:
         days = (sd - last_real_date).days if last_real_date else 0
         band = allowed_band(days)
@@ -183,7 +196,7 @@ def evaluate_candidate(cand, last_real_price, last_real_date, query_date, peers=
         if dev > band:
             return False, (f"{dev:.0%} from last known price {last_real_price:,.0f} "
                            f"(allowed {band:.0%}) - needs human review"), sd
-        if dev > CORROBORATE_ABOVE and not is_corroborated(cand, peers):
+        if dev > CORROBORATE_ABOVE and not is_corroborated(cand, peers, last_real_date):
             return False, (f"{dev:.0%} from last known price {last_real_price:,.0f} on a single "
                            f"source - needs a second website agreeing within "
                            f"{CORROBORATION_TOLERANCE:.0%}, or human review"), sd
