@@ -59,7 +59,7 @@ jobs:
     needs: gate
     if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-24.04   # pinned: ubuntu-latest is moving to 26.04, which may not offer Python 3.10
-    timeout-minutes: 180   # ARIMA order search + Prophet can be slow; generous ceiling
+    timeout-minutes: 180   # generous ceiling
 
     # The TSDB_URL secret has no password in it, so every Postgres step was
     # failing with "fe_sendauth: no password supplied". libpq reads
@@ -90,7 +90,7 @@ jobs:
 
       # ── Run the full pipeline in the correct order ──────────────────
       # Same sequence as the manual runs this session established:
-      # 01 (ingest) → 02 (clean) → 03 (features) → 04 (train) →
+      # 01 (ingest) → 02 (clean) → 03 (features) → 13 (method choice) →
       # 05 (forecast) → 06 (validate) → 07 (zonal) → 08 (intelligence).
       # 09 (staleness) and 10 (web price search) run after, both with
       # continue-on-error: true since neither should block publishing
@@ -200,20 +200,13 @@ jobs:
       - name: 03 - Features
         run: python pipeline/03_features.py
 
-      # NOT changed to Monday-only despite run_pipeline.py's `today == 0`
-      # intent for local runs — see docs/FIXES_AND_IMPROVEMENTS.md. GitHub
-      # Actions runners are ephemeral (fresh VM every run, models/ is
-      # gitignored and never committed), and there is no artifact caching
-      # here to carry a Monday training run's model files forward to the
-      # rest of the week. Skipping training on non-Mondays would leave
-      # models/ completely empty on Tue-Sun, and forecast_commodity() in
-      # 05_forecast.py skips any commodity where all 3 models return None
-      # — meaning every commodity would produce zero forecast, every day
-      # except Monday. Training daily is accidentally load-bearing until
-      # real model persistence (e.g. actions/upload-artifact +
-      # actions/download-artifact) is added across runs.
-      - name: 04 - Train
-        run: python pipeline/04_train.py
+      # 04_train (ARIMA/Prophet/XGBoost) no longer runs here (10 Nov 2026).
+      # Every commodity is forecast by its champion method, which needs no
+      # trained models (05_forecast.py, CHAMPION_MODE "live"); the models
+      # only filled the per_model comparison in the forecast files, which
+      # no API endpoint returns. If 13 below fails, 05 uses the committed
+      # outputs/backtest/model_selection.json from the last good run. Run
+      # pipeline/04_train.py locally to look at the ML comparison.
 
       # Re-scores every forecaster on REAL prices (rolling backtest, ~30s)
       # and writes outputs/backtest/model_selection.json, which 05 reads to

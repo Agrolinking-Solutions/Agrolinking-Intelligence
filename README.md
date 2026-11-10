@@ -67,7 +67,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | 01 | `01_ingest.py` | Merges all sources into `data/processed/agrolinking_master.csv`, ranked by source priority |
 | 02 | `02_clean.py` | Fills gaps between real prices (labelled), drops outdated estimates; never edits real prices |
 | 03 | `03_features.py` | Per-commodity feature tables |
-| 04 | `04_train.py` | Trains the ML ensemble (kept for comparison) |
+| 04 | `04_train.py` | Trains the ML ensemble for comparison; local only, not in the daily run since 10 Nov 2026 |
 | 04b | `13_select_forecaster.py` | Backtests every forecast method on real prices and picks each commodity's method |
 | 05 | `05_forecast.py` | Forecasts 6 horizons with ranges |
 | 06 | `06_validate.py` | Checks forecasts against the latest real price (corrects only the old ML ensemble); writes CSV and Postgres |
