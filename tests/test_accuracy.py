@@ -159,6 +159,19 @@ def test_a_test_forecast_only_uses_prices_that_had_arrived():
     assert last is None
 
 
+def test_trend_is_measured_on_partner_prices_only():
+    """The 26-week trend reached back into World Bank x FX estimates for ~20% of the
+    Agricome crops' test forecasts; a level jump between the two read as a trend."""
+    from pipeline.drift_models import weekly_growth
+    dates = pd.date_range("2026-05-04", periods=27, freq="W-MON")
+    src = ["Synthetic (World Bank/FAO × FX)"] * 10 + ["Agricome"] * 17
+    hist = pd.DataFrame({"date": dates, "price_ngn_mt": [400.0] * 10 + [600.0] * 17, "data_source": src})
+    assert weekly_growth("trend@0.5", hist) == 0.0, "flat on Agricome: no trend"
+    rising = hist.assign(price_ngn_mt=[400.0] * 10 + [600.0 * 1.01 ** i for i in range(17)])
+    assert weekly_growth("trend@0.5", rising) == pytest.approx(0.5 * np.log(1.01), rel=1e-6)
+    assert weekly_growth("trend@0.5", hist.assign(data_source="Synthetic (World Bank/FAO × FX)")) == 0.0
+
+
 # ── Cross-check and alerts ───────────────────────────────────────────────────
 
 def test_cross_check_thresholds():
@@ -280,6 +293,22 @@ def test_partial_wfp_month_skipped_when_markets_disagree_or_month_before_is_thin
     ing = load("01_ingest")
     assert ing.provisional_months(*wfp_months([-0.47, -0.16, 0.0, -0.18, 0.0])) == {}   # Oct 2026 dried fish
     assert ing.provisional_months(*wfp_months([0.0] * 5, thin_sep=True)) == {}
+
+
+def test_partly_reported_recent_wfp_month_is_provisional():
+    """9 Nov 2026 file: November had 14 of ~19 markets and went in as a final, scored price."""
+    ing = load("01_ingest")
+    dates = pd.to_datetime([f"2026-{m:02d}-15" for m in range(4, 12)])
+    monthly = pd.DataFrame({"date": dates, "commodity_std": "Meat (beef)", "pricetype": "Retail",
+                            "price_ngn_mt": 5.8e6, "recent_median": 19.0,
+                            "n_markets": [14, 19, 19, 24, 23, 19, 17, 14],     # Apr: partial but old
+                            "thin": False})
+    out = ing.partly_reported_months(monthly)
+    assert list(out) == [(dates[-1], "Meat (beef)", "Retail")]        # Oct at 17/19 counts as complete
+    price, note = out[(dates[-1], "Meat (beef)", "Retail")]
+    assert price == 5.8e6 and "PROVISIONAL: 14 of ~19" in note       # its own average is kept
+    thin = monthly.assign(thin=[False] * 7 + [True], n_markets=[19] * 7 + [5])
+    assert ing.partly_reported_months(thin) == {}                    # thin months: provisional_months
 
 
 def test_field_quotes_become_one_weekly_national_price(tmp_path, monkeypatch):

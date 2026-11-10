@@ -1743,8 +1743,8 @@ SOURCE_RANK = {"real": 0, "provisional": 1, "web": 2, "model": 3, "estimate": 4,
 # markets have reported yet. Everything else is an estimate of some kind.
 SOURCE_LEGEND = {
     "real":         "Real price - from our data partners (Agricome, WFP, FEWS NET, AFEX exchange, Agrolinking field data)",
-    "provisional":  "Real prices, provisional - WFP's first markets to report this month, applied to last month's "
-                    "national average; replaced when WFP completes the month",
+    "provisional":  "Real prices, provisional - WFP is still collecting this month and not all its markets have "
+                    "reported; replaced when WFP completes the month",
     "web":          "Real price - published online by a named, dated source and cross-checked",
     "model":        "Estimate - the platform's daily figure between real prices, anchored to the latest one",
     "estimate":     "Estimate, where no real price exists - World Bank Real-Time Prices model, or a closely "

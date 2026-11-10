@@ -157,6 +157,12 @@ Second batch (the goal is now 95% at **1 week and 1 month**; every test forecast
 | forecast ranges (`lower_ci`, `upper_ci`) | /forecasts* | numbers | Wider than before, mostly at 1 week: they aim to hold the real price 8 times in 10 and held it 4 times in 10. Draw them as they come. |
 | `model_confidence` | /summary | number | Unchanged for now: it repeats the 1-month figure. Don't show it as a separate measure. |
 
+### Change 10 Nov 2026 (WFP months still filling in)
+
+| Field | Where | Values | Show |
+|---|---|---|---|
+| history point `source`, `last_real_source`, source legend | price history, /forecasts* | `"provisional"` / `WFP_provisional` | Now also used for a recent WFP month that only some markets have reported (November 2026: 14 of ~19), not only for the thin first days of a month. Today all nine WFP commodities' November price is provisional. Show it as a real price with a "provisional" tag; it changes when WFP completes the month. Legend text updated. |
+
 ### GET /export-prices/{commodity} (new, 5 Nov 2026)
 
 Prices abroad for one commodity (unit NGN/t). The response has the commodity's `export_allowed` and `export_note`, its `national_price_ngn_t`, and a list of `destinations`. Each destination has these fields:

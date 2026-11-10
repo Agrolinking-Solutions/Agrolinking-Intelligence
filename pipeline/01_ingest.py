@@ -423,6 +423,32 @@ def provisional_months(monthly: pd.DataFrame, markets: pd.DataFrame) -> dict:
     return out
 
 
+# A recent month that is past the thin rule but still filling in (Nov 2026:
+# 14 of ~19 markets in the 9 Nov file; June 2026 had 15-16 of 19 on 21 Sep,
+# three months on) moved by 1.3% on average and up to 5.6% once WFP completed
+# it (saved file versions May-Nov 2026, 40 such months). Its own average is
+# kept - closer to the final figure than the same-market estimate (2.0%) at
+# this coverage - but as PROVISIONAL, so no forecast is scored against it.
+COMPLETE_SHARE = 0.85     # a month is complete with this share of the series' usual markets
+PARTIAL_MONTHS = 3        # ...or once it is older than the series' newest PARTIAL_MONTHS months
+
+
+def partly_reported_months(monthly: pd.DataFrame) -> dict:
+    """
+    monthly: national rows (date, commodity_std, pricetype, price_ngn_mt, n_markets, recent_median, thin).
+    Returns {(date, commodity_std, pricetype): (price_ngn_mt, note)} for recent months reported by
+    fewer than COMPLETE_SHARE of the usual markets (thin months are provisional_months' job).
+    """
+    newest = monthly.groupby(["commodity_std", "pricetype"])["date"].transform("max")
+    sel = (~monthly["thin"] & (monthly["n_markets"] < COMPLETE_SHARE * monthly["recent_median"])
+           & (monthly["date"] > newest - pd.DateOffset(months=PARTIAL_MONTHS)))
+    return {(r["date"], r["commodity_std"], r["pricetype"]): (
+                float(r["price_ngn_mt"]),
+                f"PROVISIONAL: {int(r['n_markets'])} of ~{r['recent_median']:.0f} WFP markets have reported "
+                f"{r['date']:%b %Y} so far; their average can still move a few %. Replaced when WFP completes the month")
+            for _, r in monthly[sel].iterrows()}
+
+
 def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load WFP data, extract:
@@ -541,6 +567,10 @@ def load_wfp() -> tuple[pd.DataFrame, pd.DataFrame]:
         monthly.loc[sel, "price_ngn_mt"] = price
         monthly.loc[sel, "thin"] = False
         logger.info(f"  WFP: {c} {t} {d.date()} kept as provisional - {note}")
+    partial = partly_reported_months(monthly)
+    for (d, c, t), (_, note) in partial.items():
+        logger.info(f"  WFP: {c} {t} {d.date()} provisional - {note}")
+    provisional.update(partial)
     thin = monthly["thin"]
     if thin.any():
         for _, r in monthly[thin].iterrows():

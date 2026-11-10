@@ -91,8 +91,20 @@ def pairs_for(commodity):
 BASELINE = {"min_gain": MIN_GAIN, "tie": True, "long": True, "band": ("calibrated", None), "gap": True, "tie_1m": True}
 
 
-def choose(avail, cfg=BASELINE):
-    """Same rules as 13_select_forecaster on the pairs known at the time. Returns (short, long, mape_by_h)."""
+def guard_6m(best, long, by26):
+    """The 6-month forecast is never worse than "price holds" by LONG_MIN_GAIN or more (by26: method -> 6-month error)."""
+    if "naive" not in by26 or not np.isfinite(by26["naive"]):
+        return best, long
+    if long and by26.get(long, np.inf) - by26["naive"] >= LONG_MIN_GAIN:
+        long = None
+    if not long and best != "naive" and by26.get(best, np.inf) - by26["naive"] >= LONG_MIN_GAIN:
+        best = "naive"
+    return best, long
+
+
+def choose(avail, cfg=BASELINE, full=None):
+    """Same rules as 13_select_forecaster on the pairs known at the time. Returns (short, long, mape_by_h).
+    full: every pair known at the time (gaps included), for the 6-month guard on the full record."""
     if avail.empty or (avail["h"] == 4).sum() < MIN_TARGETS:
         return "naive", None, {}
     ape = {m: (avail[f"p_{m}"] - avail["actual"]).abs() / avail["actual"] * 100 for m in CANDIDATES}
@@ -119,6 +131,13 @@ def choose(avail, cfg=BASELINE):
         cand = min(others, key=others.get)
         if l26[best] - others[cand] >= LONG_MIN_GAIN:
             long = cand
+    if cfg.get("guard") == "choice":
+        best, long = guard_6m(best, long, l26)
+    elif cfg.get("guard") == "all" and full is not None:
+        f26 = full[full["h"] == 26]
+        if len(f26) >= MIN_TARGETS:
+            best, long = guard_6m(best, long, {m: float(((f26[f"p_{m}"] - f26["actual"]).abs() / f26["actual"]).mean() * 100)
+                                               for m in CANDIDATES})
     return best, long, {m: by_h[m].to_dict() for m in CANDIDATES}
 
 
@@ -132,7 +151,7 @@ def nested(pairs, cfg=BASELINE):
         normal = avail[avail["real_age_weeks"] <= GAP_WEEKS]
         use_normal = (cfg.get("gap") and (normal["h"] == 4).sum() >= MIN_TARGETS
                       and all(h in set(normal["h"]) for h in HORIZONS))
-        short, long, _ = choose(normal if use_normal else avail, cfg)
+        short, long, _ = choose(normal if use_normal else avail, cfg, full=avail)
         _, _, mape = choose(avail, {**cfg, "long": False})     # ranges use the error on all pairs, as the live step reports
         fresh_av = avail[avail["real_age_weeks"] <= FRESH_WEEKS]
         method = long if (long and r["h"] == 26) else short
@@ -271,6 +290,11 @@ if __name__ == "__main__":
         "no inflation tie-break": {**BASELINE, "tie": False},
         "no long-range blend": {**BASELINE, "long": False},
         "near-tie by weighted score only (no 1-month preference)": {**BASELINE, "tie_1m": False},
+        # 10 Nov 2026: neither guard helps (1m 89.09 -> 89.03 / 89.02, 6m 74.89 -> 74.88 / 74.71);
+        # not adopted. Cocoa's 6-month gap to "price holds" was mostly the trend
+        # reading estimate rows (drift_models.TREND_SOURCES).
+        "6-month guard on the pairs the method is chosen on": {**BASELINE, "guard": "choice"},
+        "6-month guard on all pairs (gaps included)": {**BASELINE, "guard": "all"},
     }
     only = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--variants=")), None)
     if only:      # e.g. --variants=baseline,near-tie

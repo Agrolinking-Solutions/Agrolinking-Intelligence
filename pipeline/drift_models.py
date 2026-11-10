@@ -9,7 +9,8 @@ All of them project from the LAST KNOWN price:
   naive        g = 0
   infl@k       g = k * ln(1 + food_inflation_yoy/100) / 52
                (naira prices drift up with inflation; k damps it)
-  trend@k      g = k * trailing 26-week log change / 26   (clipped to ±1.5%/wk)
+  trend@k      g = k * trailing 26-week log change / 26   (clipped to ±1.5%/wk;
+               partner prices and the weeks filled in between them only)
   mix          average of infl@0.5 and trend@0.5
   season@k     g = 0, seasonal_shift = k * (index[target month] - index[origin month])
   season+infl  season@0.5 plus infl@0.5
@@ -71,13 +72,30 @@ def _infl_g(hist, k):
     return k * np.log1p(float(v.iloc[-1]) / 100.0) / 52.0
 
 
+# Rows a trend is measured on: partner prices and the weeks filled in between
+# them. The 26-week window used to reach back into the World Bank x FX
+# estimates for ~20% of the Agricome crops' test forecasts (44% sesame) in
+# the last two years, so Cocoa's trend@0.5 was partly scored on estimate-made
+# slopes (Nov 2026).
+TREND_SOURCES = REAL_SOURCES | {"Interpolated"}
+
+
 def _trend_g(hist, k, lookback=26):
-    p = hist["price_ngn_mt"].dropna()
-    if len(p) < 8:
-        return 0.0
-    n = min(lookback, len(p) - 1)
-    a, b = float(p.iloc[-1 - n]), float(p.iloc[-1])
-    if a <= 0 or b <= 0:
+    if {"date", "data_source"} <= set(hist.columns):
+        t = hist.tail(lookback + 1)
+        t = t[t["data_source"].isin(TREND_SOURCES) & (t["date"] >= t["date"].iloc[-1] - pd.Timedelta(weeks=lookback))]
+        t = t.dropna(subset=["price_ngn_mt"])
+        if len(t) < 8:
+            return 0.0
+        n = (t["date"].iloc[-1] - t["date"].iloc[0]).days / 7.0
+        a, b = float(t["price_ngn_mt"].iloc[0]), float(t["price_ngn_mt"].iloc[-1])
+    else:
+        p = hist["price_ngn_mt"].dropna()
+        if len(p) < 8:
+            return 0.0
+        n = min(lookback, len(p) - 1)
+        a, b = float(p.iloc[-1 - n]), float(p.iloc[-1])
+    if a <= 0 or b <= 0 or n <= 0:
         return 0.0
     return float(np.clip(k * np.log(b / a) / n, -MAX_WEEKLY_G, MAX_WEEKLY_G))
 
