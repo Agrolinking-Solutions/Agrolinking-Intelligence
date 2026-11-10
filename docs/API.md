@@ -155,7 +155,7 @@ Second batch (the goal is now 95% at **1 week and 1 month**; every test forecast
 | `backtest.1_week`, `backtest.price_holds_1_week`, `backtest.price_holds_1_month`, `backtest.test_points_1_week` | /accuracy, per commodity | numbers | Per-commodity 1-week figure and the "price holds" bar. |
 | `fair_test.1_week`, `fair_test.price_holds_1_week`, `fair_test.in_range_pct_1_week` | /accuracy, per commodity | numbers | The same from the weekly fair test (updated Mondays). |
 | forecast ranges (`lower_ci`, `upper_ci`) | /forecasts* | numbers | Wider than before, mostly at 1 week: they aim to hold the real price 8 times in 10 and held it 4 times in 10. Draw them as they come. |
-| `model_confidence` | /summary | number | Unchanged for now: it repeats the 1-month figure. Don't show it as a separate measure. |
+| `model_confidence` | /summary | number | The 1-month figure under an older name; since 10 Nov 2026 it is set from `verified_accuracy_pct`, so the two can't differ. Kept so nothing breaks. Don't show it as a separate measure. |
 
 ### Change 10 Nov 2026 (WFP months still filling in)
 

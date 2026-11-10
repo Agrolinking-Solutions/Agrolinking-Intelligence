@@ -395,6 +395,11 @@ def summary():
     except Exception:
         sources = []
 
+    # model_confidence is the 1-month accuracy under an older name; kept so
+    # existing clients don't break, but it is the same number, not a second measure.
+    if "model_confidence" in intel_summary:
+        intel_summary["model_confidence"] = acc["mean_1_month_pct"]
+
     return {
         "commodities_tracked":    len(forecast),
         "verified_accuracy":      acc["at_95_label"],
@@ -1074,9 +1079,10 @@ def outlook_30d():
 @app.get("/confidence", tags=["Intelligence"])
 def model_confidence():
     """
-    Model confidence scores per commodity.
-    Derived from validation error: confidence = 100 - error_after_pct.
-    Grades: A (>=95%), B (>=90%), C (>=80%), D (<80%).
+    Each commodity's measured 1-month forecast accuracy on real prices
+    (13_select_forecaster.py), graded: A (>=95%), B (>=90%), C (>=80%), D (<80%).
+    The same figures as /accuracy and /summary verified_accuracy_pct, not a
+    separate measure.
     """
     intel, fname = load_latest_intelligence()
     conf = intel.get("model_confidence", {})
