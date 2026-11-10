@@ -25,6 +25,8 @@ Each check gives ok, check (a person should look) or problem (likely wrong):
     live          published forecasts scored against real prices that arrived
                   later; flagged when well below the tested accuracy
     cross_check   today's comparison with AFEX / web prices (16_cross_check)
+    headline      (all commodities) the mean 1-week and 1-month accuracy is not
+                  more than 1.5 points above the weekly fair test
   context
     weather       the commodity's weather card (weather_report.py) is from
                   today's MET Norway forecast and covers at least 5 days
@@ -55,6 +57,11 @@ OUT_PATH      = os.path.join(PATHS["logs_dir"], "data_checks.json")
 SHOP_PRICE_OK = {"Meat (beef)", "Meat (goat)", "Fish (dried)", "Eggs"}   # John, 14 Oct 2026: shop prices, labelled
 ACCURACY_GOAL = 95.0
 LIVE_MIN_PRICES = 3   # real prices a commodity's published record needs before it's judged
+# The headline (13_select_forecaster, method chosen on the same 2 years it is
+# scored on) should not sit above the weekly fair test (forecast_audit.py,
+# method chosen only from results known at the time) by more than this.
+HEADLINE_MARGIN = 1.5
+FAIR_TEST_MAX_DAYS = 8    # it runs on Mondays
 RANK          = {"ok": 0, "check": 1, "problem": 2}
 
 
@@ -293,6 +300,24 @@ def check_weather(c, weather, today):
 
 # ── Run ──────────────────────────────────────────────────────────────────────
 
+def check_headline(acc_1w, acc_1m, audit, today):
+    """Is the daily headline in line with the weekly fair test?"""
+    s, updated = audit.get("summary") or {}, audit.get("updated")
+    if not s or not updated:
+        return result("headline", "check", "No fair test to compare the headline with")
+    age = (today - pd.Timestamp(updated).date()).days
+    if age > FAIR_TEST_MAX_DAYS:
+        return result("headline", "check", f"The fair test is {age} days old (it runs on Mondays)")
+    pairs = [("1 week", acc_1w, s.get("mean_1_week_accuracy_pct")),
+             ("1 month", acc_1m, s.get("mean_1_month_accuracy_pct"))]
+    msg = "; ".join(f"{h} headline {a}% vs fair test {f}%" for h, a, f in pairs if a is not None and f is not None)
+    over = [h for h, a, f in pairs if a is not None and f is not None and a - f > HEADLINE_MARGIN]
+    if over:
+        return result("headline", "check", msg + f" - the headline is over {HEADLINE_MARGIN} points above "
+                      f"the fair test at {' and '.join(over)} and may be overstating")
+    return result("headline", "ok", msg)
+
+
 def load_json(path, default):
     try:
         with open(path) as f:
@@ -329,11 +354,15 @@ def run_checks(today=None):
     tested = [next(ch for ch in v["checks"] if ch["check"] == "tested") for v in report.values()]
     accs = [t["accuracy"] for t in tested if t.get("accuracy") is not None]
     accs1 = [v["accuracy_1w"] for v in selection.values() if isinstance(v, dict) and v.get("accuracy_1w") is not None]
+    acc_1m = round(float(np.mean(accs)), 1) if accs else None
+    acc_1w = round(float(np.mean(accs1)), 1) if accs1 else None
+    audit = load_json(os.path.join(ROOT, "outputs", "backtest", "forecast_audit.json"), {})
     out = {"run_date": str(today), "summary": summary,
-           "accuracy_1m_mean_pct": round(float(np.mean(accs)), 1) if accs else None,
+           "accuracy_1m_mean_pct": acc_1m,
            "commodities_at_goal": sum(a >= ACCURACY_GOAL for a in accs), "commodities_measured": len(accs),
-           "accuracy_1w_mean_pct": round(float(np.mean(accs1)), 1) if accs1 else None,
+           "accuracy_1w_mean_pct": acc_1w,
            "commodities_at_goal_1w": sum(a >= ACCURACY_GOAL for a in accs1),
+           "headline_vs_fair_test": check_headline(acc_1w, acc_1m, audit, today),
            "statuses": {"ok": "fine", "check": "a person should look", "problem": "likely wrong"},
            "commodities": report}
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
@@ -351,6 +380,8 @@ def log_and_summarise(out):
           f"Mean accuracy on real prices: 1 week {out.get('accuracy_1w_mean_pct')}% "
           f"({out.get('commodities_at_goal_1w')}/{out['commodities_measured']} at the 95% goal), 1 month "
           f"{out['accuracy_1m_mean_pct']}% ({out['commodities_at_goal']}/{out['commodities_measured']}).", "",
+          f"Headline vs fair test ({out['headline_vs_fair_test']['status']}): "
+          f"{out['headline_vs_fair_test']['message']}.", "",
           "| Commodity | Status | What to look at |", "|---|---|---|"]
     for c, v in sorted(out["commodities"].items(), key=lambda kv: (-RANK[kv[1]["status"]], kv[0])):
         flagged = [ch for ch in v["checks"] if ch["status"] != "ok"]

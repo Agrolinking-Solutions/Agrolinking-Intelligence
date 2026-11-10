@@ -347,6 +347,16 @@ WHEAT_URL = "https://dailytrust.com/kano-wheat-farmers-hopeful-amid-inputs-price
 D = lambda s: pd.Timestamp(s).date()
 
 
+def test_headline_above_the_fair_test_is_flagged():
+    dc = load("data_checks")
+    audit = {"updated": "2026-11-16", "summary": {"mean_1_week_accuracy_pct": 91.3,
+                                                  "mean_1_month_accuracy_pct": 88.8}}
+    assert dc.check_headline(91.2, 88.4, audit, D("2026-11-17"))["status"] == "ok"
+    flagged = dc.check_headline(91.2, 92.4, audit, D("2026-11-17"))
+    assert flagged["status"] == "check" and "1 month" in flagged["message"]
+    assert "days old" in dc.check_headline(91.2, 88.4, audit, D("2026-11-30"))["message"]
+
+
 def test_page_date_is_the_articles_not_the_latest_news_box():
     from pipeline.page_dates import page_dates
     assert page_dates(DAILY_TRUST_2023, WHEAT_URL) == (D("2023-01-08"), D("2023-01-08"))
