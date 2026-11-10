@@ -144,6 +144,19 @@ All additions; nothing existing was removed or renamed. The numbers themselves c
 | `verified_accuracy`, `verified_accuracy_pct` | /summary, /meta `accuracy` | e.g. `"5/16"` | A commodity whose latest real price is over 12 weeks old (was 52) is left out: Wheat now, as well as Yellow maize. Show "16 of 18 measured" rather than a bare "5/16". |
 | `fair_test_summary.left_out_no_recent_real_price` | /accuracy | list | Commodities left out of the fair-test summary for the same reason; their per-commodity `fair_test` is still there. |
 
+Second batch (the goal is now 95% at **1 week and 1 month**; every test forecast starts only from prices that had reached us by then - WFP ~4 weeks late, FEWS NET ~6, Agricome ~2). The 1-month headline drops to about 88-89%; that is the honest starting point, not a fault.
+
+| Field | Where | Values | Show |
+|---|---|---|---|
+| `verified_accuracy_1_week_pct`, `verified_accuracy_1_week` | /summary | e.g. `91.2`, `"2/16"` | Show next to the 1-month figure: "1 week 91.2% · 1 month 88.5%". |
+| `price_holds_1_week_pct`, `price_holds_1_month_pct` | /summary, /meta `accuracy` | numbers | Accuracy of simply keeping today's price - the bar our forecast has to beat. Show it under our figure, e.g. "price holds: 91.1%". |
+| `commodities_measured` | /summary (number), /meta `accuracy` (e.g. `"16 of 18"`) | | Use this for "16 of 18 measured". |
+| `mean_1_week_pct`, `commodities_at_95_pct_1_week` | /meta `accuracy` | | Same figures as /summary, for the sidebar/footer. |
+| `backtest.1_week`, `backtest.price_holds_1_week`, `backtest.price_holds_1_month`, `backtest.test_points_1_week` | /accuracy, per commodity | numbers | Per-commodity 1-week figure and the "price holds" bar. |
+| `fair_test.1_week`, `fair_test.price_holds_1_week`, `fair_test.in_range_pct_1_week` | /accuracy, per commodity | numbers | The same from the weekly fair test (updated Mondays). |
+| forecast ranges (`lower_ci`, `upper_ci`) | /forecasts* | numbers | Wider than before, mostly at 1 week: they aim to hold the real price 8 times in 10 and held it 4 times in 10. Draw them as they come. |
+| `model_confidence` | /summary | number | Unchanged for now: it repeats the 1-month figure. Don't show it as a separate measure. |
+
 ### GET /export-prices/{commodity} (new, 5 Nov 2026)
 
 Prices abroad for one commodity (unit NGN/t). The response has the commodity's `export_allowed` and `export_note`, its `national_price_ngn_t`, and a list of `destinations`. Each destination has these fields:

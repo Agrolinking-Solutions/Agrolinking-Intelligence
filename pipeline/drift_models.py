@@ -31,9 +31,35 @@ CANDIDATES = ["naive", "infl@0.5", "infl@1.0", "trend@0.5", "mix",
               "season@0.5", "season@1.0", "season+infl"]
 MAX_WEEKLY_G = 0.015
 from config.settings import PARTNER_SOURCES as REAL_SOURCES   # partner data only, no web prices
+from config.settings import PUBLICATION_LAG_DAYS
 MIN_SEASON_YEARS = 3
+# Rows that did not exist yet at a past forecast date once the latest real
+# price known then is passed: prices interpolated towards the NEXT real price,
+# and the platform's own model rows.
+NOT_KNOWN_YET = {"Interpolated", "Agrolinking_validated"}
 
 _season_cache = {}
+
+
+def arrival_dates(df):
+    """Date each row reached the pipeline: real prices PUBLICATION_LAG_DAYS after their date."""
+    lag = df["data_source"].map(PUBLICATION_LAG_DAYS).fillna(0)
+    return df["date"] + pd.to_timedelta(lag, unit="D")
+
+
+def known_at(df, origin):
+    """
+    What a forecast made on `origin` could have used, and the date of the latest
+    real price among it (None if none). df needs an "arrived" column
+    (arrival_dates). Real prices count only once they had arrived; filled-in
+    and model rows only up to that latest real price.
+    """
+    hist = df[(df["date"] <= origin) & (df["arrived"] <= origin)]
+    real = hist.loc[hist["data_source"].isin(REAL_SOURCES), "date"]
+    if real.empty:
+        return hist, None
+    last_real = real.max()
+    return hist[~(hist["data_source"].isin(NOT_KNOWN_YET) & (hist["date"] > last_real))], last_real
 
 
 def _infl_g(hist, k):
@@ -158,6 +184,13 @@ def blended_path(short_method, long_method, hist, last_price, last_date, target_
 #     (pooled over horizons: ~210 test forecasts per band)  -> held 68-87%
 # With the old 1.6 x error at every horizon, 6-month ranges held the real
 # price only 69% of the time.
+# Re-checked 9 Nov 2026 with each test forecast starting only from prices
+# that had arrived (config PUBLICATION_LAG_DAYS) and 1 week added: held
+# 82 / 82 / 83 / 81 / 78% at 1 / 4 / 8 / 13 / 26 weeks with these same
+# constants (1 week takes the 4-week K). Published 1-week ranges had held
+# 39%: their error was measured as if prices arrived instantly, and the
+# 1-week error was guessed as half the 1-month one; both now come measured
+# from 13_select_forecaster.
 RANGE_K = ((4, 1.69), (8, 1.86), (13, 1.97), (26, 2.35))
 DATA_AGE = {            # extra width by age of the latest real price, at 4/8/13/26 weeks ahead
     "fresh":  (1.0, 1.0, 1.0, 1.0),           # <= 4 weeks old

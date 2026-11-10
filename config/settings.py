@@ -113,6 +113,24 @@ PROVISIONAL_SOURCES = frozenset({"WFP_provisional"})
 PARTNER_SOURCES = frozenset({"Agricome", "WFP", "Agrolinking_primary", "AFEX", "FEWS_NET"}) | PROVISIONAL_SOURCES
 SCORED_SOURCES  = PARTNER_SOURCES - PROVISIONAL_SOURCES
 REAL_SOURCES    = PARTNER_SOURCES | {"Web_search"}
+# Days after its date in the master that a real price reaches the pipeline.
+# The accuracy tests (13_select_forecaster, scripts/research/forecast_audit.py)
+# start a past forecast only from prices that had ARRIVED by then; assuming
+# instant data put the 1-month figure ~3 points too high (Nov 2026: 92.5% vs
+# 89.8%). Measured Nov 2026 - update when a feed changes (an automatic
+# Agricome feed would make its delay ~1 day, and the tests would show it):
+#   Agricome   pasted by hand a median 7 days (mean 12) after posting (git
+#              history, Jul-Nov 2026); the weekly row is dated the Monday
+#              before the post it carries
+#   WFP        a month, dated the Monday of its 15th, is complete ~4 weeks
+#              later (Oct 2026: 130 rows on 12 Oct, 508 by 9 Nov)
+#   FEWS_NET   reaches FAO FPMA 6-7 weeks late (newest 26 Aug on 15 Oct,
+#              30 Sep on 9 Nov)
+#   AFEX       daily; a week's row is dated its Monday
+#   Agrolinking_primary  field quotes, typed in within days
+# Web prices are found the day they're published (no delay).
+PUBLICATION_LAG_DAYS = {"Agricome": 14, "WFP": 28, "WFP_provisional": 0, "FEWS_NET": 45,
+                        "AFEX": 5, "Agrolinking_primary": 7}
 # Websites a dedicated daily reader already covers, so the web search neither
 # uses them nor has its copies promoted or cross-checked. A web copy skipped
 # the reader's checks: AFEX's maize (grade not stated) became White maize's

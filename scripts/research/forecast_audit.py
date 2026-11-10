@@ -6,17 +6,19 @@ accuracy of the method that scored best over the last two years. This audit
 checks how much of that holds up when tested the way the forecasts are
 actually used:
 
-  1. No leak from filled-in prices. A past forecast starts from the latest
-     REAL price known at the time. Interpolated rows after it were drawn
-     towards the NEXT real price, so they are dropped (and model rows), and
-     the result is compared with the leaky start the selection step uses.
+  1. No leak from filled-in prices or late data. A past forecast starts from
+     the latest REAL price that had reached the pipeline by then (config
+     PUBLICATION_LAG_DAYS: WFP ~4 weeks late, FEWS NET ~6, Agricome ~2).
+     Interpolated rows after it were drawn towards the NEXT real price, so
+     they are dropped (and model rows), and the result is compared with the
+     leaky start (filled-in, instant data) the selection step once used.
   2. Method chosen fairly. At every forecast date the method is picked with
      the same rules as 13_select_forecaster (weighted error over 4/8/13/26
      weeks, MIN_GAIN, inflation tie-break, long-range method at 6 months)
      using only results known by then (targets on or before the forecast
      date, last 104 weeks), and - like the live step - on test forecasts made
      with real data at most GAP_WEEKS old when there are enough of them.
-  3. Scored on real prices from 2016 at 4, 8, 13 and 26 weeks: error,
+  3. Scored on real prices from 2016 at 1, 4, 8, 13 and 26 weeks: error,
      error of "price holds", bias (too high or too low), whether the shown
      80% range (drift_models.range_halfwidth, widened for old data)
      contained the real price, and error by year.
@@ -33,8 +35,8 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
-from config.settings import PATHS, COMMODITIES, PARTNER_SOURCES, SCORED_SOURCES
-from pipeline.drift_models import CANDIDATES, point_forecasts, range_halfwidth
+from config.settings import PATHS, COMMODITIES, SCORED_SOURCES
+from pipeline.drift_models import CANDIDATES, point_forecasts, range_halfwidth, arrival_dates, known_at, NOT_KNOWN_YET
 
 FEATURES_DIR = os.path.join(os.path.dirname(PATHS["master"]), "features")
 OUT = os.path.join(ROOT, "outputs", "backtest", "forecast_audit.json")
@@ -42,6 +44,7 @@ ROWS_OUT = os.path.join(ROOT, "outputs", "backtest", "forecast_audit_rows.csv")
 RECENT_WEEKS = 104    # also score the last two years, the window the daily selection reports on
 HORIZONS = (4, 8, 13, 26)
 HORIZON_W = {4: 0.4, 8: 0.3, 13: 0.2, 26: 0.1}
+REPORT_HORIZONS = (1,) + HORIZONS   # as 13_select_forecaster: 1 week is scored, not used to choose
 WINDOW_WEEKS, MIN_TARGETS, MIN_GAIN = 104, 6, 0.3
 TIE_METHOD, TIE_MARGIN, LONG_MIN_GAIN = "infl@0.5", 0.3, 1.0
 SCORE_FROM = "2016-01-01"
@@ -49,7 +52,6 @@ BAND_K = 1.6          # the old fixed rule (half-width = 1.6 x mean abs error), 
 GAP_WEEKS = 12        # same as 13_select_forecaster: choose methods on normal-condition pairs
 FRESH_WEEKS = 4       # same as 13_select_forecaster: "fresh data" is a latest real price at most this old
 STALE_WEEKS = 12      # same as 13_select_forecaster: no real price this recent -> left out of the summary
-NOT_KNOWN_YET = {"Interpolated", "Agrolinking_validated"}
 
 
 def safe_name(c):
@@ -63,18 +65,19 @@ def pairs_for(commodity):
     # Scored only on completed prices, as 13_select_forecaster and the live
     # step are; a provisional WFP month may still be a forecast's start.
     real = df[df["data_source"].isin(SCORED_SOURCES)]
+    df = df.assign(arrived=arrival_dates(df))
     rows = []
     for _, t in real[real["date"] >= pd.Timestamp(SCORE_FROM) - pd.Timedelta(weeks=WINDOW_WEEKS + 26)].iterrows():
-        for h in HORIZONS:
+        for h in REPORT_HORIZONS:
             o = t["date"] - pd.Timedelta(weeks=h)
             leaky = df[df["date"] <= o]
             if len(leaky) < 20:
                 continue
-            real_before = leaky[leaky["data_source"].isin(PARTNER_SOURCES)]
-            if real_before.empty:
+            # what a forecast made then could use: real prices that had arrived,
+            # no filled-in rows past the latest of them
+            clean, last_real = known_at(df, o)
+            if last_real is None or len(clean) < 20:
                 continue
-            last_real = real_before["date"].max()
-            clean = leaky[~(leaky["data_source"].isin(NOT_KNOWN_YET) & (leaky["date"] > last_real))]
             p_clean = point_forecasts(clean, float(clean["price_ngn_mt"].iloc[-1]), clean["date"].iloc[-1], t["date"])
             leaky_start = float(leaky["price_ngn_mt"].iloc[-1])
             row = {"commodity": commodity, "target": t["date"], "h": h, "origin": o, "actual": float(t["price_ngn_mt"]),
@@ -171,7 +174,7 @@ def score(d):
             "methods_used": d["method"].value_counts().to_dict()}
 
 
-def verdict(s4, s26, reported):
+def verdict(s4, s26, reported, s1=None):
     issues = []
     if s4["accuracy_pct"] < s4["naive_accuracy_pct"] - 0.3:
         issues.append(f"1-month forecast worse than 'price holds' ({s4['accuracy_pct']}% vs {s4['naive_accuracy_pct']}%)")
@@ -179,7 +182,7 @@ def verdict(s4, s26, reported):
         issues.append(f"1-month accuracy below 90% ({s4['accuracy_pct']}%)")
     if abs(s4["bias_pct"]) > 3:
         issues.append(f"1-month forecasts {'too high' if s4['bias_pct'] > 0 else 'too low'} by {abs(s4['bias_pct'])}% on average")
-    for s, lab in ((s4, "1-month"), (s26, "6-month")):
+    for s, lab in ((s1, "1-week"), (s4, "1-month"), (s26, "6-month")):
         if s and not (70 <= s["range_coverage_pct"] <= 90):
             issues.append(f"{lab} range holds the real price {s['range_coverage_pct']}% of the time (aim 80%)")
     yrs = s4["error_by_year_pct"]
@@ -221,18 +224,19 @@ if __name__ == "__main__":
             report["commodities"][c] = {"verdict": "not enough real prices to test", "n_4w": int((d["h"] == 4).sum()) if len(d) else 0}
             print(f"{c:15} not enough real prices to test")
             continue
-        s = {f"{h}w": score(d[d["h"] == h]) for h in HORIZONS if (d["h"] == h).sum() >= MIN_TARGETS}
+        s = {f"{h}w": score(d[d["h"] == h]) for h in REPORT_HORIZONS if (d["h"] == h).sum() >= MIN_TARGETS}
         rep = (sel.get(c) or {}).get("accuracy_4w")
         recent = d[d["target"] > d["target"].max() - pd.Timedelta(weeks=RECENT_WEEKS)]
-        s_recent = {f"{h}w": score(recent[recent["h"] == h]) for h in HORIZONS if (recent["h"] == h).sum() >= MIN_TARGETS}
-        v, issues = verdict(s["4w"], s.get("26w"), rep)
+        s_recent = {f"{h}w": score(recent[recent["h"] == h]) for h in REPORT_HORIZONS if (recent["h"] == h).sum() >= MIN_TARGETS}
+        v, issues = verdict(s["4w"], s.get("26w"), rep, s.get("1w"))
         last_real = p["target"].max()
         stale = (pd.Timestamp.today().normalize() - last_real).days > STALE_WEEKS * 7
         report["commodities"][c] = {"verdict": v, "issues": issues, "reported_accuracy_4w": rep, "horizons": s,
                                     "last_two_years": s_recent, "last_real_price": f"{last_real:%Y-%m-%d}",
                                     "in_summary": not stale}
-        a4, a26 = s["4w"], s.get("26w", {})
-        print(f"{c:15} {v:16} 1m {a4['accuracy_pct']:5.1f}% (naive {a4['naive_accuracy_pct']:5.1f}, filled-start {a4['naive_with_filled_start_accuracy_pct']:5.1f}, "
+        a1, a4, a26 = s.get("1w", {}), s["4w"], s.get("26w", {})
+        print(f"{c:15} {v:16} 1w {a1.get('accuracy_pct', float('nan')):5.1f}% (naive {a1.get('naive_accuracy_pct', float('nan')):5.1f}, "
+              f"range {a1.get('range_coverage_pct', float('nan')):.0f}%) | 1m {a4['accuracy_pct']:5.1f}% (naive {a4['naive_accuracy_pct']:5.1f}, filled-start {a4['naive_with_filled_start_accuracy_pct']:5.1f}, "
               f"bias {a4['bias_pct']:+.1f}, range {a4['range_coverage_pct']:.0f}%) | 6m {a26.get('accuracy_pct', float('nan')):5.1f}% "
               f"range {a26.get('range_coverage_pct', float('nan')):.0f}% | reported {rep} | n={a4['n']}")
     # The summary covers the same commodities as the daily headline
@@ -240,8 +244,11 @@ if __name__ == "__main__":
     # that today starts from a months-old price (Wheat, Yellow maize).
     counted = {c: v for c, v in report["commodities"].items() if "horizons" in v and v["in_summary"]}
     acc = [v["horizons"]["4w"]["accuracy_pct"] for v in counted.values()]
+    acc1 = [v["horizons"]["1w"]["accuracy_pct"] for v in counted.values() if "1w" in v["horizons"]]
     report["summary"] = {"mean_1_month_accuracy_pct": round(float(np.mean(acc)), 1),
                          "commodities_at_95": int(sum(a >= 95 for a in acc)), "commodities_tested": len(acc),
+                         "mean_1_week_accuracy_pct": round(float(np.mean(acc1)), 1) if acc1 else None,
+                         "commodities_at_95_1_week": int(sum(a >= 95 for a in acc1)),
                          "passes": sum(v.get("verdict") == "passes" for v in counted.values()),
                          "left_out_no_recent_real_price": sorted(c for c, v in report["commodities"].items()
                                                                  if "horizons" in v and not v["in_summary"])}

@@ -20,7 +20,7 @@ Each check gives ok, check (a person should look) or problem (likely wrong):
     sane          every horizon has a positive price, inside its range, and the
                   1-month move is within 3x the method's measured error
   accuracy
-    tested        1-month accuracy on real prices (goal 95%), and the method
+    tested        1-week and 1-month accuracy on real prices (goal 95%), and the method
                   is not worse than "price holds"
     live          published forecasts scored against real prices that arrived
                   later; flagged when well below the tested accuracy
@@ -235,8 +235,9 @@ def check_tested(sel):
     if acc is None:
         note = sel.get("note") or "accuracy not measured"
         return result("tested", "check", note[:1].upper() + note[1:] + f" (n={sel.get('n_4w')})")
-    fresh = sel.get("accuracy_4w_fresh_data")
-    msg = (f"1-month accuracy {acc:.1f}% on real prices (n={sel.get('n_4w')}"
+    fresh, acc1 = sel.get("accuracy_4w_fresh_data"), sel.get("accuracy_1w")
+    msg = ((f"1-week accuracy {acc1:.1f}%, " if acc1 is not None else "")
+           + f"1-month {acc:.1f}% on real prices (n={sel.get('n_4w')}"
            + (f"; {fresh:.1f}% when the latest real price is under 4 weeks old" if fresh is not None else "")
            + f"), method {sel.get('method')}" + (f">{sel['long_method']}" if sel.get("long_method") else ""))
     if naive is not None and acc < naive - 0.5:
@@ -251,7 +252,7 @@ def check_live(c, live, sel):
     cur, old = by.get("champion") or {}, by.get("all") or {}
     # Judged on distinct real prices: six forecasts made on six days can all
     # be scored against the same one price.
-    real = lambda s: s.get("real_prices", s.get("scored")) or 0
+    real = lambda s: s.get("real_prices") or 0      # missing (record from before Nov 2026): not judged
     if (cur.get("scored") or 0) < 6 or real(cur) < LIVE_MIN_PRICES:
         if (old.get("scored") or 0) >= 6:
             return result("live", "ok", f"Current method not scored on enough real prices yet; published forecasts "
@@ -327,9 +328,12 @@ def run_checks(today=None):
     summary = {s: sum(v["status"] == s for v in report.values()) for s in RANK}
     tested = [next(ch for ch in v["checks"] if ch["check"] == "tested") for v in report.values()]
     accs = [t["accuracy"] for t in tested if t.get("accuracy") is not None]
+    accs1 = [v["accuracy_1w"] for v in selection.values() if isinstance(v, dict) and v.get("accuracy_1w") is not None]
     out = {"run_date": str(today), "summary": summary,
            "accuracy_1m_mean_pct": round(float(np.mean(accs)), 1) if accs else None,
            "commodities_at_goal": sum(a >= ACCURACY_GOAL for a in accs), "commodities_measured": len(accs),
+           "accuracy_1w_mean_pct": round(float(np.mean(accs1)), 1) if accs1 else None,
+           "commodities_at_goal_1w": sum(a >= ACCURACY_GOAL for a in accs1),
            "statuses": {"ok": "fine", "check": "a person should look", "problem": "likely wrong"},
            "commodities": report}
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
@@ -344,8 +348,9 @@ def log_and_summarise(out):
     logger.info("=" * 60)
     md = [f"### Accuracy checks ({out['run_date']})",
           f"{out['summary']['ok']} fine, {out['summary']['check']} to look at, {out['summary']['problem']} likely wrong. "
-          f"Mean 1-month accuracy {out['accuracy_1m_mean_pct']}% on real prices; "
-          f"{out['commodities_at_goal']}/{out['commodities_measured']} at the 95% goal.", "",
+          f"Mean accuracy on real prices: 1 week {out.get('accuracy_1w_mean_pct')}% "
+          f"({out.get('commodities_at_goal_1w')}/{out['commodities_measured']} at the 95% goal), 1 month "
+          f"{out['accuracy_1m_mean_pct']}% ({out['commodities_at_goal']}/{out['commodities_measured']}).", "",
           "| Commodity | Status | What to look at |", "|---|---|---|"]
     for c, v in sorted(out["commodities"].items(), key=lambda kv: (-RANK[kv[1]["status"]], kv[0])):
         flagged = [ch for ch in v["checks"] if ch["status"] != "ok"]

@@ -210,6 +210,7 @@ SELECTION_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__
 _selection_cache = None
 
 NOT_KNOWN_YET = {"Interpolated", "Agrolinking_validated"}   # as 13_select_forecaster
+RANGE_HORIZONS = (1, 4, 8, 13, 26)   # weeks with a measured error in model_selection.json
 
 
 def build_champion(commodity, hist_df, start_price, start_date, origin_date, future_df):
@@ -244,25 +245,44 @@ def build_champion(commodity, hist_df, start_price, start_date, origin_date, fut
                                            [origin_date])[0]) if origin_date > start_date else float(start_price))
         label = sel["method"] + (f">{long_method}" if long_method else "")
         weeks = np.maximum((pd.to_datetime(future_df["date"]) - origin_date).dt.days.values / 7.0, 0)
-        # Interval half-width from the backtest's measured error at 4/8/13/26
-        # weeks (interpolated between, scaled down below 4 weeks), times the
+        # Interval half-width from the backtest's measured error at 1/4/8/13/26
+        # weeks (interpolated between; below 1 week the 1-week error), times the
         # multipliers in drift_models.range_halfwidth that make it an 80% range
-        # (calibrated in scripts/research/forecast_audit.py).
+        # (calibrated in scripts/research/forecast_audit.py). The 1-week error
+        # used to be guessed as half the 1-month one, and errors were measured
+        # as if prices arrived instantly: published 1-week ranges held the
+        # real price 39% of the time (Nov 2026).
         # wider when the latest REAL price is old (see drift_models.RANGE_K / DATA_AGE)
         age_weeks = (origin_date - start_date).days / 7.0
         # With fresh data the range starts from the error measured on fresh-data
         # test forecasts: White maize's all-history error includes the 2025 FEWS
         # NET pause (13.7% vs 5.2% fresh), which made its 1-month range +-23%.
         fresh = sel.get("error_fresh_data_pct") or {}
-        err = {h: (fresh.get(str(h)) if age_weeks <= 4 and fresh.get(str(h)) is not None
-                   else (None if sel.get(f"accuracy_{h}w") is None else 100 - sel[f"accuracy_{h}w"]))
-               for h in (4, 8, 13, 26)}
+
+        def typical_fresh(h):
+            t = [v["error_fresh_data_pct"][str(h)] for v in _selection_cache.values()
+                 if (v.get("error_fresh_data_pct") or {}).get(str(h)) is not None]
+            return float(np.median(t)) if t else None
+
+        # Fresh data today but no fresh-data record of its own: White maize's
+        # real prices were FEWS NET's, always 6+ weeks late, until AFEX's daily
+        # ones (Oct 2026). Its all-history error (24% at 1 week, 2025 FEWS gap
+        # included) would make a 1-week range of +-41% on a 1-week-old price,
+        # so it takes the typical fresh-data error until its own builds up.
+        # (Not a commodity with no measured accuracy at all, e.g. Yellow maize
+        # starting from an estimate: that keeps the wider rule below.)
+        measured = sel.get("accuracy_4w") is not None
+        err = {h: ((fresh.get(str(h)) if fresh.get(str(h)) is not None else (typical_fresh(h) if measured else None))
+                   if age_weeks <= 4 else None) for h in RANGE_HORIZONS}
+        err = {h: (e if e is not None else
+                   (None if sel.get(f"accuracy_{h}w") is None else 100 - sel[f"accuracy_{h}w"]))
+               for h, e in err.items()}
         pts = [(h, e) for h, e in err.items() if e is not None]
         if not pts:
             # accuracy not measured yet (Yellow maize: one real price): use the
             # typical error across commodities, not a made-up 5% that made its
             # range look as sure as the best-measured commodity's
-            pts = [(h, float(np.median(t))) for h in (4, 8, 13, 26)
+            pts = [(h, float(np.median(t))) for h in RANGE_HORIZONS
                    if (t := [100 - v[f"accuracy_{h}w"] for v in _selection_cache.values()
                              if v.get(f"accuracy_{h}w") is not None])]
         if not pts:

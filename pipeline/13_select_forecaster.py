@@ -3,14 +3,17 @@ AGROLINKING COMMODITY INTELLIGENCE SYSTEM
 Champion selection — per commodity, which forecaster is actually most accurate?
 
 Scores every candidate in drift_models.CANDIDATES with a rolling-origin
-backtest on REAL observations only (Agricome / WFP / Agrolinking_primary),
-at 4 and 8 weeks ahead, over the last 104 weeks of real targets. These
+backtest on REAL observations only (Agricome / WFP / AFEX / FEWS NET /
+Agrolinking_primary), 1, 4, 8, 13 and 26 weeks ahead, over the last 104
+weeks of real targets. Each test forecast starts only from prices that had
+reached the pipeline by its date (config PUBLICATION_LAG_DAYS: WFP ~4
+weeks late, FEWS NET ~6, Agricome ~2), as a real forecast would. These
 candidates need no model fitting, so this runs in seconds and can re-run
 every day — accuracy is re-measured as each new real price arrives.
 
 Output: outputs/backtest/model_selection.json — read by 05_forecast.py.
-  { commodity: { method, accuracy_4w, accuracy_8w, naive_accuracy_4w,
-                 direction_hit_4w, n_4w, mape_4w, mape_8w, updated } }
+  { commodity: { method, accuracy_1w, accuracy_4w, accuracy_8w, naive_accuracy_1w,
+                 naive_accuracy_4w, direction_hit_4w, n_1w, n_4w, mape_4w, mape_8w, updated } }
 
 Rule: pick the lowest weighted MAPE across 4/8/13/26 weeks. A challenger must
 beat naive by MIN_GAIN points, otherwise naive stays champion — with small
@@ -31,7 +34,7 @@ from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import PATHS, COMMODITIES, SCORED_SOURCES
-from pipeline.drift_models import CANDIDATES, point_forecasts
+from pipeline.drift_models import CANDIDATES, point_forecasts, arrival_dates, known_at
 
 logger.remove()
 logger.add(sys.stdout,
@@ -48,6 +51,10 @@ REAL_SOURCES = SCORED_SOURCES      # partner data, never a provisional WFP month
 # seasonal effects only show up beyond a few weeks. Nearer horizons weigh more.
 HORIZONS     = (4, 8, 13, 26)
 HORIZON_W    = {4: 0.4, 8: 0.3, 13: 0.2, 26: 0.1}
+# 1 week is measured too (target from Nov 2026: 95% at 1 week and at 1
+# month) and sizes the 1-week range, but doesn't vote in the method choice -
+# that would change every forecast, so it's a separate decision.
+REPORT_HORIZONS = (1,) + HORIZONS
 WINDOW_WEEKS = 104
 MIN_TARGETS  = 6
 # Accuracy is reported only for a commodity with a real price this recent:
@@ -59,13 +66,13 @@ MIN_TARGETS  = 6
 # field prices, last one 13 Apr 2026 - said nothing about its forecast in Nov.
 STALE_WEEKS  = 12
 MIN_GAIN     = 0.3        # accuracy points a challenger must beat naive by
-# Rows that did not exist yet at a past forecast date: prices interpolated
-# towards the NEXT real price, and the platform's own model rows. Starting a
-# test forecast from them leaked the future into the score (white beans'
-# "price holds" looked 87.4% accurate vs 80.2% fairly; scripts/research/
-# forecast_audit.py, Oct 2026).
-NOT_KNOWN_YET = {"Interpolated", "Agrolinking_validated"}
-FRESH_WEEKS  = 4          # "fresh data": latest real price at most this old at the forecast date
+# A test forecast starts from what was known at its date (drift_models.
+# known_at): no filled-in or model rows past the latest real price - they
+# leaked the future into the score (white beans' "price holds" looked 87.4%
+# accurate vs 80.2% fairly; scripts/research/forecast_audit.py, Oct 2026) -
+# and no real price that hadn't arrived yet (92.5% vs 89.8% 1-month mean,
+# Nov 2026).
+FRESH_WEEKS  = 4         # "fresh data": latest real price at most this old at the forecast date
 # The METHOD is chosen on test forecasts made in normal conditions (latest
 # real price at most GAP_WEEKS old): a handful made across a data gap (FEWS
 # NET's 2025 pause left white maize 10 months without a real price) swamped
@@ -89,20 +96,18 @@ def score_commodity(commodity):
     # Only what the forecasters read: slicing the full ~80-column feature
     # table for every origin made this step take minutes instead of seconds.
     df = df[[c for c in ("date", "price_ngn_mt", "data_source", "food_inflation_yoy") if c in df.columns]]
+    df = df.assign(arrived=arrival_dates(df))
     real = df[df["data_source"].isin(REAL_SOURCES)]
     if real.empty:
         return None
     cutoff = real["date"].max() - pd.Timedelta(weeks=WINDOW_WEEKS)
     rows = []
     for _, t in real[real["date"] >= cutoff].iterrows():
-        for h in HORIZONS:
+        for h in REPORT_HORIZONS:
             o = t["date"] - pd.Timedelta(weeks=h)
-            hist = df[df["date"] <= o]
-            real_before = hist[hist["data_source"].isin(REAL_SOURCES)]
-            if len(hist) < 20 or real_before.empty:
+            hist, last_real = known_at(df, o)
+            if len(hist) < 20 or last_real is None:
                 continue
-            last_real = real_before["date"].max()
-            hist = hist[~(hist["data_source"].isin(NOT_KNOWN_YET) & (hist["date"] > last_real))]
             last = float(hist["price_ngn_mt"].iloc[-1])
             last_date = hist["date"].iloc[-1]
             preds = point_forecasts(hist, last, last_date, t["date"])
@@ -174,7 +179,7 @@ def choose_long(summ, short):
     short_mape = s[short]
     # ...nor anything that IS naive in practice: seasonal methods fall back to
     # it when there is too little real history for a seasonal pattern.
-    by_h = summ.pivot_table(index="method", columns="h", values="mape")
+    by_h = summ[summ.h.isin(HORIZONS)].pivot_table(index="method", columns="h", values="mape")
     same_as_naive = [m for m in by_h.index if m != "naive" and "naive" in by_h.index
                      and np.allclose(by_h.loc[m].values, by_h.loc["naive"].values, equal_nan=True)]
     s = s.drop(index=[m for m in ["naive", short, *same_as_naive] if m in s.index])
@@ -201,7 +206,7 @@ def run_selection():
         normal = res[res["age_weeks"] <= GAP_WEEKS]
         summ_choice = summarise(normal) if len(normal) else summ
         if (summ_choice[(summ_choice.method == "naive") & (summ_choice.h == 4)].n.sum() < MIN_TARGETS
-                or summ_choice.h.nunique() < len(HORIZONS)):
+                or not set(HORIZONS) <= set(summ_choice.h)):
             summ_choice = summ
         if n4 < MIN_TARGETS:
             logger.warning(f"  {c}: only {n4} real targets — keeping naive, low confidence")
@@ -216,7 +221,10 @@ def run_selection():
         out[c] = {
             "method": best,
             "n_4w": n4,
+            "n_1w": int(summ[(summ.method == "naive") & (summ.h == 1)].n.sum()),
             "mape_4w": one(best, 4, "mape"), "mape_8w": one(best, 8, "mape"),
+            "accuracy_1w": None if one(best, 1, "mape") is None else round(100 - one(best, 1, "mape"), 1),
+            "naive_accuracy_1w": None if one("naive", 1, "mape") is None else round(100 - one("naive", 1, "mape"), 1),
             "accuracy_4w": None if one(best, 4, "mape") is None else round(100 - one(best, 4, "mape"), 1),
             "accuracy_8w": None if one(best, 8, "mape") is None else round(100 - one(best, 8, "mape"), 1),
             "accuracy_13w": None if one(best, 13, "mape") is None else round(100 - one(best, 13, "mape"), 1),
@@ -234,7 +242,7 @@ def run_selection():
             "accuracy_4w_fresh_data": fresh_acc(res, best),
             # the forecast ranges' starting point when today's data is fresh (05_forecast)
             "error_fresh_data_pct": {str(h): fresh_err(res, long_method if (h == LONG_H and long_method) else best, h)
-                                     for h in HORIZONS},
+                                     for h in REPORT_HORIZONS},
             "tie_break": tie_break,
             "updated": today,
         }
@@ -245,23 +253,25 @@ def run_selection():
             # 1 AFEX price on 15 Oct 2026 and scored "99.1%"), nor can prices
             # months old (STALE_WEEKS). Report none, so the dashboard
             # confidence and the averages leave it out.
-            for k in ("mape_4w", "mape_8w", "accuracy_4w", "accuracy_4w_fresh_data", "accuracy_8w", "accuracy_13w",
-                      "accuracy_26w", "accuracy_26w_short_method", "naive_accuracy_4w", "naive_accuracy_26w",
-                      "direction_hit_4w"):
+            for k in ("mape_4w", "mape_8w", "accuracy_1w", "naive_accuracy_1w", "accuracy_4w", "accuracy_4w_fresh_data",
+                      "accuracy_8w", "accuracy_13w", "accuracy_26w", "accuracy_26w_short_method", "naive_accuracy_4w",
+                      "naive_accuracy_26w", "direction_hit_4w"):
                 out[c][k] = None
             out[c]["error_fresh_data_pct"] = {}
             out[c]["note"] = (f"only {n4} real price(s) to test against - accuracy not measured yet"
                               if n4 < MIN_TARGETS else
                               f"no real price since {last_real:%Y-%m-%d} - accuracy not measured on current prices")
         logger.info(f"  {c:<16} -> {best:<12}{' (tie)' if tie_break else ''}"
-                    f"{f' then {long_method} (6 mo)' if long_method else ''} acc 4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "
-                    f"(naive {out[c]['naive_accuracy_4w']}% / {out[c]['naive_accuracy_26w']}%) n={n4}")
+                    f"{f' then {long_method} (6 mo)' if long_method else ''} acc 1w={out[c]['accuracy_1w']}% "
+                    f"4w={out[c]['accuracy_4w']}% 26w={out[c]['accuracy_26w']}% "
+                    f"(naive {out[c]['naive_accuracy_1w']}% / {out[c]['naive_accuracy_4w']}% / {out[c]['naive_accuracy_26w']}%) n={n4}")
     with open(SELECTION, "w") as f:
         json.dump(out, f, indent=2)
-    accs = [v["accuracy_4w"] for v in out.values() if v["accuracy_4w"] is not None]
-    if accs:
-        logger.info(f"  Mean 4-week accuracy on real prices: {np.mean(accs):.1f}% "
-                    f"({sum(a >= 95 for a in accs)}/{len(accs)} commodities >=95%)")
+    for h in (1, 4):
+        accs = [v[f"accuracy_{h}w"] for v in out.values() if v[f"accuracy_{h}w"] is not None]
+        if accs:
+            logger.info(f"  Mean {h}-week accuracy on real prices: {np.mean(accs):.1f}% "
+                        f"({sum(a >= 95 for a in accs)}/{len(accs)} commodities >=95%)")
     return out
 
 

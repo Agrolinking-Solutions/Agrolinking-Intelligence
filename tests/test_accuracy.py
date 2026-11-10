@@ -86,6 +86,21 @@ def test_ranges_count_from_this_week_and_widen_with_data_age():
     assert hw(aged) > hw(fresh) * 1.1, "8-week-old data gets the wider 'recent' range"
 
 
+def test_fresh_data_without_a_fresh_record_takes_the_typical_fresh_error():
+    """White maize: daily AFEX prices now, but its record is FEWS NET's, always 6+ weeks
+    late - its all-history error would have made a +-41% range on a 1-week-old price."""
+    fc, hist, future = champion_inputs("naive")
+    fc._selection_cache["W"] = dict(fc._selection_cache["X"], accuracy_4w=70.0, accuracy_8w=60.0,
+                                    accuracy_13w=50.0, accuracy_26w=30.0, error_fresh_data_pct={})
+    fc._selection_cache["Y"] = dict(fc._selection_cache["W"], accuracy_4w=None, accuracy_8w=None,
+                                    accuracy_13w=None, accuracy_26w=None)          # never measured
+    origin = pd.Timestamp("2026-10-12")
+    hw = lambda c: (c["upper_ci"][3] - c["lower_ci"][3]) / 2 / c["values"][3]       # 4 weeks ahead
+    x, w, y = (fc.build_champion(k, hist, 100_000.0, origin, origin, future) for k in ("X", "W", "Y"))
+    assert hw(w) == pytest.approx(hw(x)), "W takes the typical fresh-data error (X's 8%), not its own 30%"
+    assert hw(y) > hw(x), "a commodity with no measured accuracy keeps the wider typical all-history error"
+
+
 # ── Method selection ─────────────────────────────────────────────────────────
 
 def summ_from(mapes):
@@ -111,6 +126,37 @@ def test_long_range_method_never_naive_and_needs_a_real_gain():
     assert sel.choose_long(summ_from(base), "naive") is None
     gain = dict(base, **{"trend@0.5": (5.5, 7.5, 9.0, 11.0)})
     assert sel.choose_long(summ_from(gain), "naive") == "trend@0.5"
+
+
+def test_one_week_is_measured_but_does_not_choose_the_method():
+    """1 week is reported (target: 95% at 1 week) without changing which method wins."""
+    sel = load("13_select_forecaster")
+    assert 1 in sel.REPORT_HORIZONS and 1 not in sel.HORIZONS
+    better = {m: (5.0, 7.0, 9.0, 14.0) for m in sel.CANDIDATES}
+    better["season@1.0"] = (4.0, 5.5, 7.0, 10.0)
+    summ = summ_from(better)
+    week = pd.DataFrame([{"method": m, "h": 1, "mape": 1.0 if m == "naive" else 9.0, "n": 30} for m in sel.CANDIDATES])
+    assert sel.choose(pd.concat([summ, week]))[0] == sel.choose(summ)[0] == "season@1.0"
+    assert sel.choose_long(pd.concat([summ, week]), "naive") == sel.choose_long(summ, "naive")
+
+
+def test_a_test_forecast_only_uses_prices_that_had_arrived():
+    """WFP's month reaches us ~4 weeks after its date; FEWS NET ~6. Starting a test
+    forecast from it earlier put the 1-month figure ~3 points too high (Nov 2026)."""
+    from config.settings import PUBLICATION_LAG_DAYS
+    from pipeline.drift_models import arrival_dates, known_at
+    df = pd.DataFrame({"date": pd.to_datetime(["2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31",
+                                               "2026-09-07", "2026-09-14"]),
+                       "price_ngn_mt": [100.0, 102.0, 104.0, 106.0, 108.0, 110.0],
+                       "data_source": ["WFP", "Interpolated", "Interpolated", "Interpolated", "Interpolated", "WFP"]})
+    df = df.assign(arrived=arrival_dates(df))
+    lag = pd.Timedelta(days=PUBLICATION_LAG_DAYS["WFP"])
+    hist, last = known_at(df, pd.Timestamp("2026-09-14"))
+    assert last == pd.Timestamp("2026-08-10") and hist["price_ngn_mt"].iloc[-1] == 100.0,         "September's price hadn't arrived; the filled-in rows towards it weren't known either"
+    hist, last = known_at(df, pd.Timestamp("2026-09-14") + lag)
+    assert last == pd.Timestamp("2026-09-14") and hist["price_ngn_mt"].iloc[-1] == 110.0
+    hist, last = known_at(df, pd.Timestamp("2026-08-01"))
+    assert last is None
 
 
 # ── Cross-check and alerts ───────────────────────────────────────────────────
@@ -678,7 +724,8 @@ def test_headline_and_fair_audit_use_the_same_rules():
     audit = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(audit)
     assert sel.STALE_WEEKS == audit.STALE_WEEKS == 12, "a real price over 12 weeks old forecasts at ~34%"
-    for k in ("FRESH_WEEKS", "GAP_WEEKS", "WINDOW_WEEKS", "MIN_GAIN", "TIE_MARGIN", "LONG_MIN_GAIN"):
+    for k in ("FRESH_WEEKS", "GAP_WEEKS", "WINDOW_WEEKS", "MIN_GAIN", "TIE_MARGIN", "LONG_MIN_GAIN",
+              "HORIZONS", "HORIZON_W", "REPORT_HORIZONS"):
         assert getattr(sel, k) == getattr(audit, k), k
 
 

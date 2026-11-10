@@ -399,9 +399,14 @@ def summary():
         "commodities_tracked":    len(forecast),
         "verified_accuracy":      acc["at_95_label"],
         "verified_accuracy_pct":  acc["mean_1_month_pct"],
+        "verified_accuracy_1_week":     acc["at_95_1_week_label"],
+        "verified_accuracy_1_week_pct": acc["mean_1_week_pct"],
+        "price_holds_1_month_pct": acc["price_holds_1_month_pct"],
+        "price_holds_1_week_pct":  acc["price_holds_1_week_pct"],
+        "commodities_measured":   acc["measured"],
         "avg_model_error_pct":    acc["mean_1_month_error_pct"],
         "last_pipeline_run":      run_date,
-        "accuracy_target":        "1-month forecast accuracy, tested on real prices (goal 95%)",
+        "accuracy_target":        "1-week and 1-month forecast accuracy, tested on real prices as they arrive (goal 95%)",
         "validation_gap_pct":     avg_error,          # today's price vs reference after correction
         "data_sources":           sources,
         "zones":                  6,
@@ -2294,15 +2299,20 @@ def forecast_accuracy(
         out[c] = {
             "method": b.get("method"),
             "backtest": {
+                "1_week":   b.get("accuracy_1w"),
                 "1_month":  b.get("accuracy_4w"),  "2_months": b.get("accuracy_8w"),
                 "3_months": b.get("accuracy_13w"), "6_months": b.get("accuracy_26w"),
-                "test_points": b.get("n_4w"), "updated": b.get("updated"),
+                # the bar to beat: today's price, held
+                "price_holds_1_week": b.get("naive_accuracy_1w"), "price_holds_1_month": b.get("naive_accuracy_4w"),
+                "test_points": b.get("n_4w"), "test_points_1_week": b.get("n_1w"), "updated": b.get("updated"),
             },
             "live": (live.get("by_commodity") or {}).get(c),
             "fair_test": fair_test((audit.get("commodities") or {}).get(c)),
         }
     return {
-        "accuracy_definition": "100 minus mean absolute percentage error, against real prices (Agricome, WFP, FEWS NET, AFEX, field data)",
+        "accuracy_definition": "100 minus mean absolute percentage error, against real prices (Agricome, WFP, FEWS NET, AFEX, field data). "
+                               "Tests start each forecast only from prices that had reached us by its date: WFP arrives ~4 weeks late, "
+                               "FEWS NET ~6, Agricome ~2 (pasted by hand).",
         "backtest_updated": next((v.get("updated") for v in backtest.values() if isinstance(v, dict)), None),
         "live_updated": live.get("updated"),
         "live_overall": live.get("overall"),
@@ -2318,9 +2328,12 @@ def fair_test(a):
         return None
     h = a.get("horizons") or {}
     pick = lambda w, k: (h.get(w) or {}).get(k)
-    return {"1_month": pick("4w", "accuracy_pct"), "2_months": pick("8w", "accuracy_pct"),
+    return {"1_week": pick("1w", "accuracy_pct"),
+            "1_month": pick("4w", "accuracy_pct"), "2_months": pick("8w", "accuracy_pct"),
             "3_months": pick("13w", "accuracy_pct"), "6_months": pick("26w", "accuracy_pct"),
+            "price_holds_1_week": pick("1w", "naive_accuracy_pct"),
             "price_holds_1_month": pick("4w", "naive_accuracy_pct"),
+            "in_range_pct_1_week": pick("1w", "range_coverage_pct"),
             "in_range_pct_1_month": pick("4w", "range_coverage_pct"),
             "test_points_1_month": pick("4w", "n"),
             "verdict": a.get("verdict"), "issues": a.get("issues", [])}
@@ -2604,18 +2617,26 @@ def check_alerts(email: str = Depends(get_current_user_email)):
 # ── Meta / platform stats ──────────────────────────────────────────────────
 
 def measured_accuracy():
-    """Mean 1-month accuracy on real prices and how many commodities reach 95%."""
+    """Mean 1-week and 1-month accuracy on real prices, how many commodities reach 95%,
+    and the same for "price holds" - the bar a forecast has to beat."""
     try:
         with open(os.path.join(BASE_DIR, "outputs", "backtest", "model_selection.json")) as f:
             sel = json.load(f)
     except Exception:
         sel = {}
-    acc = [v["accuracy_4w"] for v in sel.values() if isinstance(v, dict) and v.get("accuracy_4w") is not None]
+    vals = lambda k: [v[k] for v in sel.values() if isinstance(v, dict) and v.get(k) is not None]
+    mean = lambda a: round(sum(a) / len(a), 1) if a else None
+    acc, acc1 = vals("accuracy_4w"), vals("accuracy_1w")
     return {
-        "mean_1_month_pct":       round(sum(acc) / len(acc), 1) if acc else None,
+        "mean_1_month_pct":       mean(acc),
         "mean_1_month_error_pct": round(100 - sum(acc) / len(acc), 1) if acc else None,
         "at_95": sum(a >= 95 for a in acc), "measured": len(acc),
         "at_95_label": f"{sum(a >= 95 for a in acc)}/{len(acc)}" if acc else None,
+        "mean_1_week_pct":        mean(acc1),
+        "at_95_1_week_label":     f"{sum(a >= 95 for a in acc1)}/{len(acc1)}" if acc1 else None,
+        "price_holds_1_month_pct": mean(vals("naive_accuracy_4w")),
+        "price_holds_1_week_pct":  mean(vals("naive_accuracy_1w")),
+        "commodities_total":      len(COMMODITIES),
     }
 
 
@@ -2728,10 +2749,16 @@ def platform_meta():
             "validation":   "Daily check of our prices against independent web prices (/crosscheck)",
         },
         "accuracy": {
-            "definition":            "100 minus mean absolute % error of 1-month-ahead forecasts, "
-                                     "tested on real partner, exchange and market-monitor prices (details: /accuracy)",
+            "definition":            "100 minus mean absolute % error of 1-week- and 1-month-ahead forecasts, "
+                                     "tested on real partner, exchange and market-monitor prices; each test forecast "
+                                     "starts only from prices that had reached us by then (details: /accuracy)",
             "mean_1_month_pct":      acc["mean_1_month_pct"],
             "commodities_at_95_pct": acc["at_95_label"],
+            "mean_1_week_pct":       acc["mean_1_week_pct"],
+            "commodities_at_95_pct_1_week": acc["at_95_1_week_label"],
+            "price_holds_1_month_pct": acc["price_holds_1_month_pct"],
+            "price_holds_1_week_pct":  acc["price_holds_1_week_pct"],
+            "commodities_measured":  f"{acc['measured']} of {acc['commodities_total']}",
         },
         "pipeline_runs": {
             "intelligence_files": len(intel_files),
