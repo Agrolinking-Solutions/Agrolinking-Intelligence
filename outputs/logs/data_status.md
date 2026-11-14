@@ -1,14 +1,14 @@
-## Real-data status - 13 November 2026
+## Real-data status - 14 November 2026
 
 **16 of 18 commodities have a real price from the last 45 days.**
 
 | Still waiting for real data | Last real price | Days ago |
 |---|---|---|
-| Maize (yellow) | 2023-01-09 | 1404 |
-| Wheat | 2026-04-13 | 214 |
+| Maize (yellow) | 2023-01-09 | 1405 |
+| Wheat | 2026-04-13 | 215 |
 
 **Web prices added today: 0**
-- Maize (yellow): 18 found, none used - 10x not a wholesale price (or level not recorded), 4x no exact date on the source, 3x source too old, 1x low confidence (forum, undated list or shop)
+- Maize (yellow): 17 found, none used - 10x not a wholesale price (or level not recorded), 3x source too old, 3x no exact date on the source, 1x low confidence (forum, undated list or shop)
 - Wheat: 23 found, none used - 23x withdrawn earlier after review
 
 **Our prices vs independent web prices:** 3 agree, 1 check, 12 no web price, 2 our price is old
