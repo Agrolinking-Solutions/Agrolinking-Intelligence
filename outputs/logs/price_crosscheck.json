@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-15",
+  "run_date": "2026-11-16",
   "basis": "Wholesale, NGN per tonne (Eggs: NGN per crate of 30)",
   "thresholds": {
     "check_above_pct": 15.0,
@@ -9,9 +9,8 @@
   },
   "summary": {
     "no web price": 12,
-    "agree": 3,
-    "our price is old": 2,
-    "check": 1
+    "agree": 4,
+    "our price is old": 2
   },
   "commodities": {
     "Hibiscus": {
@@ -129,25 +128,28 @@
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
-        },
-        {
-          "price": 800000,
-          "site": "rolglobaltrade.com",
-          "url": "https://www.rolglobaltrade.com/commodity-prices.php",
-          "source_date": "2026-11-12",
-          "level": "wholesale",
-          "location": "national",
-          "confidence": "medium"
         }
       ],
-      "other_web_prices": [],
+      "other_web_prices": [
+        {
+          "price": 714000,
+          "site": "dailytrust.com",
+          "url": "https://dailytrust.com/how-high-cost-of-feed-is-killing-poultries-report/",
+          "source_date": "2026-11-14",
+          "level": "farm-gate",
+          "location": "Zamfara (Gusau, Kaura Namoda, Talata Mafara, Anka), Northern Nigeria",
+          "confidence": "medium",
+          "not_compared": "one state's price, no measured gap to the national price"
+        }
+      ],
       "status": "agree",
       "web_median": 614910,
       "gap_pct": 4.2,
       "compared_with": "AFEX exchange",
       "notes": [
-        "Status uses the AFEX price; 1 other web price(s) listed for reference.",
-        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status."
+        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status.",
+        "1 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared.",
+        "Only one website - treat the comparison as a hint, not proof."
       ]
     },
     "Cashew Nuts": {
@@ -191,15 +193,6 @@
           "level": "exchange",
           "location": "national (AFEX exchange)",
           "confidence": "high"
-        },
-        {
-          "price": 700000,
-          "site": "rolglobaltrade.com",
-          "url": "https://www.rolglobaltrade.com/commodity-prices.php",
-          "source_date": "2026-11-12",
-          "level": "wholesale",
-          "location": "national",
-          "confidence": "medium"
         }
       ],
       "other_web_prices": [],
@@ -208,8 +201,8 @@
       "gap_pct": 8.9,
       "compared_with": "AFEX exchange",
       "notes": [
-        "Status uses the AFEX price; 1 other web price(s) listed for reference.",
-        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status."
+        "The AFEX price is the middle of its last 5 trading days, so one day's swing doesn't decide the status.",
+        "Only one website - treat the comparison as a hint, not proof."
       ]
     },
     "Beans (white)": {
@@ -245,25 +238,11 @@
       "our_level": "wholesale",
       "our_coverage": "AFEX exchange",
       "web_prices": [],
-      "other_web_prices": [
-        {
-          "price": 1043643,
-          "site": "nairametrics.com",
-          "url": "https://nairametrics.com/2026/11/01/lagos-food-prices-maize-ogbono-and-garri-record-sharp-increases-in-october/",
-          "source_date": "2026-10-01",
-          "level": "retail",
-          "location": "Mushin, Daleko, Oyingbo, Mile 12, Lagos",
-          "confidence": "medium",
-          "price_as_found": 1100000,
-          "conversion": "Lagos price N1,100,000 / 1.054 (measured Lagos gap, measured_fews_2023_2026) = N1,043,643 national"
-        }
-      ],
+      "other_web_prices": [],
       "status": "no web price",
       "web_median": null,
       "gap_pct": null,
-      "notes": [
-        "Nairametrics' monthly Lagos food-price survey is treated as a shop (retail) price: it covers consumer items, does not say wholesale, and its 50kg maize bag (N40,000 in Sep, N55,000 in Oct 2026) ran 2 to 2.6 times the FEWS NET and AFEX wholesale prices (alerts #7 and #9)"
-      ]
+      "notes": []
     },
     "Maize (yellow)": {
       "our_price": 220420,
@@ -271,40 +250,13 @@
       "our_source": "WFP",
       "our_level": "wholesale",
       "our_coverage": "WFP",
-      "web_prices": [
-        {
-          "price": 934579,
-          "site": "legit.ng",
-          "url": "https://www.legit.ng/business-economy/economy/1739115-dealers-release-food-prices-maize-garri-items-record-rates/",
-          "source_date": "2026-10-01",
-          "level": "wholesale",
-          "location": "Mushin, Daleko, Mile 12 and Oyingbo markets, Lagos",
-          "confidence": "medium",
-          "price_as_found": 1100000,
-          "conversion": "Lagos price N1,100,000 / 1.177 (measured Lagos gap, measured_wfp_2019_2023) = N934,579 national"
-        }
-      ],
-      "other_web_prices": [
-        {
-          "price": 934579,
-          "site": "nairametrics.com",
-          "url": "https://nairametrics.com/2026/11/01/lagos-food-prices-maize-ogbono-and-garri-record-sharp-increases-in-october/",
-          "source_date": "2026-10-01",
-          "level": "retail",
-          "location": "Mile 12/Mushin/Daleko/Oyingbo, Lagos",
-          "confidence": "medium",
-          "price_as_found": 1100000,
-          "conversion": "Lagos price N1,100,000 / 1.177 (measured Lagos gap, measured_wfp_2019_2023) = N934,579 national"
-        }
-      ],
+      "web_prices": [],
+      "other_web_prices": [],
       "status": "our price is old",
-      "web_median": 934579,
+      "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 1406 days old - nothing current to compare against.",
-        "Nairametrics' monthly Lagos food-price survey is treated as a shop (retail) price: it covers consumer items, does not say wholesale, and its 50kg maize bag (N40,000 in Sep, N55,000 in Oct 2026) ran 2 to 2.6 times the FEWS NET and AFEX wholesale prices (alerts #7 and #9)",
-        "State prices are compared as national prices, converted with that state's measured price gap.",
-        "Only one website - treat the comparison as a hint, not proof."
+        "Our latest real price is 1407 days old - nothing current to compare against."
       ]
     },
     "Wheat": {
@@ -319,7 +271,7 @@
       "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 216 days old - nothing current to compare against."
+        "Our latest real price is 217 days old - nothing current to compare against."
       ]
     },
     "Rice (local)": {
@@ -329,6 +281,17 @@
       "our_level": "wholesale-equivalent",
       "our_coverage": "WFP markets in Borno, Yobe (provisional month)",
       "web_prices": [
+        {
+          "price": 1216090,
+          "site": "leadership.ng",
+          "url": "https://leadership.ng/2027-voters-demand-improved-standard-of-living-reduction-in-prices-of-food-petrol/",
+          "source_date": "2026-11-15",
+          "level": "wholesale",
+          "location": "Central Market, Kaduna",
+          "confidence": "medium",
+          "price_as_found": 1300000,
+          "conversion": "Kaduna price N1,300,000 / 1.069 (measured Kaduna gap, measured_wfp_2019_2023) = N1,216,090 national"
+        },
         {
           "price": 1280000,
           "site": "dailytrust.com",
@@ -350,16 +313,6 @@
       ],
       "other_web_prices": [
         {
-          "price": 960000,
-          "site": "nairametrics.com",
-          "url": "https://nairametrics.com/2026/11/01/lagos-food-prices-maize-ogbono-and-garri-record-sharp-increases-in-october",
-          "source_date": "2026-10-01",
-          "level": "retail",
-          "location": "Mushin, Daleko, Mile 12 and Oyingbo markets, Lagos",
-          "confidence": "high",
-          "not_compared": "one state's price, no measured gap to the national price"
-        },
-        {
           "price": 1025714,
           "site": "legit.ng",
           "url": "https://www.legit.ng/business-economy/economy/1739140-rice-dealers-announce-prices-50kg-bag/",
@@ -368,25 +321,15 @@
           "location": "Lagos",
           "confidence": "medium",
           "not_compared": "one state's price, no measured gap to the national price"
-        },
-        {
-          "price": 1090000,
-          "site": "naijasabi.com.ng",
-          "url": "https://naijasabi.com.ng/rice-price-nigeria-today-2026/",
-          "source_date": "2026-10-01",
-          "level": "wholesale",
-          "location": "Lagos, Nigeria (Lagos State Ministry of Agriculture and Food Systems price tracker)",
-          "confidence": "medium",
-          "not_compared": "one state's price, no measured gap to the national price"
         }
       ],
       "status": "agree",
       "web_median": 1280000,
       "gap_pct": 13.6,
-      "compared_with": "web prices from 2 site(s)",
+      "compared_with": "web prices from 3 site(s)",
       "notes": [
-        "Nairametrics' monthly Lagos food-price survey is treated as a shop (retail) price: it covers consumer items, does not say wholesale, and its 50kg maize bag (N40,000 in Sep, N55,000 in Oct 2026) ran 2 to 2.6 times the FEWS NET and AFEX wholesale prices (alerts #7 and #9)",
-        "3 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared."
+        "1 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared.",
+        "State prices are compared as national prices, converted with that state's measured price gap."
       ]
     },
     "Rice (foreign)": {
@@ -396,28 +339,6 @@
       "our_level": "wholesale-equivalent",
       "our_coverage": "WFP markets in Borno, Yobe (provisional month)",
       "web_prices": [
-        {
-          "price": 996241,
-          "site": "lagosagric.com",
-          "url": "https://lagosagric.com/price-tracker/",
-          "source_date": "2026-10-01",
-          "level": "wholesale",
-          "location": "Lagos State (Ministry of Agriculture tracker, Mile 12-referenced market series)",
-          "confidence": "high",
-          "price_as_found": 1060000,
-          "conversion": "Lagos price N1,060,000 / 1.064 (measured Lagos gap, measured_fews_2023_2026) = N996,241 national"
-        },
-        {
-          "price": 996241,
-          "site": "naijasabi.com.ng",
-          "url": "https://naijasabi.com.ng/rice-price-nigeria-today-2026/",
-          "source_date": "2026-10-01",
-          "level": "wholesale",
-          "location": "Lagos (Lagos State Government price tracker, which covers Mile 12/Daleko/Oyingbo wholesale markets)",
-          "confidence": "medium",
-          "price_as_found": 1060000,
-          "conversion": "Lagos price N1,060,000 / 1.064 (measured Lagos gap, measured_fews_2023_2026) = N996,241 national"
-        },
         {
           "price": 1003289,
           "site": "legit.ng",
@@ -453,10 +374,10 @@
         }
       ],
       "other_web_prices": [],
-      "status": "check",
-      "web_median": 1003289,
-      "gap_pct": -28.6,
-      "compared_with": "web prices from 5 site(s)",
+      "status": "agree",
+      "web_median": 1611729,
+      "gap_pct": 14.7,
+      "compared_with": "web prices from 3 site(s)",
       "notes": [
         "State prices are compared as national prices, converted with that state's measured price gap."
       ]
@@ -520,24 +441,12 @@
       "our_level": "retail",
       "our_coverage": "WFP markets in Borno, Yobe (provisional month)",
       "web_prices": [],
-      "other_web_prices": [
-        {
-          "price": 10000000,
-          "site": "rolglobaltrade.com",
-          "url": "https://www.rolglobaltrade.com/commodity-prices.php",
-          "source_date": "2026-11-12",
-          "level": "wholesale",
-          "location": "Ogbogonogo Market, Delta",
-          "confidence": "medium",
-          "not_compared": "one state's price, no measured gap to the national price"
-        }
-      ],
+      "other_web_prices": [],
       "status": "no web price",
       "web_median": null,
       "gap_pct": null,
       "notes": [
-        "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
-        "1 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared."
+        "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it."
       ]
     },
     "Eggs": {
@@ -569,16 +478,6 @@
           "not_compared": "one state's price, no measured gap to the national price"
         },
         {
-          "price": 5400,
-          "site": "naijasabi.com.ng",
-          "url": "https://naijasabi.com.ng/egg-price-nigeria-today-2026/",
-          "source_date": "2026-10-01",
-          "level": "retail",
-          "location": "Lagos",
-          "confidence": "medium",
-          "not_compared": "one state's price, no measured gap to the national price"
-        },
-        {
           "price": 6200,
           "site": "dailytimesng.com",
           "url": "https://dailytimesng.com/meat-becomes-luxury-as-lagos-households-switch-to-cheaper-protein/",
@@ -594,7 +493,7 @@
       "gap_pct": null,
       "notes": [
         "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
-        "4 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared."
+        "3 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared."
       ]
     }
   }

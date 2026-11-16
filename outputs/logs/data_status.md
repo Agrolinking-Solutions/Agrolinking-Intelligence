@@ -1,18 +1,17 @@
-## Real-data status - 15 November 2026
+## Real-data status - 16 November 2026
 
 **16 of 18 commodities have a real price from the last 45 days.**
 
 | Still waiting for real data | Last real price | Days ago |
 |---|---|---|
-| Maize (yellow) | 2023-01-09 | 1406 |
-| Wheat | 2026-04-13 | 216 |
+| Maize (yellow) | 2023-01-09 | 1407 |
+| Wheat | 2026-04-13 | 217 |
 
 **Web prices added today: 0**
-- Maize (yellow): 16 found, none used - 11x not a wholesale price (or level not recorded), 2x source too old, 2x no exact date on the source, 1x low confidence (forum, undated list or shop)
-- Wheat: 22 found, none used - 22x withdrawn earlier after review
+- Maize (yellow): 16 found, none used - 11x not a wholesale price (or level not recorded), 2x no exact date on the source, 2x source too old, 1x low confidence (forum, undated list or shop)
+- Wheat: 23 found, none used - 22x withdrawn earlier after review, 1x source too old
 
-**Our prices vs independent web prices:** 3 agree, 1 check, 12 no web price, 2 our price is old
-- CHECK: Rice (foreign) - ours N1,405,328 (WFP_provisional), web N1,003,289 from 5 site(s), -29%
+**Our prices vs independent web prices:** 4 agree, 12 no web price, 2 our price is old
 
 **Still shop (retail) prices, waiting for a wholesale source:** Meat (beef), Meat (goat), Fish (dried), Eggs
 
