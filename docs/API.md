@@ -163,6 +163,12 @@ Second batch (the goal is now 95% at **1 week and 1 month**; every test forecast
 |---|---|---|---|
 | history point `source`, `last_real_source`, source legend | price history, /forecasts* | `"provisional"` / `WFP_provisional` | Now also used for a recent WFP month that only some markets have reported (November 2026: 14 of ~19), not only for the thin first days of a month. Today all nine WFP commodities' November price is provisional. Show it as a real price with a "provisional" tag; it changes when WFP completes the month. Legend text updated. |
 
+### Field added 17 Nov 2026 (what the forecast line assumes)
+
+| Field | Where | Values | Show |
+|---|---|---|---|
+| `forecast_basis` | /forecasts/latest, /forecasts/{c} | text or `null`: "Price holds at the latest real price", "Rises with food inflation", "Follows the recent price trend", "Half the recent price trend, half food inflation", "Follows the usual seasonal pattern", "Usual seasonal pattern plus food inflation"; a long-range blend adds "; after 3 months, moving to: ..." | A short label under the forecast chart, e.g. "Forecast basis: rises with food inflation". Most sloped lines are an inflation drift, not a call on that market, and the label says so. `null` when the forecast isn't from the live method. From 17 Nov, Sesame and Hibiscus use a sloped line when it is as accurate as a flat one ("Half the recent price trend, half food inflation"). |
+
 ### GET /export-prices/{commodity} (new, 5 Nov 2026)
 
 Prices abroad for one commodity (unit NGN/t). The response has the commodity's `export_allowed` and `export_note`, its `national_price_ngn_t`, and a list of `destinations`. Each destination has these fields:
@@ -337,11 +343,12 @@ const alert = await res.json();
 
 | Update | Frequency | Method |
 |---|---|---|
-| Price forecasts | Daily 7am WAT | GitHub Actions auto-pipeline |
-| Zonal prices | Daily 7am WAT | GitHub Actions auto-pipeline |
-| Intelligence metrics | Daily 7am WAT | GitHub Actions auto-pipeline |
-| Model retrain | Weekly (Mondays) | Manual — run pipeline/04_train.py |
-| MANUAL_PRICES | When Agricome posts | Manual — update pipeline/06_validate.py |
+| Prices, forecasts, zonal prices, intelligence, checks | Daily, about 05:30 Lagos (back-up runs at 07:43, 09:23 and 11:37 if the first one didn't happen) | GitHub Actions `daily_pipeline.yml` |
+| Fair accuracy test | Mondays, in the daily run | `scripts/research/forecast_audit.py` |
+| Monthly accuracy report | First run of each month | `pipeline/18_accuracy_report.py` |
+| Web price search | Twice a day (03:11 and 15:11 Lagos) plus once in the daily run | `web_price_stream.yml`, `pipeline/10_web_price_search.py` |
+| Uptime check (API, website) | Every 3 hours | `web_price_stream.yml`, `pipeline/uptime_check.py` |
+| Agricome prices | When pasted from Agricome's posts | Manual: append to `data/raw/agricome_raw.csv` |
 
 ---
 

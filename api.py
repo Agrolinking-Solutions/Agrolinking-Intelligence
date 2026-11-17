@@ -225,6 +225,32 @@ def latest_real(key: str, data: dict):
             "kind": SOURCE_CATEGORY.get(src, "other")}
 
 
+# What the forecast line assumes, in plain words (pipeline/drift_models.py),
+# for a label next to the chart. Most sloped lines are an inflation drift,
+# not a call on that market, and a page should say so.
+FORECAST_BASIS = {
+    "naive": "Price holds at the latest real price",
+    "infl": "Rises with food inflation",
+    "trend": "Follows the recent price trend",
+    "mix": "Half the recent price trend, half food inflation",
+    "season": "Follows the usual seasonal pattern",
+    "season+infl": "Usual seasonal pattern plus food inflation",
+}
+
+
+def forecast_basis(data: dict):
+    """Plain-words basis of the published line from its method ("short>long"), or None."""
+    champ = data.get("champion") or {}
+    if champ.get("mode") != "live" or not champ.get("method"):
+        return None
+    words = lambda m: FORECAST_BASIS.get(m) or FORECAST_BASIS.get(m.split("@")[0])
+    short, _, long = champ["method"].partition(">")
+    basis = words(short)
+    if basis and long and words(long) and words(long) != basis:
+        basis += f"; after 3 months, moving to: {words(long)[0].lower() + words(long)[1:]}"
+    return basis
+
+
 def load_latest_alert():
     files = sorted(glob.glob(os.path.join(ALERTS_DIR, "alert_validated_*.txt")))
     if not files:
@@ -638,6 +664,7 @@ def latest_forecast(
                 "start_from":       data.get("start_from"),
                 "today_price":      today_price,
                 "today_date":       today_date,
+                "forecast_basis":   forecast_basis(data),
                 "validation":       {
                     "reference_price":  vld.get("reference_price", 0),
                     "error_before_pct": vld.get("error_pct_before", 0),
@@ -714,6 +741,7 @@ def commodity_forecast(commodity: str):
         "today_price_per_unit":   today_per_kg,
         "today_date":             today_date,
         "currency":         "NGN",
+        "forecast_basis":   forecast_basis(data),
         "models_used":      data.get("models_used", []),
         "weights":          data.get("weights", {}),
         "validation":       {

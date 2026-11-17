@@ -16,7 +16,7 @@ actually used:
      the same rules as 13_select_forecaster (weighted error over 4/8/13/26
      weeks, MIN_GAIN, inflation tie-break, long-range method at 6 months)
      using only results known by then (targets on or before the forecast
-     date, last 104 weeks), and - like the live step - on test forecasts made
+     date, last 104 weeks; sloped near-tie), and - like the live step - on test forecasts made
      with real data at most GAP_WEEKS old when there are enough of them.
   3. Scored on real prices from 2016 at 1, 4, 8, 13 and 26 weeks: error,
      error of "price holds", bias (too high or too low), whether the shown
@@ -47,6 +47,7 @@ HORIZON_W = {4: 0.4, 8: 0.3, 13: 0.2, 26: 0.1}
 REPORT_HORIZONS = (1,) + HORIZONS   # as 13_select_forecaster: 1 week is scored, not used to choose
 WINDOW_WEEKS, MIN_TARGETS, MIN_GAIN = 104, 6, 0.3
 TIE_METHOD, TIE_MARGIN, LONG_MIN_GAIN = "infl@0.5", 0.3, 1.0
+SLOPE_MAX_6M_COST = 3.0   # same as 13_select_forecaster: sloped near-tie
 SCORE_FROM = "2016-01-01"
 BAND_K = 1.6          # the old fixed rule (half-width = 1.6 x mean abs error), kept as a variant
 GAP_WEEKS = 12        # same as 13_select_forecaster: choose methods on normal-condition pairs
@@ -88,7 +89,8 @@ def pairs_for(commodity):
     return pd.DataFrame(rows)
 
 
-BASELINE = {"min_gain": MIN_GAIN, "tie": True, "long": True, "band": ("calibrated", None), "gap": True, "tie_1m": True}
+BASELINE = {"min_gain": MIN_GAIN, "tie": True, "long": True, "band": ("calibrated", None), "gap": True, "tie_1m": True,
+            "slope_tie": True}
 
 
 def guard_6m(best, long, by26):
@@ -120,12 +122,20 @@ def choose(avail, cfg=BASELINE, full=None):
         best = "naive"
     if cfg["tie"] and best == "naive" and score[TIE_METHOD] - score["naive"] <= TIE_MARGIN:
         best = TIE_METHOD
+    same_as_naive = {m for m in CANDIDATES if m != "naive" and np.allclose(
+        [by_h[m].get(h, np.nan) for h in HORIZONS], [by_h["naive"].get(h, np.nan) for h in HORIZONS], equal_nan=True)}
+    if cfg.get("slope_tie") and best == "naive":     # as 13_select_forecaster.sloped_tie
+        n = by_h["naive"]
+        ok = [m for m in CANDIDATES if m != "naive" and m not in same_as_naive and np.isfinite(score[m])
+              and by_h[m].get(1, np.inf) - n.get(1, np.nan) <= TIE_MARGIN
+              and by_h[m].get(4, np.inf) - n.get(4, np.nan) <= TIE_MARGIN
+              and by_h[m].get(26, np.inf) - n.get(26, np.nan) <= SLOPE_MAX_6M_COST]
+        if ok:
+            best = min(ok, key=score.get)
     long = None
     if not cfg["long"]:
         return best, None, {m: by_h[m].to_dict() for m in CANDIDATES}
     l26 = {m: by_h[m].get(26, np.inf) for m in CANDIDATES}
-    same_as_naive = {m for m in CANDIDATES if m != "naive" and np.allclose(
-        [by_h[m].get(h, np.nan) for h in HORIZONS], [by_h["naive"].get(h, np.nan) for h in HORIZONS], equal_nan=True)}
     others = {m: v for m, v in l26.items() if m not in {"naive", best} | same_as_naive}
     if others:
         cand = min(others, key=others.get)
@@ -288,6 +298,7 @@ if __name__ == "__main__":
         "ranges: 85th percentile of past errors": {**BASELINE, "band": ("q", 85)},
         "leave 'price holds' only for a 1-point gain": {**BASELINE, "min_gain": 1.0},
         "no inflation tie-break": {**BASELINE, "tie": False},
+        "no sloped near-tie (flat 'price holds' kept)": {**BASELINE, "slope_tie": False},
         "no long-range blend": {**BASELINE, "long": False},
         "near-tie by weighted score only (no 1-month preference)": {**BASELINE, "tie_1m": False},
         # 10 Nov 2026: neither guard helps (1m 89.09 -> 89.03 / 89.02, 6m 74.89 -> 74.88 / 74.71);

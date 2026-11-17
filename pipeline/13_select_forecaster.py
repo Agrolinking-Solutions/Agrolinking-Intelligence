@@ -20,7 +20,10 @@ beat naive by MIN_GAIN points, otherwise naive stays champion — with small
 samples we don't switch on noise. Tie-break: if naive wins but half-inflation
 drift scores within TIE_MARGIN of it, use the drift instead. The two are
 equally accurate on the record, and Nigerian prices drift up with inflation;
-a flat 6-month line reads as "no forecast" to customers.
+a flat 6-month line reads as "no forecast" to customers. If naive still
+wins, any sloped method within TIE_MARGIN of it at 1 week and at 1 month,
+and at most SLOPE_MAX_6M_COST worse at 6 months, takes it (the best-scoring
+one) - John, 10 Nov 2026.
 
 Run: python pipeline/13_select_forecaster.py
 """
@@ -53,7 +56,8 @@ HORIZONS     = (4, 8, 13, 26)
 HORIZON_W    = {4: 0.4, 8: 0.3, 13: 0.2, 26: 0.1}
 # 1 week is measured too (target from Nov 2026: 95% at 1 week and at 1
 # month) and sizes the 1-week range, but doesn't vote in the method choice -
-# that would change every forecast, so it's a separate decision.
+# that would change every forecast, so it's a separate decision. It only
+# guards the sloped near-tie (sloped_tie).
 REPORT_HORIZONS = (1,) + HORIZONS
 WINDOW_WEEKS = 104
 MIN_TARGETS  = 6
@@ -83,6 +87,11 @@ TIE_METHOD   = "infl@0.5"
 LONG_H        = 26       # the 6-month horizon a long-range method is judged on
 LONG_MIN_GAIN = 1.0      # error points it must beat the champion by there (avoid noise)
 TIE_MARGIN   = 0.3        # ...and how close it must be to naive to win a tie
+# A sloped line over a flat one when they are equally accurate at 1 week and
+# 1 month (the targets): at most this many points worse at 6 months. Fair
+# test, Nov 2026: sesame, imported rice, cashew, hibiscus and eggs slope for
+# 0-0.1 points at 1 week/1 month; soybeans and ginger (~7-8 at 6 months) stay flat.
+SLOPE_MAX_6M_COST = 3.0
 
 
 def safe_name(c):
@@ -165,7 +174,33 @@ def choose(summ):
                  and scores.get(TIE_METHOD, np.inf) - scores["naive"] <= TIE_MARGIN)
     if tie_break:
         best = TIE_METHOD
+    if best == "naive":
+        sloped = sloped_tie(summ, scores)
+        if sloped:
+            best, tie_break = sloped, True
     return best, scores, tie_break
+
+
+def naive_in_practice(summ):
+    """Methods whose test forecasts equal naive's: seasonal ones fall back to it
+    when there is too little real history for a seasonal pattern."""
+    by_h = summ[summ.h.isin(HORIZONS)].pivot_table(index="method", columns="h", values="mape")
+    return {m for m in by_h.index if m != "naive" and "naive" in by_h.index
+            and np.allclose(by_h.loc[m].values, by_h.loc["naive"].values, equal_nan=True)}
+
+
+def sloped_tie(summ, scores):
+    """The best-scoring sloped method as accurate as naive (within TIE_MARGIN) at
+    1 week and 1 month and at most SLOPE_MAX_6M_COST worse at 6 months, or None."""
+    m = summ.pivot_table(index="method", columns="h", values="mape")
+    if "naive" not in m.index or not {1, 4, LONG_H} <= set(m.columns):
+        return None
+    flat = naive_in_practice(summ)
+    ok = [x for x in m.index if x != "naive" and x not in flat and np.isfinite(scores.get(x, np.inf))
+          and m.loc[x, 1] - m.loc["naive", 1] <= TIE_MARGIN
+          and m.loc[x, 4] - m.loc["naive", 4] <= TIE_MARGIN
+          and m.loc[x, LONG_H] - m.loc["naive", LONG_H] <= SLOPE_MAX_6M_COST]
+    return min(ok, key=scores.get) if ok else None
 
 
 def choose_long(summ, short):
@@ -177,12 +212,8 @@ def choose_long(summ, short):
     # path back to today's price (rise for 3 months, then fall) - a shape no
     # one expects; it only happened where the tie-break had picked the drift.
     short_mape = s[short]
-    # ...nor anything that IS naive in practice: seasonal methods fall back to
-    # it when there is too little real history for a seasonal pattern.
-    by_h = summ[summ.h.isin(HORIZONS)].pivot_table(index="method", columns="h", values="mape")
-    same_as_naive = [m for m in by_h.index if m != "naive" and "naive" in by_h.index
-                     and np.allclose(by_h.loc[m].values, by_h.loc["naive"].values, equal_nan=True)]
-    s = s.drop(index=[m for m in ["naive", short, *same_as_naive] if m in s.index])
+    # ...nor anything that IS naive in practice
+    s = s.drop(index=[m for m in {"naive", short} | naive_in_practice(summ) if m in s.index])
     if s.empty:
         return None
     best = s.idxmin()

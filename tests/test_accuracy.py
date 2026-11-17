@@ -120,6 +120,37 @@ def test_selection_keeps_price_holds_unless_clearly_better():
     assert best == "season@1.0"
 
 
+def test_a_sloped_line_replaces_a_flat_one_only_when_as_accurate():
+    """Price holds wins, the inflation tie-break doesn't apply: a sloped method within 0.3
+    points at 1 week and 1 month and at most 3 worse at 6 months is used instead (10 Nov 2026)."""
+    sel = load("13_select_forecaster")
+
+    def summ(mapes):     # {method: (m1, m4, m8, m13, m26)}
+        return pd.DataFrame([{"method": m, "h": h, "mape": v, "n": 30}
+                             for m, vals in mapes.items() for h, v in zip((1, 4, 8, 13, 26), vals)])
+    flat = (2.0, 5.0, 7.0, 9.0, 14.0)
+    base = {m: (2.0, 6.0, 9.0, 12.0, 30.0) for m in sel.CANDIDATES}      # every sloped one clearly worse
+    base["naive"] = base["season@0.5"] = base["season@1.0"] = flat       # seasonal = naive (too little history)
+    assert sel.choose(summ(base))[0] == "naive"
+    near = dict(base, mix=(2.2, 5.2, 7.4, 9.8, 16.5))                    # level at 1w/1m, 2.5 worse at 6m
+    assert sel.choose(summ(near))[0] == "mix"
+    assert sel.choose(summ(dict(near, mix=(2.2, 5.4, 7.4, 9.8, 16.5))))[0] == "naive", "0.4 worse at 1 month"
+    assert sel.choose(summ(dict(near, mix=(2.4, 5.2, 7.4, 9.8, 16.5))))[0] == "naive", "0.4 worse at 1 week"
+    assert sel.choose(summ(dict(near, mix=(2.2, 5.2, 7.4, 9.8, 21.5))))[0] == "naive", "7.5 worse at 6 months"
+
+
+def test_forecast_line_says_what_it_assumes():
+    """The API names the published line's basis, so a sloped inflation line isn't read as a market call."""
+    import api
+    live = lambda m: {"champion": {"mode": "live", "method": m}}
+    assert api.forecast_basis(live("infl@0.5")) == "Rises with food inflation"
+    assert api.forecast_basis(live("season+infl")) == "Usual seasonal pattern plus food inflation"
+    assert api.forecast_basis(live("season@1.0>season+infl")) == (
+        "Follows the usual seasonal pattern; after 3 months, moving to: usual seasonal pattern plus food inflation")
+    assert api.forecast_basis({"champion": {"mode": "shadow", "method": "mix"}}) is None
+    assert api.forecast_basis({}) is None
+
+
 def test_long_range_method_never_naive_and_needs_a_real_gain():
     sel = load("13_select_forecaster")
     base = {m: (5.0, 7.0, 9.0, 14.0) for m in sel.CANDIDATES}
