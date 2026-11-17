@@ -19,6 +19,9 @@ Web prices only count if the model gave medium or high confidence, named a
 URL, and the source date parses and is at most MAX_SOURCE_AGE_DAYS old.
 Retail and unlabelled web prices are listed for context but not compared;
 so are pages a person found to be shop prices (web_sources_levels.csv).
+Prices a person withdrew after review (web_prices_withdrawn.csv, matched as
+in 14_promote_web_prices) are left out entirely: the withdrawn N1.00M
+imported rice price kept showing as "-29%" for a week after 10 Nov 2026.
 AFEX exchange prices (data/raw/afex_prices.csv, read daily from Mansa Markets
 by fetch_afex_prices.py) are always included as one more website.
 
@@ -193,13 +196,19 @@ def build_report(master, candidates, today, coverage=None, page_lookup=None):
     ours = our_prices(master, coverage or {})
     blocked = load_blocked_sites()
     levels = _promote.load_source_levels()
+    withdrawn = _promote.load_withdrawn()
     page_lookup = page_lookup or fetch_page_dates
     report = {}
     for c in COMMODITIES:
         mine = ours.get(c)
         pool = []
+        n_withdrawn = 0
         for cand in candidates:
             if cand["commodity"] != c:
+                continue
+            # matched on the price as found, before any state-to-national conversion
+            if not cand.get("is_afex") and _promote.withdrawn_match(cand, withdrawn):
+                n_withdrawn += 1
                 continue
             cand = _promote.with_source_level(cand, levels)
             if cand.get("is_afex") and mine and mine["source"] == "AFEX":
@@ -286,6 +295,9 @@ def build_report(master, candidates, today, coverage=None, page_lookup=None):
                          "measured price gap.")
         if entry["web_prices"] and len(entry["web_prices"]) == 1:
             notes.append("Only one website - treat the comparison as a hint, not proof.")
+        if n_withdrawn:
+            notes.append(f"{n_withdrawn} web price(s) withdrawn after review are left out "
+                         "(web_prices_withdrawn.csv).")
         entry["notes"] = notes
         report[c] = entry
     counts = {}

@@ -727,6 +727,28 @@ def test_state_price_with_measured_gap_is_converted():
     assert "measured Lagos gap" in rows[0][13]
 
 
+def test_withdrawn_web_price_is_left_out_of_the_cross_check():
+    """legit.ng's Lagos N1,067,500 imported rice (local-rice level) was withdrawn on 10 Nov 2026
+    but kept showing in the cross-check as N1,003,289 national, -29% vs WFP."""
+    cc = load("16_cross_check")
+    rice = {"commodity": "Rice (foreign)", "query_date": D("2026-11-16"), "price": 1_067_500.0,
+            "source_url": "https://www.legit.ng/business-economy/rice-prices", "source_title": "t",
+            "source_date": "2026-11-02", "confidence": "medium", "price_level": "wholesale",
+            "market_location": "national"}
+    other = {**rice, "price": 1_450_000.0, "source_url": "https://example.ng/rice"}
+    master = pd.DataFrame({"commodity": "Rice (foreign)", "date": pd.to_datetime(["2026-11-09"]),
+                           "price_ngn_mt": [1_405_328.0], "data_source": "WFP", "market_type": "wholesale"})
+    current = lambda url: {"published": D("2026-11-02"), "modified": None, "error": None}
+    e = cc.build_report(master, [rice, other], D("2026-11-16"), page_lookup=current)["commodities"]["Rice (foreign)"]
+    assert [p["site"] for p in e["web_prices"]] == ["example.ng"]
+    assert all(p["site"] != "legit.ng" for p in e["other_web_prices"])
+    assert any("withdrawn after review" in n for n in e["notes"])
+    # the same site with a clearly different price is still compared
+    newer = {**rice, "price": 1_390_000.0}
+    e = cc.build_report(master, [newer], D("2026-11-16"), page_lookup=current)["commodities"]["Rice (foreign)"]
+    assert [p["site"] for p in e["web_prices"]] == ["legit.ng"]
+
+
 SURVEY_URL = ("https://nairametrics.com/2026/11/01/"
               "lagos-food-prices-maize-ogbono-and-garri-record-sharp-increases-in-october/")
 
