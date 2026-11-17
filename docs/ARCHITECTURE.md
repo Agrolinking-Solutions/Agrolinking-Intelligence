@@ -14,7 +14,7 @@ the server only runs the API.
 ```
 Sources ──► GitHub Actions ──► repository files ──► API server (VPS) ──► website, AgLens
             (daily run,     └► Postgres/TimescaleDB ──┘
-             3-hourly search)
+             twice-daily search)
             └► GitHub issues (alerts, emailed to repo watchers)
 ```
 

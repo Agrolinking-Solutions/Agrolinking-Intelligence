@@ -55,7 +55,7 @@ def ensure_commodities(cur, commodities):
 def ensure_web_estimates_schema(cur):
     """
     Let web_price_estimates keep one row per commodity, day AND search focus
-    (the 3-hourly rotation searches the same commodity several ways a day).
+    (the rotating search looks up the same commodity several ways).
     Adds query_focus (existing rows become 'general') and swaps the unique key
     (commodity_id, query_date) for (commodity_id, query_date, query_focus).
     Also adds price_level and market_location (NULL on older rows).

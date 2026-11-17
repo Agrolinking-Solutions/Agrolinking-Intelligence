@@ -5,7 +5,7 @@ Uptime check: a GitHub issue when the site or API is down or serving old data
 Nothing watched the live service: if the API or the website went down, or
 the server stopped picking up new runs (it pulls the repository on every push
 - a broken deploy key would freeze it on old data), nobody would know. This
-runs with the 3-hourly web price job (no extra GitHub Actions job) and checks:
+runs every 3 hours in the web price workflow (no extra GitHub Actions job) and checks:
 
   API         https://pis-api.agrolinking.com/health answers "operational"
   website     https://pis.agrolinking.com answers

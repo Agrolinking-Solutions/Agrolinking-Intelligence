@@ -264,7 +264,7 @@ CREATE TABLE IF NOT EXISTS web_price_estimates (
     estimate_id     SERIAL PRIMARY KEY,
     commodity_id    INT NOT NULL REFERENCES commodities(commodity_id),
     query_date      DATE NOT NULL,              -- the date this search ran
-    query_focus     TEXT NOT NULL DEFAULT 'general',  -- 'general' (daily sweep) or the 3-hourly focus: exchange|official|north|south|news
+    query_focus     TEXT NOT NULL DEFAULT 'general',  -- 'general' (daily sweep) or the rotating search focus: exchange|official|north|south|news
     price_ngn_mt    NUMERIC,                    -- NULL if the model found nothing usable
     source_url      TEXT,
     source_title    TEXT,

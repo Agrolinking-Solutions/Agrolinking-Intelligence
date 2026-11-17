@@ -1,7 +1,7 @@
 """
 When was a web page published? Read from the page itself, not the model.
 
-The 3-hourly web search (10_web_price_search.py) asks the model for each
+The rotating web search (10_web_price_search.py) asks the model for each
 price's source date, and the model sometimes gets it wrong. Found 2 Nov 2026:
 a Daily Trust article of 8 Jan 2023 (wheat N65-70K per 100kg) had been
 promoted as "30 Oct 2026" and opened price alert #6, and a May 2025 Daily

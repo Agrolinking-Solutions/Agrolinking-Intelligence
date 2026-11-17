@@ -1,26 +1,34 @@
 name: Web Price Stream
 
-# Every 3 hours: a focused web price search (Claude API + web search) for the
+# Twice a day: a focused web price search (Claude API + web search) for the
 # commodities without a fresh Agricome/WFP price, plus two others in turn.
 # Each run uses a different search focus (exchange -> official trackers ->
-# northern markets -> southern markets -> news), so over a day each commodity
-# is looked up in several independent places. See
+# northern markets -> southern markets -> news), so over a few days each
+# commodity is looked up in several independent places. The daily run (step
+# 00b) also searches every commodity once. See
 # pipeline/10_web_price_search.py --rotate.
+#
+# Was every 3 hours until 17 Nov 2026. With the date, level and
+# second-source checks, no web price had been accepted since 4 Nov, so 8
+# searches a day were paying for results that were thrown away. 02:11 UTC
+# (03:11 Lagos) is just before the daily run, so its finds are vetted the
+# same morning; 14:11 UTC is the second look.
 #
 # Writes ONLY to the web_price_estimates Postgres table - no git commits, so it
 # can never collide with the daily pipeline. Results are vetted and promoted
 # into the price data by step 00c of the daily run (14_promote_web_prices.py).
 #
-# Also checks the live API and website each run (pipeline/uptime_check.py) and
-# keeps a GitHub issue open while either is down or serving old data.
+# Every 3 hours it also checks the live API and website (pipeline/uptime_check.py)
+# and keeps a GitHub issue open while either is down or serving old data.
 
 on:
   schedule:
-    # 41 minutes past every third hour UTC (00:41, 03:41 ... 21:41). Was :30,
-    # which GitHub often dropped at busy times - only ~4 of 8 runs happened
-    # on 14 Oct 2026.
+    # Uptime check: 41 minutes past every third hour UTC (00:41, 03:41 ... 21:41).
+    # Was :30, which GitHub often dropped at busy times.
     - cron: "41 */3 * * *"
-  workflow_dispatch: {}
+    # Web price search, twice a day. Must match the SEARCH line below.
+    - cron: "11 2,14 * * *"
+  workflow_dispatch: {}   # a manual run does both
 
 permissions:
   contents: read
@@ -36,6 +44,7 @@ jobs:
     timeout-minutes: 30
     env:
       PGPASSWORD: ${{ secrets.PGPASSWORD }}
+      SEARCH: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '11 2,14 * * *' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0 (Node 24)
@@ -47,13 +56,19 @@ jobs:
         with:
           python-version: "3.10"
 
-      # Only what the search needs - not the full forecasting stack.
+      # Only what each check needs - not the full forecasting stack. The
+      # uptime check needs requests and loguru only.
       - name: Install dependencies
         run: |
           python -m pip install -c constraints.txt pip
-          pip install -c constraints.txt anthropic psycopg2-binary pandas numpy loguru python-dateutil requests
+          if [ "$SEARCH" = "true" ]; then
+            pip install -c constraints.txt anthropic psycopg2-binary pandas numpy loguru python-dateutil requests
+          else
+            pip install -c constraints.txt loguru requests
+          fi
 
       - name: Rotating web price search
+        if: env.SEARCH == 'true'
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

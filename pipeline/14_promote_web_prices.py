@@ -80,7 +80,7 @@ BLOCKED_SITES_PATH   = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "w
 SOURCE_LEVELS_PATH   = os.path.join(os.path.dirname(PATHS["raw_web_prices"]), "web_sources_levels.csv")
 
 # Freshness windows live in pipeline/freshness.py so this step and the
-# 3-hourly web search agree on which commodities are gaps.
+# rotating web search agree on which commodities are gaps.
 from pipeline.freshness import is_fresh
 LOOKBACK_DAYS        = 10     # how far back in web_price_estimates to look
 MAX_SOURCE_AGE_DAYS  = 21     # a source price older than this (at search time) is rejected

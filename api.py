@@ -2683,7 +2683,7 @@ SOURCE_INFO = {
                             "url": "threads.net/@agricomeafrica"},
     "WFP":                 {"name": "WFP Nigeria Food Price Monitor", "type": "Monthly market survey (published ~4 weeks late)",
                             "url": "data.humdata.org/dataset/wfp-food-prices-for-nigeria"},
-    "Web_search":          {"name": "Web price search", "type": "Named, dated wholesale prices found online every 3 hours, checked before use"},
+    "Web_search":          {"name": "Web price search", "type": "Named, dated wholesale prices found online twice a day, checked before use"},
     "AFEX":                {"name": "AFEX Commodities Exchange (via Mansa Markets)", "type": "Daily exchange prices",
                             "url": "mansamarkets.com/commodities"},
     "FEWS_NET":            {"name": "FEWS NET market monitor (via FAO)", "type": "Weekly wholesale prices, named markets",
@@ -2778,7 +2778,7 @@ def platform_meta():
                                        "prices until a wholesale source is available.",
         },
         "update_frequency": {
-            "prices":       "Daily at 06:00 Lagos time; web price search every 3 hours",
+            "prices":       "Daily at about 05:30 Lagos time; web price search twice a day",
             "models":       "Forecast method re-chosen daily from its accuracy on real prices",
             "validation":   "Daily check of our prices against independent web prices (/crosscheck)",
         },

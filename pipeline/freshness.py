@@ -2,7 +2,7 @@
 Which commodities have a fresh observed price from our direct sources?
 
 Shared by 14_promote_web_prices.py (web prices only fill commodities without
-one) and 10_web_price_search.py (the 3-hourly rotation always searches those
+one) and 10_web_price_search.py (the twice-daily rotation always searches those
 commodities). One definition, so the two can't disagree.
 """
 

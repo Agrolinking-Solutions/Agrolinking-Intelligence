@@ -929,3 +929,19 @@ def test_frozen_afex_price_is_listed_not_compared():
         pd.DataFrame(rows).to_csv(path, index=False)
         cand = [c for c in cc.afex_candidates(path) if c["commodity"] == "Sesame"][0]
     assert cand["price_level"] not in cc.COMPARE_LEVELS and "not changed in 16 trading days" in cand["note"]
+
+
+def test_twice_daily_web_search_still_rotates_through_every_commodity_and_focus():
+    """web_price_stream.yml searches at 02:11 and 14:11 UTC since 17 Nov 2026 (was every
+    3 hours). Counting 3-hour slots with two runs a day would pick the same extras daily."""
+    from datetime import datetime, timezone, timedelta
+    ws = load("10_web_price_search")
+    commodities = [f"C{i}" for i in range(16)] + ["Wheat", "Maize (yellow)"]
+    gaps = ["Wheat", "Maize (yellow)"]
+    start = datetime(2026, 11, 17, tzinfo=timezone.utc)
+    runs = [ws.rotation_plan(start + timedelta(days=d, hours=h, minutes=11), commodities, gaps)
+            for d in range(5) for h in (2, 14)]
+    assert all(set(gaps) <= set(c) for _, c in runs)                     # gaps every run
+    assert {c for _, cs in runs for c in cs} == set(commodities)         # every other one within 4 days
+    assert {f for f, _ in runs} == set(ws.ROTATION)                      # every search focus
+    assert runs[0] != runs[1] and runs[0][1] != runs[2][1]               # morning and next day differ

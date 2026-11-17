@@ -78,7 +78,7 @@ rotate it first, then check the Actions logs and git history.
 
 ## Uptime
 
-`pipeline/uptime_check.py` runs with every 3-hourly web search job (no extra
+`pipeline/uptime_check.py` runs every 3 hours in the web price workflow (no extra
 job). It opens one issue labelled `uptime` while the API or website is down,
 or while the server is serving forecasts older than the newest daily run 45
 minutes after it was committed (a broken deploy). It closes the issue when

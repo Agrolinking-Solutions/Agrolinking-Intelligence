@@ -26,14 +26,15 @@ never blocks the rest of the pipeline).
 
 Two modes:
   python pipeline/10_web_price_search.py            # daily sweep: all commodities, general search
-  python pipeline/10_web_price_search.py --rotate   # 3-hourly job (web_price_stream.yml)
+  python pipeline/10_web_price_search.py --rotate   # twice-daily job (web_price_stream.yml)
 
 --rotate searches every commodity that has no fresh Agricome/WFP price (see
 pipeline/freshness.py) plus ROTATING_EXTRA_PER_RUN others in turn, with a
 search focus that changes each run (exchange -> official -> northern markets
--> southern markets -> news). Over a day each commodity gets looked up in
+-> southern markets -> news). Over a few days each commodity gets looked up in
 several different places, which is what the promotion step's second-source
-rule needs. Each (commodity, day, focus) is its own row.
+rule needs. Each (commodity, day, focus) is its own row. It ran every 3 hours
+until 17 Nov 2026; no web price had passed the checks since 4 Nov.
 """
 
 import os, sys, json, re, argparse
@@ -52,8 +53,9 @@ logger.add(sys.stdout,
 
 MODEL_NAME = "claude-sonnet-5"
 MAX_SEARCHES_PER_COMMODITY = 3   # caps cost per commodity per run (daily sweep)
-ROTATING_MAX_SEARCHES      = 2   # focused 3-hourly searches need fewer
-ROTATING_EXTRA_PER_RUN     = 2   # non-gap commodities added to each 3-hourly run
+ROTATING_MAX_SEARCHES      = 2   # focused rotating searches need fewer
+ROTATING_EXTRA_PER_RUN     = 2   # non-gap commodities added to each rotating run
+RUNS_PER_DAY               = 2   # web_price_stream.yml: 02:11 and 14:11 UTC (was 8 until 17 Nov 2026)
 
 # Extra instruction per search focus. "general" is the daily sweep.
 FOCI = {
@@ -75,7 +77,7 @@ FOCI = {
                 "Premium Times).",
 }
 ROTATION = ["exchange", "official", "north", "south", "news"]
-# Commodities the 3-hourly rotation never searches (the legacy "Rice" series sat
+# Commodities the rotating search never searches (the legacy "Rice" series sat
 # here until it was retired on 23 Oct 2026).
 ROTATION_SKIP = set()
 
@@ -163,11 +165,14 @@ def build_prompt(commodity: str, focus: str = "general") -> str:
 
 def rotation_plan(now_utc, commodities, gaps):
     """
-    (focus, commodities) for a 3-hourly run. The run number counts 3-hour
-    slots since a fixed date, so consecutive runs step through ROTATION and
-    through the non-gap commodities regardless of when the job starts.
+    (focus, commodities) for a rotating run. The run number counts the day's
+    RUNS_PER_DAY slots since a fixed date, so consecutive runs step through
+    ROTATION and through the non-gap commodities regardless of when the job
+    starts. (Counting 3-hour slots with two runs a day would pick the same
+    extra commodities every day.)
     """
-    run_no = now_utc.date().toordinal() * 8 + now_utc.hour // 3
+    slot = min(now_utc.hour * RUNS_PER_DAY // 24, RUNS_PER_DAY - 1)
+    run_no = now_utc.date().toordinal() * RUNS_PER_DAY + slot
     focus = ROTATION[run_no % len(ROTATION)]
     gaps = [c for c in gaps if c not in ROTATION_SKIP]
     others = [c for c in commodities if c not in gaps and c not in ROTATION_SKIP]
@@ -265,7 +270,7 @@ def write_estimate(cur, commodity_id: int, query_date, parsed: dict, focus: str 
 def run_web_price_search(rotate: bool = False):
     logger.info("=" * 60)
     logger.info("STEP 10 — WEB-SOURCED PRICE SEARCH (Claude API)"
-                + (" — 3-hourly rotation" if rotate else ""))
+                + (" — rotating search" if rotate else ""))
     logger.info("=" * 60)
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -372,6 +377,6 @@ def run_web_price_search(rotate: bool = False):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--rotate", action="store_true",
-                    help="3-hourly mode: gap commodities + a rotating slice, rotating search focus")
+                    help="twice-daily mode: gap commodities + a rotating slice, rotating search focus")
     ok = run_web_price_search(rotate=ap.parse_args().rotate)
     sys.exit(0 if ok else 1)

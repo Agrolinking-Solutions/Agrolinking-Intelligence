@@ -8,7 +8,7 @@ Daily wholesale price intelligence and forecasts for Nigerian agricultural commo
 
 - **Web app:** [pis.agrolinking.com](https://pis.agrolinking.com) (frontend lives in a separate repository)
 - **API:** [pis-api.agrolinking.com](https://pis-api.agrolinking.com) · interactive docs at [/docs](https://pis-api.agrolinking.com/docs)
-- **Pipeline:** GitHub Actions, every morning, plus a web price search every 3 hours
+- **Pipeline:** GitHub Actions, every morning, plus a web price search twice a day and an uptime check every 3 hours
 
 ---
 
@@ -86,7 +86,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 | | (commit) | Commits data and outputs to `main` |
 
 **Other workflows:**
-- `web_price_stream.yml`, every 3 hours at :41: a focused web search for commodities without a fresh partner price, plus two others in turn, rotating through exchange, official, northern-market, southern-market and news sources.
+- `web_price_stream.yml`: twice a day (02:11 and 14:11 UTC; every 3 hours until 17 Nov 2026), a focused web search for commodities without a fresh partner price, plus two others in turn, rotating through exchange, official, northern-market, southern-market and news sources. Every 3 hours (at :41) it also runs the uptime check.
 - `probe_ncx.yml`: a research-only probe, not part of the pipeline.
 
 ---
