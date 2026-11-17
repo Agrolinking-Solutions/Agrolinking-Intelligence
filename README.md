@@ -87,7 +87,7 @@ The list of sources that count as real lives in one place: `PARTNER_SOURCES` and
 
 **Other workflows:**
 - `web_price_stream.yml`: twice a day (02:11 and 14:11 UTC; every 3 hours until 17 Nov 2026), a focused web search for commodities without a fresh partner price, plus two others in turn, rotating through exchange, official, northern-market, southern-market and news sources. Every 3 hours (at :41) it also runs the uptime check.
-- `probe_ncx.yml`: a research-only probe, not part of the pipeline.
+- `probe_ncx.yml` (removed 17 Nov 2026): logged NCX's public price ticker daily from 29 Sep. All 14 prices stayed the same on all 48 reads, so NCX is not a price source. The log stays in `data/research/ncx_probe_log.csv`.
 
 ---
 
@@ -291,7 +291,7 @@ python pipeline/quality_gate.py
 ## Project structure
 
 ```
-.github/workflows/   daily_pipeline.yml, web_price_stream.yml, probe_ncx.yml
+.github/workflows/   daily_pipeline.yml, web_price_stream.yml
 config/settings.py   commodities, paths, price sources, model settings
 data/raw/            source files: Agricome, WFP, AFEX, FAO/FEWS NET, web prices and review lists
 data/external/       FX, weather, fuel, season calendar, zones, state price gaps

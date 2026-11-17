@@ -82,6 +82,7 @@ jobs:
           python-version: "3.10"   # pin to match whatever version pmdarima/prophet were built against locally
 
       - name: Install dependencies
+        id: install
         run: |
           python -m pip install -c constraints.txt pip
           pip install -r requirements.txt -c constraints.txt
@@ -102,6 +103,7 @@ jobs:
       # publishing today's forecasts. The two data files are committed
       # below so the daily history accumulates across ephemeral runners.
       - name: 00 - Live external factors
+        id: external_factors
         continue-on-error: true
         run: python pipeline/11_external_factors.py
 
@@ -110,6 +112,7 @@ jobs:
       # Context only, never a forecast input. Served at /weather/today and
       # /weather/{commodity}. continue-on-error: never blocks publishing.
       - name: 00h - Weather report
+        id: weather_report
         continue-on-error: true
         run: python pipeline/weather_report.py
 
@@ -118,6 +121,7 @@ jobs:
       # promotion step below can use today's results. Skips cleanly (exit 0)
       # if ANTHROPIC_API_KEY isn't set.
       - name: 00b - Web price search
+        id: web_search
         continue-on-error: true
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
@@ -132,6 +136,7 @@ jobs:
       # commodities whose Agricome/WFP price is older than 10 days. Every
       # decision is logged to outputs/logs/web_price_promotion.json.
       - name: 00c - Promote web prices
+        id: promote_web
         continue-on-error: true
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
@@ -144,6 +149,7 @@ jobs:
       # truncated or older than the current file is rejected and the current
       # file kept, so this can never break ingest.
       - name: 00d - Refresh WFP prices
+        id: refresh_wfp
         continue-on-error: true
         run: python pipeline/refresh_wfp_hdx.py
 
@@ -153,10 +159,12 @@ jobs:
       # Real inflation and exchange rate (CBN API) and petrol (WFP) - these
       # files used to continue as smooth projections after ~April 2026.
       - name: 00g - Real macro data (CBN inflation and FX, WFP fuel)
+        id: macro
         continue-on-error: true
         run: python pipeline/fetch_macro.py
 
       - name: 00e - AFEX exchange prices
+        id: afex
         continue-on-error: true
         run: python pipeline/fetch_afex_prices.py
 
@@ -165,6 +173,7 @@ jobs:
       # data/raw/fao_fpma_prices.csv. Stored for review; not yet used as real
       # prices. Never blocks the run.
       - name: 00f - FAO / FEWS NET market prices
+        id: fao_fews
         continue-on-error: true
         run: python pipeline/fetch_fao_prices.py
 
@@ -176,10 +185,12 @@ jobs:
       # farm_prices_<date>.json, served at /farm-prices. Price only, no
       # forecast. Never blocks the run.
       - name: 00i - Fresh-produce prices (ColdHubs, Business A.M.)
+        id: produce
         continue-on-error: true
         run: python pipeline/fetch_produce_prices.py
 
       - name: 00j - Farm crop prices for AgLens
+        id: farm_prices
         continue-on-error: true
         run: python pipeline/farm_prices.py
 
@@ -188,16 +199,20 @@ jobs:
       # Cameroon, Benin, Togo, Chad), in naira via the CBN euro rate (00g),
       # into data/raw/export_prices.csv. Used by step 20. Never blocks the run.
       - name: 00k - Export and neighbouring-market prices
+        id: export_prices_fetch
         continue-on-error: true
         run: python pipeline/fetch_export_prices.py
 
       - name: 01 - Ingest
+        id: ingest
         run: python pipeline/01_ingest.py
 
       - name: 02 - Clean
+        id: clean
         run: python pipeline/02_clean.py
 
       - name: 03 - Features
+        id: features
         run: python pipeline/03_features.py
 
       # 04_train (ARIMA/Prophet/XGBoost) no longer runs here (10 Nov 2026).
@@ -213,6 +228,7 @@ jobs:
       # pick each commodity's champion. continue-on-error: if it fails, 05
       # simply skips the champion forecast for the day.
       - name: 04b - Accuracy scoring and champion selection
+        id: select_forecaster
         continue-on-error: true
         run: python pipeline/13_select_forecaster.py
 
@@ -222,11 +238,13 @@ jobs:
       # ensemble, which scored ~77% vs ~93% and was showing moves like
       # -31% in a week for Beans (white). Set to "shadow" to go back.
       - name: 05 - Forecast
+        id: forecast
         env:
           FORECAST_CHAMPION_MODE: live
         run: python pipeline/05_forecast.py
 
       - name: 06 - Validate
+        id: validate
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/06_validate.py
@@ -236,6 +254,7 @@ jobs:
       # writes outputs/backtest/live_accuracy.json (served at /accuracy).
       # Read-only on the data; continue-on-error so it can't block publishing.
       - name: 06b - Live accuracy tracking
+        id: live_accuracy
         continue-on-error: true
         run: python pipeline/15_track_accuracy.py
 
@@ -246,6 +265,7 @@ jobs:
       # daily-selection figure. It was last run by hand on 16 Oct 2026.
       # ~9 minutes, so Mondays only.
       - name: 06c - Weekly fair accuracy audit
+        id: fair_test
         continue-on-error: true
         run: |
           if [ "$(date -u +%u)" = "1" ]; then
@@ -259,11 +279,13 @@ jobs:
       # intelligence dual-writes to Postgres have been silently failing
       # ("TSDB_URL not set") on every automated run since they were added.
       - name: 07 - Zonal forecast
+        id: zonal
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/07_zonal_forecast.py
 
       - name: 08 - Intelligence
+        id: intelligence
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
         run: python pipeline/08_intelligence.py
@@ -273,24 +295,23 @@ jobs:
       # outputs/intelligence/export_prices_<date>.json, served at
       # /export-prices. Never blocks publishing.
       - name: 08a - Export view
+        id: export_view
         continue-on-error: true
         run: python pipeline/20_export_prices.py
 
-      # Existed in the repo but was never wired in here, so nothing has
-      # been checking data freshness on the actual daily runs — only
-      # whoever remembered to run it manually. Exits non-zero on ALERT/
-      # NO_REAL_DATA, but continue-on-error keeps that from blocking the
-      # commit below: a stale real-data source is a real problem to fix,
-      # but it shouldn't stop today's otherwise-valid forecasts from
-      # publishing. The failure still shows up in the Actions run log
-      # (yellow "!" on this step) and in outputs/logs/staleness_alert.json.
       # Per-commodity cards: weather, season, fuel, exchange rate, inflation.
       # Served at /drivers. Report only - never blocks publishing.
       - name: 08b - Price drivers
+        id: drivers
         continue-on-error: true
         run: python pipeline/price_drivers.py
 
+      # Which commodities have no recent real price ->
+      # outputs/logs/staleness_alert.json (the table in the real-data status
+      # below). Exits 0 even when some are stale (non-zero only with
+      # --strict), so a failure here is an error in the step itself.
       - name: 09 - Staleness check
+        id: staleness
         continue-on-error: true
         run: python pipeline/09_staleness_check.py
 
@@ -299,6 +320,7 @@ jobs:
       # for a person to check. Report only - never blocks publishing.
       # Output: outputs/logs/price_crosscheck.json, served at /crosscheck.
       - name: 09b - Price cross-check
+        id: cross_check
         continue-on-error: true
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
@@ -309,6 +331,7 @@ jobs:
       # comments only if the gap moves 10+ points, and closes itself once
       # the gap is under 25%. Never blocks publishing.
       - name: 09c - Price alerts
+        id: price_alerts
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -317,6 +340,7 @@ jobs:
       # One GitHub issue (label data-feed) per price feed that has stopped:
       # Agricome over 10 days, AFEX over 7. Closes itself when prices return.
       - name: 09e - Feed alerts
+        id: feed_alerts
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -326,6 +350,7 @@ jobs:
       # pipeline's login do? Run page summary + outputs/logs/db_security.json.
       # Never prints the address, user or password. Fix: least_privilege.sql.
       - name: 09g - Database security check
+        id: db_security
         continue-on-error: true
         env:
           TSDB_URL: ${{ secrets.TSDB_URL }}
@@ -335,6 +360,7 @@ jobs:
       # outputs/reports/ and a GitHub issue (label accuracy-report). Needs
       # 06b's forecast log and 06c's latest fair audit. From 1 Dec 2026.
       - name: 09f - Monthly accuracy report
+        id: accuracy_report
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -345,6 +371,7 @@ jobs:
       # and accuracy against the 95% goal. Table on the run page; JSON at
       # outputs/logs/data_checks.json (API /checks). Report only.
       - name: 09d - Accuracy checks
+        id: data_checks
         if: always()
         continue-on-error: true
         run: python pipeline/data_checks.py
@@ -354,6 +381,7 @@ jobs:
       # no future-dated or non-positive real prices). A failure shows on the
       # run page but does not stop today's data being published.
       - name: Tests
+        id: tests
         if: always()
         continue-on-error: true
         run: |
@@ -368,10 +396,16 @@ jobs:
           tail -3 pytest.log
 
       # Plain-language summary of today's real data (gaps, web prices added
-      # or rejected and why, cross-check flags) at the top of this run's page.
+      # or rejected and why, cross-check flags) at the top of this run's page,
+      # and which steps above failed. Many steps continue on error, so a
+      # failure used to show only on this page; outputs/logs/data_status.md
+      # is committed, so it is on record too. Each step needs an id to be
+      # listed (the steps context only has steps with one).
       - name: Real-data status
         if: always()
         continue-on-error: true
+        env:
+          STEP_OUTCOMES: ${{ toJSON(steps) }}
         run: python pipeline/data_status.py
 
       # (Step 10, the web price search, now runs at the start of the job as
@@ -396,8 +430,8 @@ jobs:
           else
             git commit -m "Automated daily pipeline run - $(date -u +'%Y-%m-%d')"
             # Retry the push if main moved underneath us (e.g. a manual
-            # local run pushed while this job was still training/
-            # forecasting). These are fully regenerated data files, so
+            # local run pushed while this job was still running).
+            # These are fully regenerated data files, so
             # on a genuine conflict this run's freshly-generated output
             # is what should win — that's what -X ours means here.
             for attempt in 1 2 3; do

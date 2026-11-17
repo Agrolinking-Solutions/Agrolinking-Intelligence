@@ -8,6 +8,11 @@ Pulls together what the day's run learned about our REAL prices:
     (14_promote_web_prices)
   - where web prices disagree with ours (16_cross_check)
   - commodities still on shop (retail) prices
+  - which steps of the run failed (GitHub Actions only: STEP_OUTCOMES is the
+    workflow's steps context). Many steps continue on error so a bad source
+    can't stop publishing; their failures used to show only on the run page.
+    The quality gate and commit run after this step: if either fails there
+    is no commit that day.
 
 Writes outputs/logs/data_status.md and, on GitHub Actions, shows the same
 text at the top of the run page (GITHUB_STEP_SUMMARY). Never fails.
@@ -27,6 +32,47 @@ from config.settings import PATHS, COMMODITIES, REAL_SOURCES, PROVISIONAL_SOURCE
 LOGS = PATHS["logs_dir"]
 OUT_PATH = os.path.join(LOGS, "data_status.md")
 GAP_COMMODITIES_WATCH = ["Wheat"]   # Yellow maize closed 16 Oct 2026 (AFEX)
+
+# Step ids in .github/workflows/daily_pipeline.yml -> the step's name there.
+STEP_NAMES = {
+    "install": "Install dependencies",
+    "external_factors": "00 - Live external factors", "weather_report": "00h - Weather report",
+    "web_search": "00b - Web price search", "promote_web": "00c - Promote web prices",
+    "refresh_wfp": "00d - Refresh WFP prices", "macro": "00g - Real macro data",
+    "afex": "00e - AFEX exchange prices", "fao_fews": "00f - FAO / FEWS NET market prices",
+    "produce": "00i - Fresh-produce prices", "farm_prices": "00j - Farm crop prices for AgLens",
+    "export_prices_fetch": "00k - Export and neighbouring-market prices",
+    "ingest": "01 - Ingest", "clean": "02 - Clean", "features": "03 - Features",
+    "select_forecaster": "04b - Accuracy scoring and champion selection",
+    "forecast": "05 - Forecast", "validate": "06 - Validate",
+    "live_accuracy": "06b - Live accuracy tracking", "fair_test": "06c - Weekly fair accuracy audit",
+    "zonal": "07 - Zonal forecast", "intelligence": "08 - Intelligence",
+    "export_view": "08a - Export view", "drivers": "08b - Price drivers",
+    "staleness": "09 - Staleness check", "cross_check": "09b - Price cross-check",
+    "price_alerts": "09c - Price alerts", "feed_alerts": "09e - Feed alerts",
+    "db_security": "09g - Database security check", "accuracy_report": "09f - Monthly accuracy report",
+    "data_checks": "09d - Accuracy checks", "tests": "Tests",
+}
+
+
+def step_lines(raw):
+    """Markdown lines on which run steps failed, from the steps context as JSON; [] off Actions."""
+    if not raw:
+        return []
+    try:
+        steps = json.loads(raw)
+    except Exception:
+        return ["", "**Run steps:** could not read the step results."]
+    failed = [i for i, s in steps.items() if (s or {}).get("outcome") == "failure"]
+    skipped = [i for i, s in steps.items() if (s or {}).get("outcome") == "skipped"]
+    if not failed:
+        return ["", f"**Run steps:** all {len(steps)} ran without an error."]
+    out = ["", f"**Steps that failed today ({len(failed)} of {len(steps)}) - see this run's page for the error:**"]
+    out += [f"- {STEP_NAMES.get(i, i)}" for i in failed]
+    if skipped:
+        out.append(f"- {len(skipped)} later step(s) did not run because of it: "
+                   + ", ".join(STEP_NAMES.get(i, i) for i in skipped))
+    return out
 
 
 def load(name):
@@ -63,7 +109,9 @@ def build():
     stale = load("staleness_alert.json") or {}
     promo = load("web_price_promotion.json") or {}
     cross = load("price_crosscheck.json") or {}
-    lines = [f"## Real-data status - {today}", ""]
+    lines = [f"## Real-data status - {today}"]
+    lines += step_lines(os.environ.get("STEP_OUTCOMES"))
+    lines.append("")
 
     # 1. Commodities without a recent real price
     res = {r["commodity"]: r for r in stale.get("results", [])}

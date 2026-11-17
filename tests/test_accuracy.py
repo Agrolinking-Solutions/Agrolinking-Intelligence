@@ -945,3 +945,23 @@ def test_twice_daily_web_search_still_rotates_through_every_commodity_and_focus(
     assert {c for _, cs in runs for c in cs} == set(commodities)         # every other one within 4 days
     assert {f for f, _ in runs} == set(ws.ROTATION)                      # every search focus
     assert runs[0] != runs[1] and runs[0][1] != runs[2][1]               # morning and next day differ
+
+
+def test_run_status_lists_failed_steps_by_name():
+    """Steps continue on error, so a failure used to show only on the run page (Nov 2026)."""
+    import json, re
+    spec = importlib.util.spec_from_file_location("data_status", os.path.join(ROOT, "pipeline", "data_status.py"))
+    ds = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ds)
+    with open(os.path.join(ROOT, ".github", "workflows", "daily_pipeline.yml"), encoding="utf-8") as f:
+        ids = set(re.findall(r"^\s+id:\s*(\w+)\s*$", f.read(), flags=re.M))
+    assert ids == set(ds.STEP_NAMES)          # every step with an id has a name, and no stale names
+    assert ds.step_lines(None) == []          # a local run: no section
+    ok = {i: {"outcome": "success", "conclusion": "success", "outputs": {}} for i in ids}
+    assert "all" in ds.step_lines(json.dumps(ok))[-1]
+    bad = {**ok, "afex": {"outcome": "failure", "conclusion": "success", "outputs": {}},
+           "zonal": {"outcome": "failure", "conclusion": "failure", "outputs": {}},
+           "intelligence": {"outcome": "skipped", "conclusion": "skipped", "outputs": {}}}
+    text = "\n".join(ds.step_lines(json.dumps(bad)))
+    assert "00e - AFEX exchange prices" in text and "07 - Zonal forecast" in text
+    assert "did not run" in text and "08 - Intelligence" in text

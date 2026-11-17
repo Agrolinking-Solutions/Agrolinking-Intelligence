@@ -1,6 +1,11 @@
 """
 NCX price-freshness probe — NOT part of the pipeline.
 
+RESULT (17 Nov 2026): NCX's ticker does not update. All 14 prices were the
+same on every one of 48 daily reads, 29 Sep - 16 Nov 2026
+(data/research/ncx_probe_log.csv), so NCX is not a price source. The daily
+workflow (probe_ncx.yml) was removed; run this by hand to look again.
+
 Purpose: NCX (ncx.com.ng) shows commodity prices on its public agricultural
 commodities page with no date or "last updated" stamp anywhere. Before
 building real ingestion around it, we need empirical evidence it actually
