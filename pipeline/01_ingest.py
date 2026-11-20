@@ -344,7 +344,7 @@ WFP_COMMODITIES_WANTED = {
     "Rice (imported)":      "Rice (foreign)",
     "Rice (local)":         "Rice (local)",
     # Livestock/protein: WFP has real retail prices to date. These used to be
-    # loaded once by scripts/maintenance/add_livestock_to_pipeline.py and then
+    # loaded once by a one-off script (removed Nov 2026, in git history) and then
     # topped up with World Bank estimates; reading them here keeps them current.
     "Meat (beef)":          "Meat (beef)",
     "Meat (goat)":          "Meat (goat)",

@@ -234,7 +234,7 @@ python pipeline/fetch_fao_prices.py
 python pipeline/01_ingest.py
 python pipeline/02_clean.py
 python pipeline/03_features.py
-python pipeline/04_train.py
+python pipeline/04_train.py                     # optional: ML comparison only, not in the daily run since 10 Nov 2026
 python pipeline/13_select_forecaster.py
 python pipeline/05_forecast.py
 python pipeline/06_validate.py
@@ -272,6 +272,7 @@ python pipeline/quality_gate.py
 | Task | How |
 |---|---|
 | **Add Agricome prices** | Append rows to `data/raw/agricome_raw.csv`: commodity, week_start_date, price (NGN/MT), source `Agricom`, notes. They take effect on the next run. |
+| **Add field quotes** | One row per trader quote in `data/raw/field_prices.csv`: date, commodity, market, state, price_ngn, unit (`100kg bag`, `50kg bag`, `25kg bag`, `tonne`, `kg`, or `crate` for eggs), price_level `wholesale`, reported_by, notes. A week's quotes become one national price (their median). Only commodities in `FIELD_QUOTES_LIVE` (`config/settings.py`) feed the forecasts; the others are on trial, shown beside our price in the run status note and `outputs/logs/field_trial.csv`. |
 | **Remove a bad web price** | Add commodity, site and price to `data/raw/web_prices_withdrawn.csv`, and delete the row from `data/raw/web_prices.csv`. |
 | **Block an unreliable website** | Add the site and reason to `data/raw/web_sources_blocked.csv`. |
 | **Mark a page as shop (retail) prices** | Add the site, a part of its URL, `retail` and the reason to `data/raw/web_sources_levels.csv`. |
@@ -286,7 +287,6 @@ python pipeline/quality_gate.py
 - **API:** runs on Agrolinking's VPS (moved off Render in September 2026). It redeploys automatically when `main` changes; a deploy takes a few minutes.
 - **Database:** PostgreSQL/TimescaleDB. Tables include prices, forecasts, commodities, locations, web_price_estimates, intelligence_metrics, users and alerts. Schema in `scripts/migration/schema.sql`; missing columns are added by the pipeline (`pipeline/pg_commodities.py`).
 - **Frontend:** [pis.agrolinking.com](https://pis.agrolinking.com), maintained separately.
-- **Legacy:** `dashboard/app.py` is the older Streamlit dashboard. `railway.toml` and `push_daily.ps1` predate GitHub Actions.
 
 ## Project structure
 
@@ -300,18 +300,18 @@ pipeline/            the steps above, plus helpers (drift_models, freshness, sta
 outputs/             forecasts (raw, validated, zonal), intelligence, alerts, backtest, logs
 api.py, auth.py, db.py   API, Google sign-in check, database access
 docs/                ARCHITECTURE, API, OPERATIONAL_GUIDE, SECURITY, FIXES_AND_IMPROVEMENTS
-scripts/             Postgres migration, maintenance and research scripts
+scripts/             Postgres migration and research scripts
 tests/               smoke tests, accuracy rule tests and data tests
 ```
 
-## Known gaps (October 2026)
+## Known gaps (November 2026)
 
-- **Wheat** has no real price since 13 April 2026. The web has nothing current, so a field or trader source is needed.
-- **Meat, fish and eggs** are shop prices; there is no wholesale source yet.
+- **Wheat** has no real price since 13 April 2026. The web has nothing current, so trader quotes (`data/raw/field_prices.csv`) are the route.
+- **Yellow maize** has no real price since January 2023. It is estimated from white maize (`SIBLING_PRICES`) and labelled as an estimate.
+- **Meat, fish and eggs** are WFP North-East shop prices; there is no wholesale source yet. FarmPaddy's livestock index is being set up (see `docs/SECURITY.md` for its terms).
 - **Agricome** prices are pasted by hand. A regular feed has been requested.
 - **State gaps** for most cash crops and livestock are still estimates.
-- **Old "Rice"** is due to be removed once the frontend drops its tab.
-- Some documents in `docs/` predate the October 2026 changes. This README describes the current system.
+- `docs/FIXES_AND_IMPROVEMENTS.md` is a history of past changes and mentions services no longer used. This README describes the current system.
 
 ## License
 

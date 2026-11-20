@@ -16,7 +16,7 @@ Rewritten 3 Nov 2026 after a review against the code. Status is marked
 | Pinned packages | Done (3 Nov 2026) | `requirements.txt` exact pins; `constraints.txt` pins every package installed by the workflows; see "Updating packages" |
 | Pinned GitHub actions | Done (3 Nov 2026) | `uses:` references are commit SHAs with the version in a comment |
 | Uptime monitoring | Done (backstop, 3 Nov 2026) / Open (fast checks) | `pipeline/uptime_check.py` every 3 hours, issue label `uptime`. For 5-minute checks see "Uptime" - John to set up |
-| Database connection and rights | Open - checking | `pipeline/db_security_check.py` (daily, step 09g) reports encryption and rights; fix with `scripts/migration/least_privilege.sql` - Victor / database admin |
+| Database connection and rights | Done (6-9 Nov 2026) | Victor ran `scripts/migration/least_privilege.sql` and moved the API to its own login. `pipeline/db_security_check.py` (daily, step 09g) confirms it: TLS 1.3 required, the pipeline login owns no tables and has no admin rights, no findings (20 Nov 2026) |
 | API server packages | Open | `requirements_api.txt` still has `>=` versions. Pin to the server's `pip freeze` - Victor |
 | Price data readable by anyone | Open - decision | No key on read endpoints; `/docs` public. Must be settled before FarmPaddy prices are served. See "API access" - John |
 | Data rights | Open | Agricome agreement, Mansa Markets (AFEX prices) terms - John. FarmPaddy cleared in writing (Nov 2026), see "Data rights" |
