@@ -18,8 +18,8 @@ Rewritten 3 Nov 2026 after a review against the code. Status is marked
 | Uptime monitoring | Done (backstop, 3 Nov 2026) / Open (fast checks) | `pipeline/uptime_check.py` every 3 hours, issue label `uptime`. For 5-minute checks see "Uptime" - John to set up |
 | Database connection and rights | Open - checking | `pipeline/db_security_check.py` (daily, step 09g) reports encryption and rights; fix with `scripts/migration/least_privilege.sql` - Victor / database admin |
 | API server packages | Open | `requirements_api.txt` still has `>=` versions. Pin to the server's `pip freeze` - Victor |
-| Price data readable by anyone | Open - decision | No key on read endpoints; `/docs` public. See "API access" - John |
-| Data rights | Open | Agricome agreement, Mansa Markets (AFEX prices) terms, FarmPaddy permission - John |
+| Price data readable by anyone | Open - decision | No key on read endpoints; `/docs` public. Must be settled before FarmPaddy prices are served. See "API access" - John |
+| Data rights | Open | Agricome agreement, Mansa Markets (AFEX prices) terms - John. FarmPaddy cleared in writing (Nov 2026), see "Data rights" |
 | Dependabot alerts | Open | Repository Settings → Code security → enable Dependabot alerts (free; alerts only) - John |
 
 ## Updating packages
@@ -102,6 +102,11 @@ website. Before price data is sold or licensed, choose one:
   own server so the key never reaches browsers (needs Victor's frontend
   change), and turn off `/docs` in production.
 
+FarmPaddy's terms exclude unrestricted redistribution. An open endpoint that
+anyone can pull FarmPaddy's price history from would break them. So before
+FarmPaddy prices are served, either take the second option, or keep
+FarmPaddy's prices off every endpoint that needs no key.
+
 ## Data rights
 
 | Source | Status |
@@ -110,7 +115,7 @@ website. Before price data is sold or licensed, choose one:
 | WFP (HDX) | Open data, attribution required |
 | FEWS NET via FAO | Public |
 | AFEX via Mansa Markets | Read from public pages (robots.txt allows); terms for reuse not cleared |
-| FarmPaddy (planned) | Terms forbid commercial republishing without written permission |
+| FarmPaddy (planned) | Written permission from the CEO (email, Nov 2026): free standard API access. Allowed: display in PIS and AgLens, including to paying subscribers, with FarmPaddy credited and linked, within usage limits and the API terms. Not allowed: unrestricted redistribution, sublicensing, resale, or repackaging the dataset as a standalone data product. Not yet integrated |
 
 ## Personal data
 
