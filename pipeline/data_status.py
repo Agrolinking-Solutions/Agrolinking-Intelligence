@@ -8,6 +8,7 @@ Pulls together what the day's run learned about our REAL prices:
     (14_promote_web_prices)
   - where web prices disagree with ours (16_cross_check)
   - commodities still on shop (retail) prices
+  - field quotes on trial, beside our price (01_ingest field_trial_report)
   - which steps of the run failed (GitHub Actions only: STEP_OUTCOMES is the
     workflow's steps context). Many steps continue on error so a bad source
     can't stop publishing; their failures used to show only on the run page.
@@ -172,7 +173,31 @@ def build():
                       + ", ".join(f"{r.commodity} {r.date:%d %b}" for r in prov.itertuples())]
     except Exception:
         pass
+    lines += field_trial_lines()
     return "\n".join(lines) + "\n"
+
+
+def field_trial_lines(path=None):
+    """Field quotes on trial (01_ingest field_trial_report): latest week per commodity vs our price."""
+    try:
+        t = pd.read_csv(path or os.path.join(LOGS, "field_trial.csv"), parse_dates=["week", "our_date"])
+    except Exception:
+        return []
+    if t.empty:
+        return []
+    out = ["", "**Field quotes on trial (kept out of the forecasts until approved):**"]
+    for c, g in t.sort_values("week").groupby("commodity"):
+        last = g.iloc[-1]
+        if pd.notna(last.gap_pct):
+            vs = (f"ours N{last.our_price_ngn_mt:,.0f} ({last.our_source}, {last.our_level}, "
+                  f"{last.our_date:%d %b}), {last.gap_pct:+.0f}%")
+        else:
+            vs = "no real price of ours in the 45 days before it to compare"
+        gaps = g["gap_pct"].dropna()
+        spread = f"; {len(gaps)} weeks compared, median gap {gaps.median():+.0f}%" if len(gaps) > 1 else ""
+        out.append(f"- {c}: week of {last.week:%d %b} N{last.field_price_ngn_mt:,.0f}/t "
+                   f"({int(last.n_quotes)} quote(s)) vs {vs}{spread}")
+    return out
 
 
 def main():

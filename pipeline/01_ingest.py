@@ -17,7 +17,8 @@ from datetime import datetime
 
 # ── Allow imports from project root ──────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, WFP_NAME_MAP, STANDARD_UNIT, SIBLING_SOURCE, FIELD_UNITS
+from config.settings import (PATHS, COMMODITIES, WFP_NAME_MAP, STANDARD_UNIT, SIBLING_SOURCE, FIELD_UNITS,
+                             FIELD_QUOTES_LIVE, PARTNER_SOURCES)
 
 # ── Logger setup ─────────────────────────────────────────────────────────────
 logger.remove()
@@ -117,13 +118,18 @@ def load_web_prices() -> pd.DataFrame:
 # is the source of truth: delete a row and it leaves the master on the next
 # run. Started Nov 2026 for wheat, which has had no other real source since
 # Agrolinking's April 2026 field collection (those rows live in the master).
+# Only FIELD_QUOTES_LIVE commodities reach the master; the rest are on trial
+# (field_trial_report).
 FIELD_QUOTES_SOURCE = "Agrolinking field quotes"
+FIELD_TRIAL_PATH = os.path.join(PATHS["logs_dir"], "field_trial.csv")
+FIELD_TRIAL_MATCH_DAYS = 45     # our real price must be this recent to compare a trial week with
 # Units a quote may be in: FIELD_UNITS in config/settings.py
 
-def load_field_prices() -> pd.DataFrame:
+def field_quote_weeks() -> pd.DataFrame:
+    """Every commodity's field quotes as one national row per week (median), plus n_quotes."""
     cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",
             "region", "fx_rate", "rainfall_index", "data_quality_score", "is_validated",
-            "notes", "data_source"]
+            "notes", "data_source", "n_quotes"]
     path = PATHS["raw_field_prices"]
     df = pd.read_csv(path, parse_dates=["date"]) if os.path.exists(path) else pd.DataFrame()
     if df.empty:
@@ -152,10 +158,53 @@ def load_field_prices() -> pd.DataFrame:
                      "market_type": "wholesale", "region": "National", "fx_rate": np.nan,
                      "rainfall_index": np.nan, "data_quality_score": 0.9, "is_validated": True,
                      "notes": f"Agrolinking field quotes, median of {len(g)} - converted to NGN/MT: {quotes}",
-                     "data_source": "Agrolinking_primary"})
+                     "data_source": "Agrolinking_primary", "n_quotes": len(g)})
     out = pd.DataFrame(rows, columns=cols)
     logger.success(f"Field quotes loaded: {len(df)} quotes -> {len(out)} weekly rows | "
                    f"{out['commodity'].nunique()} commodities")
+    return out
+
+
+def load_field_prices() -> pd.DataFrame:
+    """The weekly field rows that feed the master: FIELD_QUOTES_LIVE commodities only."""
+    weeks = field_quote_weeks()
+    trial = ~weeks["commodity"].isin(FIELD_QUOTES_LIVE)
+    if trial.any():
+        logger.info(f"  Field quotes on trial, kept out of the master: "
+                    f"{', '.join(sorted(weeks.loc[trial, 'commodity'].unique()))} (see {FIELD_TRIAL_PATH})")
+    return weeks[~trial].drop(columns=["n_quotes"]).reset_index(drop=True)
+
+
+def field_trial_report(master: pd.DataFrame, weeks: pd.DataFrame = None,
+                       path: str = FIELD_TRIAL_PATH) -> pd.DataFrame:
+    """Each trial week's field price beside our newest real price on or before it.
+
+    Our price: the master's newest partner price for the commodity dated on or
+    before the week's last quote, at most FIELD_TRIAL_MATCH_DAYS older. gap_pct
+    = field / ours - 1, so +10 means the field quotes are 10% above our series.
+    Written to path (header only when nothing is on trial)."""
+    weeks = field_quote_weeks() if weeks is None else weeks
+    trial = weeks[~weeks["commodity"].isin(FIELD_QUOTES_LIVE)]
+    real = master[master["data_source"].isin(PARTNER_SOURCES)
+                  & (master.get("record_type", pd.Series("historical", index=master.index)) == "historical")]
+    rows = []
+    for r in trial.itertuples():
+        ours = real[(real["commodity"] == r.commodity) & (real["date"] <= r.date)
+                    & (real["date"] >= r.date - pd.Timedelta(days=FIELD_TRIAL_MATCH_DAYS))].sort_values("date")
+        o = ours.iloc[-1] if len(ours) else None
+        rows.append({"commodity": r.commodity, "week": (r.date - pd.Timedelta(days=r.date.dayofweek)).date(),
+                     "quote_date": r.date.date(), "field_price_ngn_mt": r.price_ngn_mt, "n_quotes": r.n_quotes,
+                     "our_price_ngn_mt": None if o is None else float(o["price_ngn_mt"]),
+                     "our_source": None if o is None else o["data_source"],
+                     "our_level": None if o is None else o.get("market_type"),
+                     "our_date": None if o is None else o["date"].date(),
+                     "gap_pct": None if o is None else round((r.price_ngn_mt / o["price_ngn_mt"] - 1) * 100, 1)})
+    out = pd.DataFrame(rows, columns=["commodity", "week", "quote_date", "field_price_ngn_mt", "n_quotes",
+                                      "our_price_ngn_mt", "our_source", "our_level", "our_date", "gap_pct"])
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    out.to_csv(path, index=False)
+    if len(out):
+        logger.info(f"  Field quotes on trial: {len(out)} week(s) compared with our prices -> {path}")
     return out
 
 
@@ -988,6 +1037,10 @@ def run_ingestion() -> pd.DataFrame:
                                        load_field_prices()], ignore_index=True)
     master_df             = merge_sources(agricome_df, wfp_commodity_df, web_df)
     save_outputs(master_df, fuel_df)
+    try:
+        field_trial_report(pd.read_csv(PATHS["master"], parse_dates=["date"]))
+    except Exception as e:      # a report only - never stops the ingest
+        logger.warning(f"  Field trial report not written: {e}")
 
     logger.info("=" * 60)
     logger.success("INGESTION COMPLETE")

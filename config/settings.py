@@ -151,6 +151,16 @@ SIBLING_AFTER_DAYS = 45   # sibling rows start this long after the commodity's o
 # in -> how many fit in a tonne. Crate of 30: the Eggs series is NGN/crate.
 FIELD_UNITS = {"100kg bag": 10.0, "50kg bag": 20.0, "25kg bag": 40.0, "tonne": 1.0, "kg": 1000.0,
                "crate": 1.0}
+# Commodities whose field quotes feed the forecasts. A quote for any other
+# commodity is ON TRIAL: kept out of the master and, each run, set beside the
+# real price the master already has (outputs/logs/field_trial.csv and the run
+# status note). Field quotes are top priority, so without this one Kano
+# wholesale quote would replace a whole series and its level - beef, goat,
+# fish and eggs are WFP North-East SHOP prices - and show as a price jump that
+# never happened. A commodity joins this list after 3-4 weeks of trial and
+# John's OK. Wheat: its only real series is Agrolinking's own field
+# collection (Jan-Apr 2026), so its quotes are the same kind of price.
+FIELD_QUOTES_LIVE = frozenset({"Wheat"})
 
 # ─── FREIGHT ─────────────────────────────────────────────────────────────────
 # Road haulage, NGN per kg per 100 km - an ESTIMATE, set in July 2026 without a

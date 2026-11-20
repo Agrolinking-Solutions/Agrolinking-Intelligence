@@ -361,6 +361,40 @@ def test_field_quotes_become_one_weekly_national_price(tmp_path, monkeypatch):
     assert out.iloc[0]["data_source"] == "Agrolinking_primary" and "median of 2" in out.iloc[0]["notes"]
 
 
+def test_field_quotes_for_unapproved_commodities_stay_on_trial(tmp_path, monkeypatch):
+    """One Kano wholesale quote must not replace WFP's North-East shop series for beef (Nov 2026)."""
+    ing = load("01_ingest")
+    p = tmp_path / "field_prices.csv"
+    q = {"market": "Dawanau", "state": "Kano", "price_level": "wholesale", "notes": ""}
+    pd.DataFrame([
+        {**q, "date": "2026-11-23", "commodity": "Wheat", "price_ngn": 72000, "unit": "100kg bag", "reported_by": "t1"},
+        {**q, "date": "2026-11-23", "commodity": "Meat (beef)", "price_ngn": 6000, "unit": "kg", "reported_by": "t1"},
+        {**q, "date": "2026-11-24", "commodity": "Meat (beef)", "price_ngn": 6400, "unit": "kg", "reported_by": "t2"},
+        {**q, "date": "2026-11-23", "commodity": "Beans (white)", "price_ngn": 90000, "unit": "100kg bag",
+         "reported_by": "t1"},
+    ]).to_csv(p, index=False)
+    monkeypatch.setitem(ing.PATHS, "raw_field_prices", str(p))
+    live = ing.load_field_prices()
+    assert list(live["commodity"]) == ["Wheat"] and "n_quotes" not in live.columns   # only approved ones
+    master = pd.DataFrame({
+        "commodity": ["Meat (beef)", "Meat (beef)", "Beans (white)"],
+        "date": pd.to_datetime(["2026-10-12", "2026-11-09", "2026-08-03"]),
+        "price_ngn_mt": [7.0e6, 8.0e6, 1.0e6], "data_source": ["WFP", "WFP_provisional", "WFP"],
+        "market_type": ["retail", "retail", "wholesale"], "record_type": "historical"})
+    out = tmp_path / "field_trial.csv"
+    rep = ing.field_trial_report(master, path=str(out)).set_index("commodity")
+    beef = rep.loc["Meat (beef)"]
+    assert beef["field_price_ngn_mt"] == 6.2e6 and beef["n_quotes"] == 2           # median of 6.0M and 6.4M per t
+    assert beef["our_source"] == "WFP_provisional" and beef["gap_pct"] == -22.5     # newest of ours before it
+    assert pd.isna(rep.loc["Beans (white)", "gap_pct"])                             # ours is >45 days older
+    assert "Wheat" not in rep.index and out.exists()
+    spec = importlib.util.spec_from_file_location("data_status", os.path.join(ROOT, "pipeline", "data_status.py"))
+    ds = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ds)
+    text = "\n".join(ds.field_trial_lines(str(out)))
+    assert "kept out of the forecasts" in text and "-22%" in text and "no real price of ours" in text
+
+
 def test_provisional_months_are_never_scored():
     from config.settings import SCORED_SOURCES, PROVISIONAL_SOURCES, REAL_SOURCES
     assert PROVISIONAL_SOURCES <= REAL_SOURCES and not (PROVISIONAL_SOURCES & SCORED_SOURCES)
