@@ -8,6 +8,8 @@ Pulls together what the day's run learned about our REAL prices:
     (14_promote_web_prices)
   - where web prices disagree with ours (16_cross_check)
   - commodities still on shop (retail) prices
+  - field quotes used in the forecasts or held back, beside our price
+    (01_ingest check_live_quotes)
   - field quotes on trial, beside our price (01_ingest field_trial_report)
   - which steps of the run failed (GitHub Actions only: STEP_OUTCOMES is the
     workflow's steps context). Many steps continue on error so a bad source
@@ -28,7 +30,7 @@ from datetime import datetime
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config.settings import PATHS, COMMODITIES, REAL_SOURCES, PROVISIONAL_SOURCES
+from config.settings import PATHS, COMMODITIES, REAL_SOURCES, PROVISIONAL_SOURCES, FIELD_HOLD_RATIO
 
 LOGS = PATHS["logs_dir"]
 OUT_PATH = os.path.join(LOGS, "data_status.md")
@@ -173,8 +175,40 @@ def build():
                       + ", ".join(f"{r.commodity} {r.date:%d %b}" for r in prov.itertuples())]
     except Exception:
         pass
+    lines += field_live_lines()
     lines += field_trial_lines()
     return "\n".join(lines) + "\n"
+
+
+def field_live_lines(path=None, today=None):
+    """Quotes for FIELD_QUOTES_LIVE commodities (01_ingest check_live_quotes): those used in the
+    last 14 days, and any held back in the last 45, each beside our price before it."""
+    try:
+        t = pd.read_csv(path or os.path.join(LOGS, "field_live.csv"), parse_dates=["date"])
+    except Exception:
+        return []
+    if t.empty:
+        return []
+    today = pd.Timestamp(today or datetime.now().date())
+
+    def line(r):
+        vs = (f"our N{r.our_price_ngn_mt:,.0f} ({r.our_basis}), {r.gap_pct:+.0f}%"
+              if pd.notna(r.gap_pct) else str(r.our_basis))
+        mark = " - confirmed by hand" if r.status == "used (confirmed)" else ""
+        return f"- {r.commodity}: {r.date:%d %b} {r.market}, {r.state} N{r.price_ngn_mt:,.0f}/t vs {vs}{mark}"
+
+    t = t.sort_values(["commodity", "date"])
+    used = t[(t["status"] != "held") & (t["date"] >= today - pd.Timedelta(days=14))]
+    held = t[(t["status"] == "held") & (t["date"] >= today - pd.Timedelta(days=45))]
+    out = []
+    if len(used):
+        out += ["", "**Field quotes used in the forecasts (last 2 weeks; one market's price stands for the "
+                    "country until more come in):**"] + [line(r) for r in used.itertuples()]
+    if len(held):
+        out += ["", f"**Field quotes held back, more than {FIELD_HOLD_RATIO:g} times above or below our price "
+                    f"(usually a unit mix-up). Check the unit in data/raw/field_prices.csv; if the price is "
+                    f"right, write confirmed in its notes:**"] + [line(r) for r in held.itertuples()]
+    return out
 
 
 def field_trial_lines(path=None):

@@ -45,7 +45,7 @@ and are scored on, observed prices only (`config/settings.py`):
 | FEWS NET | `pipeline/fetch_fao_prices.py` (FAO FPMA API) | weekly wholesale white maize, imported rice |
 | AFEX exchange | `pipeline/fetch_afex_prices.py` (Mansa Markets pages) | real for white maize only (grade confirmed by Mansa Markets, 3 Nov 2026; 5-day median, `pipeline/afex_median.py`) |
 | Sibling estimate | `pipeline/02_clean.py` (`SIBLING_PRICES` in `config/settings.py`) | yellow maize = white maize's real price x 1.023 (measured, WFP 2014-23); labelled an estimate, never scored |
-| Agrolinking field data | `data/raw/field_prices.csv` | trader quotes; weekly median. Feed the forecasts only for `FIELD_QUOTES_LIVE` (wheat); other commodities are on trial, compared with our price in `outputs/logs/field_trial.csv` and the run status note |
+| Agrolinking field data | `data/raw/field_prices.csv` | trader quotes; weekly median. Feed the forecasts only for `FIELD_QUOTES_LIVE` (wheat, yellow maize), each quote checked against our price first (over 1.5x off: held, `outputs/logs/field_live.csv`); other commodities are on trial, compared with our price in `outputs/logs/field_trial.csv` and the run status note |
 | Web prices | `pipeline/10_web_price_search.py` → `14_promote_web_prices.py` | checks: level, date (page opened), age, band, corroboration, location (`pipeline/locations.py`), blocked/withdrawn lists |
 | CBN exchange rate (US$, euro), inflation; WFP fuel | `pipeline/fetch_macro.py` | |
 | EU imports from Nigeria | `pipeline/fetch_export_prices.py` (Eurostat Comext DS-045409) | monthly, ~10 weeks late; landed EU-border price; export view only (`pipeline/20_export_prices.py`, `/export-prices`) |

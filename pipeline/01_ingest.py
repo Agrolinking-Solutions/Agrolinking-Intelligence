@@ -18,7 +18,7 @@ from datetime import datetime
 # ── Allow imports from project root ──────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.settings import (PATHS, COMMODITIES, WFP_NAME_MAP, STANDARD_UNIT, SIBLING_SOURCE, FIELD_UNITS,
-                             FIELD_QUOTES_LIVE, PARTNER_SOURCES)
+                             FIELD_QUOTES_LIVE, FIELD_HOLD_RATIO, PARTNER_SOURCES)
 
 # ── Logger setup ─────────────────────────────────────────────────────────────
 logger.remove()
@@ -118,22 +118,22 @@ def load_web_prices() -> pd.DataFrame:
 # is the source of truth: delete a row and it leaves the master on the next
 # run. Started Nov 2026 for wheat, which has had no other real source since
 # Agrolinking's April 2026 field collection (those rows live in the master).
-# Only FIELD_QUOTES_LIVE commodities reach the master; the rest are on trial
-# (field_trial_report).
+# Only FIELD_QUOTES_LIVE commodities reach the master, each quote first checked
+# against our price (check_live_quotes); the rest are on trial (field_trial_report).
 FIELD_QUOTES_SOURCE = "Agrolinking field quotes"
 FIELD_TRIAL_PATH = os.path.join(PATHS["logs_dir"], "field_trial.csv")
+FIELD_LIVE_PATH = os.path.join(PATHS["logs_dir"], "field_live.csv")
 FIELD_TRIAL_MATCH_DAYS = 45     # our real price must be this recent to compare a trial week with
+FIELD_REF_DAYS = 28             # a live quote is checked against the median of our prices over these days
 # Units a quote may be in: FIELD_UNITS in config/settings.py
 
-def field_quote_weeks() -> pd.DataFrame:
-    """Every commodity's field quotes as one national row per week (median), plus n_quotes."""
-    cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",
-            "region", "fx_rate", "rainfall_index", "data_quality_score", "is_validated",
-            "notes", "data_source", "n_quotes"]
+def field_quotes() -> pd.DataFrame:
+    """Every usable field quote, one row each, with price_ngn_mt and its week (Monday)."""
     path = PATHS["raw_field_prices"]
     df = pd.read_csv(path, parse_dates=["date"]) if os.path.exists(path) else pd.DataFrame()
     if df.empty:
-        return pd.DataFrame(columns=cols)
+        return pd.DataFrame(columns=["date", "commodity", "market", "state", "price_ngn", "unit",
+                                     "price_level", "reported_by", "notes", "price_ngn_mt", "week"])
     unit = df["unit"].astype(str).str.strip().str.lower()
     df["factor"] = unit.map(FIELD_UNITS)
     eggs = df["commodity"] == "Eggs"
@@ -144,11 +144,56 @@ def field_quote_weeks() -> pd.DataFrame:
         logger.warning(f"  Field quote skipped (needs a known commodity, a wholesale price and a unit from "
                        f"{sorted(FIELD_UNITS)}): {r.date:%Y-%m-%d} {r.commodity} {r.price_ngn} {r.unit} {r.price_level}")
     df = df[ok].copy()
-    if df.empty:
-        return pd.DataFrame(columns=cols)
     df["price_ngn"] = df["price_ngn"].astype(float)
     df["price_ngn_mt"] = df["price_ngn"] * df["factor"]
     df["week"] = df["date"] - pd.to_timedelta(df["date"].dt.dayofweek, unit="D")
+    return df.drop(columns=["factor"]).reset_index(drop=True)
+
+
+def check_live_quotes(quotes: pd.DataFrame, master: pd.DataFrame) -> pd.DataFrame:
+    """Each quote beside our price before it, and whether it is used or held.
+
+    Our price: the median of the commodity's prices in the master (real, estimate
+    or forecast-confirmed rows, not field quotes) over the FIELD_REF_DAYS up to
+    the quote's date; the newest one before it when none is that recent. A quote
+    more than FIELD_HOLD_RATIO times above or below it is "held" unless its notes
+    say "confirmed". No price of ours to compare: used."""
+    out = quotes.copy()
+    keep = master["record_type"].isin(["historical", "validated_actual"]) if "record_type" in master else True
+    ours = master[keep & (master.get("source", pd.Series("", index=master.index)).astype(str)
+                          != FIELD_QUOTES_SOURCE)] if len(master) else master
+    prices, bases = [], []
+    for r in out.itertuples():
+        mine = ours[(ours["commodity"] == r.commodity) & (ours["date"] <= r.date)] if len(ours) else ours
+        recent = mine[mine["date"] >= r.date - pd.Timedelta(days=FIELD_REF_DAYS)] if len(mine) else mine
+        if len(recent):
+            prices.append(float(recent["price_ngn_mt"].median()))
+            bases.append(f"median of our prices {recent['date'].min():%d %b} - {recent['date'].max():%d %b %Y}")
+        elif len(mine):
+            last = mine.sort_values("date").iloc[-1]
+            prices.append(float(last["price_ngn_mt"]))
+            bases.append(f"our newest price, {last['date']:%d %b %Y}")
+        else:
+            prices.append(np.nan)
+            bases.append("no price of ours to compare")
+    out["our_price_ngn_mt"] = prices
+    out["our_basis"] = bases
+    ratio = out["price_ngn_mt"] / out["our_price_ngn_mt"]
+    out["gap_pct"] = ((ratio - 1) * 100).round(1)
+    confirmed = out["notes"].fillna("").astype(str).str.contains(r"\bconfirmed\b", case=False, regex=True)
+    off = (ratio > FIELD_HOLD_RATIO) | (ratio < 1 / FIELD_HOLD_RATIO)
+    out["status"] = np.where(off & ~confirmed, "held", np.where(off, "used (confirmed)", "used"))
+    return out
+
+
+def field_quote_weeks(quotes: pd.DataFrame = None) -> pd.DataFrame:
+    """Field quotes (default: all of them) as one national row per commodity and week (median), plus n_quotes."""
+    cols = ["commodity", "date", "price_ngn_mt", "currency", "unit", "source", "market_type",
+            "region", "fx_rate", "rainfall_index", "data_quality_score", "is_validated",
+            "notes", "data_source", "n_quotes"]
+    df = field_quotes() if quotes is None else quotes
+    if df.empty:
+        return pd.DataFrame(columns=cols)
     rows = []
     for (c, _), g in df.groupby(["commodity", "week"]):
         quotes = "; ".join(f"{r.market}, {r.state}: N{r.price_ngn:,.0f} per {r.unit} ({r.reported_by}, {r.date:%d %b})"
@@ -165,14 +210,30 @@ def field_quote_weeks() -> pd.DataFrame:
     return out
 
 
-def load_field_prices() -> pd.DataFrame:
-    """The weekly field rows that feed the master: FIELD_QUOTES_LIVE commodities only."""
-    weeks = field_quote_weeks()
-    trial = ~weeks["commodity"].isin(FIELD_QUOTES_LIVE)
-    if trial.any():
+def load_field_prices(master: pd.DataFrame = None, live_path: str = FIELD_LIVE_PATH) -> pd.DataFrame:
+    """The weekly field rows that feed the master: FIELD_QUOTES_LIVE commodities, held quotes left out.
+
+    master: what each quote is checked against (default: the master on disk,
+    i.e. the last run's). Every live quote and its check go to live_path."""
+    quotes = field_quotes()
+    live = quotes["commodity"].isin(FIELD_QUOTES_LIVE)
+    if (~live).any():
         logger.info(f"  Field quotes on trial, kept out of the master: "
-                    f"{', '.join(sorted(weeks.loc[trial, 'commodity'].unique()))} (see {FIELD_TRIAL_PATH})")
-    return weeks[~trial].drop(columns=["n_quotes"]).reset_index(drop=True)
+                    f"{', '.join(sorted(quotes.loc[~live, 'commodity'].unique()))} (see {FIELD_TRIAL_PATH})")
+    if master is None:
+        master = (pd.read_csv(PATHS["master"], parse_dates=["date"]) if os.path.exists(PATHS["master"])
+                  else pd.DataFrame(columns=["commodity", "date", "price_ngn_mt"]))
+    checked = check_live_quotes(quotes[live], master)
+    os.makedirs(os.path.dirname(live_path), exist_ok=True)
+    checked[["commodity", "date", "market", "state", "price_ngn", "unit", "price_ngn_mt", "our_price_ngn_mt",
+             "our_basis", "gap_pct", "status"]].to_csv(live_path, index=False)
+    for r in checked[checked["status"] == "held"].itertuples():
+        logger.warning(f"  Field quote HELD BACK, {r.gap_pct:+.0f}% from our price (check the unit; write "
+                       f"'confirmed' in its notes if it is right): {r.date:%Y-%m-%d} {r.commodity} "
+                       f"{r.market} N{r.price_ngn:,.0f} per {r.unit}")
+    weeks = field_quote_weeks(checked[checked["status"] != "held"].drop(
+        columns=["our_price_ngn_mt", "our_basis", "gap_pct", "status"]))
+    return weeks.drop(columns=["n_quotes"]).reset_index(drop=True)
 
 
 def field_trial_report(master: pd.DataFrame, weeks: pd.DataFrame = None,

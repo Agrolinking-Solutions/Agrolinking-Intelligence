@@ -160,7 +160,16 @@ FIELD_UNITS = {"100kg bag": 10.0, "50kg bag": 20.0, "25kg bag": 40.0, "tonne": 1
 # never happened. A commodity joins this list after 3-4 weeks of trial and
 # John's OK. Wheat: its only real series is Agrolinking's own field
 # collection (Jan-Apr 2026), so its quotes are the same kind of price.
-FIELD_QUOTES_LIVE = frozenset({"Wheat"})
+# Yellow maize (added 21 Nov 2026, John's OK): no real price since Jan 2023,
+# only white maize x SIBLING_PRICES, so a trial would have nothing real to
+# compare its quotes with.
+FIELD_QUOTES_LIVE = frozenset({"Wheat", "Maize (yellow)"})
+# A live quote more than this many times above or below our price (01_ingest
+# check_live_quotes) is held back: almost always a unit mix-up (a 50 kg bag
+# typed as 100 kg is 2x; a bag price typed as a tonne price is 10-20x). Yellow
+# and white maize sit within ~7% of each other (SIBLING_PRICES). Writing
+# "confirmed" in the quote's notes lets a held quote through.
+FIELD_HOLD_RATIO = 1.5
 
 # ─── FREIGHT ─────────────────────────────────────────────────────────────────
 # Road haulage, NGN per kg per 100 km - an ESTIMATE, set in July 2026 without a

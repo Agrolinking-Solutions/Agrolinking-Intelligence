@@ -374,7 +374,8 @@ def test_field_quotes_for_unapproved_commodities_stay_on_trial(tmp_path, monkeyp
          "reported_by": "t1"},
     ]).to_csv(p, index=False)
     monkeypatch.setitem(ing.PATHS, "raw_field_prices", str(p))
-    live = ing.load_field_prices()
+    live = ing.load_field_prices(master=pd.DataFrame(columns=["commodity", "date", "price_ngn_mt"]),
+                                 live_path=str(tmp_path / "field_live.csv"))
     assert list(live["commodity"]) == ["Wheat"] and "n_quotes" not in live.columns   # only approved ones
     master = pd.DataFrame({
         "commodity": ["Meat (beef)", "Meat (beef)", "Beans (white)"],
@@ -393,6 +394,50 @@ def test_field_quotes_for_unapproved_commodities_stay_on_trial(tmp_path, monkeyp
     spec.loader.exec_module(ds)
     text = "\n".join(ds.field_trial_lines(str(out)))
     assert "kept out of the forecasts" in text and "-22%" in text and "no real price of ours" in text
+
+
+def test_live_field_quote_far_from_our_price_is_held_back(tmp_path, monkeypatch):
+    """Yellow maize quotes feed the forecasts (no real price since 2023), but a quote 1.5x off our
+    price - a 100 kg bag price typed as a 50 kg one - is held unless its notes say confirmed."""
+    from config.settings import FIELD_QUOTES_LIVE
+    assert {"Wheat", "Maize (yellow)"} <= FIELD_QUOTES_LIVE
+    ing = load("01_ingest")
+    p = tmp_path / "field_prices.csv"
+    q = {"market": "Dawanau", "state": "Kano", "price_level": "wholesale", "unit": "100kg bag"}
+    pd.DataFrame([
+        {**q, "date": "2026-11-23", "commodity": "Wheat", "price_ngn": 72000, "reported_by": "t1", "notes": ""},
+        {**q, "date": "2026-11-23", "commodity": "Maize (yellow)", "price_ngn": 42000, "reported_by": "t1",
+         "notes": ""},
+        {**q, "date": "2026-11-24", "commodity": "Maize (yellow)", "price_ngn": 42000, "unit": "50kg bag",
+         "reported_by": "t2", "notes": "unconfirmed"},                                   # typo: 840K/t
+        {**q, "date": "2026-11-24", "commodity": "Maize (yellow)", "price_ngn": 70000, "reported_by": "t3",
+         "notes": "Confirmed with t3 - shortage after the flood"},                       # 700K/t, real
+    ]).to_csv(p, index=False)
+    monkeypatch.setitem(ing.PATHS, "raw_field_prices", str(p))
+    master = pd.DataFrame({
+        "commodity": ["Maize (yellow)"] * 3 + ["Wheat", "Maize (yellow)"],
+        "date": pd.to_datetime(["2026-11-02", "2026-11-09", "2026-11-16", "2026-11-16", "2026-11-30"]),
+        "price_ngn_mt": [440000.0, 450000.0, 460000.0, 737000.0, 999000.0],
+        "data_source": ["Sibling_estimate", "Sibling_estimate", "Agrolinking_validated", "Agrolinking_validated",
+                        "Agrolinking_validated"],
+        "source": "x", "record_type": ["historical", "historical", "validated_actual", "validated_actual",
+                                       "forecast"]})
+    live_path = tmp_path / "field_live.csv"
+    live = ing.load_field_prices(master=master, live_path=str(live_path)).set_index("commodity")
+    assert live.loc["Wheat", "price_ngn_mt"] == 720000
+    assert live.loc["Maize (yellow)", "price_ngn_mt"] == 560000          # median of 420K and 700K; 840K held
+    log = pd.read_csv(live_path)
+    assert list(log["status"]) == ["used", "used", "held", "used (confirmed)"]
+    maize = log[log["commodity"] == "Maize (yellow)"]
+    assert (maize["our_price_ngn_mt"] == 450000).all()                    # median of 440/450/460K, not the forecast
+    assert list(maize["gap_pct"]) == [-6.7, 86.7, 55.6]
+    spec = importlib.util.spec_from_file_location("data_status", os.path.join(ROOT, "pipeline", "data_status.py"))
+    ds = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ds)
+    text = "\n".join(ds.field_live_lines(str(live_path), today="2026-11-25"))
+    assert "used in the forecasts" in text and "held back" in text and "Dawanau, Kano" in text
+    assert "+87%" in text and "confirmed by hand" in text and "-2%" in text
+    assert ds.field_live_lines(str(live_path), today="2027-03-01") == []    # old news drops off
 
 
 def test_provisional_months_are_never_scored():

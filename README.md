@@ -272,7 +272,7 @@ python pipeline/quality_gate.py
 | Task | How |
 |---|---|
 | **Add Agricome prices** | Append rows to `data/raw/agricome_raw.csv`: commodity, week_start_date, price (NGN/MT), source `Agricom`, notes. They take effect on the next run. |
-| **Add field quotes** | One row per trader quote in `data/raw/field_prices.csv`: date, commodity, market, state, price_ngn, unit (`100kg bag`, `50kg bag`, `25kg bag`, `tonne`, `kg`, or `crate` for eggs), price_level `wholesale`, reported_by, notes. A week's quotes become one national price (their median). Only commodities in `FIELD_QUOTES_LIVE` (`config/settings.py`) feed the forecasts; the others are on trial, shown beside our price in the run status note and `outputs/logs/field_trial.csv`. |
+| **Add field quotes** | One row per trader quote in `data/raw/field_prices.csv`: date, commodity, market, state, price_ngn, unit (`100kg bag`, `50kg bag`, `25kg bag`, `tonne`, `kg`, or `crate` for eggs), price_level `wholesale`, reported_by, notes. A week's quotes become one national price (their median). Only commodities in `FIELD_QUOTES_LIVE` (`config/settings.py`: wheat, yellow maize) feed the forecasts; the others are on trial, shown beside our price in the run status note and `outputs/logs/field_trial.csv`. A live quote more than 1.5 times above or below our price is held back as a likely unit mix-up (run status note, `outputs/logs/field_live.csv`); if the price is right, write `confirmed` in its notes. |
 | **Remove a bad web price** | Add commodity, site and price to `data/raw/web_prices_withdrawn.csv`, and delete the row from `data/raw/web_prices.csv`. |
 | **Block an unreliable website** | Add the site and reason to `data/raw/web_sources_blocked.csv`. |
 | **Mark a page as shop (retail) prices** | Add the site, a part of its URL, `retail` and the reason to `data/raw/web_sources_levels.csv`. |
@@ -307,7 +307,7 @@ tests/               smoke tests, accuracy rule tests and data tests
 ## Known gaps (November 2026)
 
 - **Wheat** has no real price since 13 April 2026. The web has nothing current, so trader quotes (`data/raw/field_prices.csv`) are the route.
-- **Yellow maize** has no real price since January 2023. It is estimated from white maize (`SIBLING_PRICES`) and labelled as an estimate.
+- **Yellow maize** has no real price since January 2023. It is estimated from white maize (`SIBLING_PRICES`) and labelled as an estimate. Trader quotes feed its forecasts directly, as for wheat.
 - **Meat, fish and eggs** are WFP North-East shop prices; there is no wholesale source yet. FarmPaddy's livestock index is being set up (see `docs/SECURITY.md` for its terms).
 - **Agricome** prices are pasted by hand. A regular feed has been requested.
 - **State gaps** for most cash crops and livestock are still estimates.

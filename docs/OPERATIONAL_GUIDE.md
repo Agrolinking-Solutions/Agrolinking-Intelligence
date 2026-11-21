@@ -39,7 +39,7 @@ The API's own health check is https://pis-api.agrolinking.com/health.
 | How often | Task | How |
 |---|---|---|
 | Every 2-3 days | Add Agricome's prices | Copy their Threads posts; append rows to `data/raw/agricome_raw.csv` (README, "Routine operations") |
-| Weekly, if collected | Add trader quotes | `data/raw/field_prices.csv` (README, "Routine operations"). Only `FIELD_QUOTES_LIVE` commodities feed the forecasts; the rest are on trial |
+| Weekly, if collected | Add trader quotes | `data/raw/field_prices.csv` (README, "Routine operations"). Only `FIELD_QUOTES_LIVE` commodities (wheat, yellow maize) feed the forecasts; the rest are on trial. A quote held back in the run summary is usually a wrong unit: fix it, or write `confirmed` in its notes |
 | When an issue opens | Review the alert | See the labels above |
 | When a feed's delay changes | Update `PUBLICATION_LAG_DAYS` | `config/settings.py` |
 
