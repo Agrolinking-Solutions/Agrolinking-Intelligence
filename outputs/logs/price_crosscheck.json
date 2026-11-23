@@ -1,5 +1,5 @@
 {
-  "run_date": "2026-11-22",
+  "run_date": "2026-11-23",
   "basis": "Wholesale, NGN per tonne (Eggs: NGN per crate of 30)",
   "thresholds": {
     "check_above_pct": 15.0,
@@ -8,8 +8,9 @@
     "max_source_age_days": 45
   },
   "summary": {
-    "no web price": 9,
+    "no web price": 8,
     "agree": 7,
+    "check": 1,
     "our price is old": 2
   },
   "commodities": {
@@ -266,15 +267,15 @@
       "our_coverage": "WFP markets in Borno, Yobe (provisional month)",
       "web_prices": [
         {
-          "price": 632470,
+          "price": 629950,
           "site": "leadership.ng",
           "url": "https://leadership.ng/grain-prices-vary-across-katsina-markets-as-new-season-beans-drop/",
           "source_date": "2026-11-01",
           "level": "wholesale",
-          "location": "Bakori Grain Market, Katsina",
+          "location": "Katsina markets, Katsina State",
           "confidence": "medium",
-          "price_as_found": 635000,
-          "conversion": "Katsina price N635,000 / 1.004 (measured Katsina gap, measured_wfp_2019_2023) = N632,470 national"
+          "price_as_found": 632470,
+          "conversion": "Katsina price N632,470 / 1.004 (measured Katsina gap, measured_wfp_2019_2023) = N629,950 national"
         },
         {
           "price": 1095618,
@@ -290,8 +291,8 @@
       ],
       "other_web_prices": [],
       "status": "agree",
-      "web_median": 864044,
-      "gap_pct": -11.4,
+      "web_median": 862784,
+      "gap_pct": -11.5,
       "compared_with": "web prices from 2 site(s)",
       "notes": [
         "State prices are compared as national prices, converted with that state's measured price gap."
@@ -303,12 +304,28 @@
       "our_source": "WFP_provisional",
       "our_level": "wholesale-equivalent",
       "our_coverage": "WFP markets in Borno, Yobe (provisional month)",
-      "web_prices": [],
+      "web_prices": [
+        {
+          "price": 1275761,
+          "site": "parrotnigeria.com",
+          "url": "https://parrotnigeria.com/2026/11/21/amidst-harvest-prices-of-rice-maize-sorghum-rise/",
+          "source_date": "2026-11-21",
+          "level": "wholesale",
+          "location": "Markarfi grain market, Kaduna State",
+          "confidence": "medium",
+          "price_as_found": 1300000,
+          "conversion": "Kaduna price N1,300,000 / 1.019 (measured Kaduna gap, measured_wfp_2019_2023) = N1,275,761 national"
+        }
+      ],
       "other_web_prices": [],
-      "status": "no web price",
-      "web_median": null,
-      "gap_pct": null,
-      "notes": []
+      "status": "check",
+      "web_median": 1275761,
+      "gap_pct": 17.0,
+      "compared_with": "web prices from 1 site(s)",
+      "notes": [
+        "State prices are compared as national prices, converted with that state's measured price gap.",
+        "Only one website - treat the comparison as a hint, not proof."
+      ]
     },
     "Maize (white)": {
       "our_price": 463620,
@@ -318,21 +335,21 @@
       "our_coverage": "AFEX exchange",
       "web_prices": [
         {
-          "price": 481283,
+          "price": 459893,
           "site": "leadership.ng",
           "url": "https://leadership.ng/grain-prices-vary-across-katsina-markets-as-new-season-beans-drop/",
-          "source_date": "2026-11-03",
+          "source_date": "2026-11-16",
           "level": "wholesale",
-          "location": "Bakori Grain Market, Katsina State",
+          "location": "Danja Grain Market, Danja LGA, Katsina State",
           "confidence": "high",
-          "price_as_found": 450000,
-          "conversion": "Katsina price N450,000 / 0.935 (measured Katsina gap, measured_wfp_2019_2023) = N481,283 national"
+          "price_as_found": 430000,
+          "conversion": "Katsina price N430,000 / 0.935 (measured Katsina gap, measured_wfp_2019_2023) = N459,893 national"
         }
       ],
       "other_web_prices": [],
       "status": "agree",
-      "web_median": 481283,
-      "gap_pct": 3.8,
+      "web_median": 459893,
+      "gap_pct": -0.8,
       "compared_with": "web prices from 1 site(s)",
       "notes": [
         "State prices are compared as national prices, converted with that state's measured price gap.",
@@ -345,13 +362,27 @@
       "our_source": "WFP",
       "our_level": "wholesale",
       "our_coverage": "WFP",
-      "web_prices": [],
+      "web_prices": [
+        {
+          "price": 883602,
+          "site": "nairametrics.com",
+          "url": "https://nairametrics.com/2026/11/22/food-prices-across-five-lagos-markets-in-november-2026-where-staples-are-cheaper-and-where-shoppers-pay-more/",
+          "source_date": "2026-11-22",
+          "level": "wholesale",
+          "location": "Mile 12, Lagos",
+          "confidence": "high",
+          "price_as_found": 1040000,
+          "conversion": "Lagos price N1,040,000 / 1.177 (measured Lagos gap, measured_wfp_2019_2023) = N883,602 national"
+        }
+      ],
       "other_web_prices": [],
       "status": "our price is old",
-      "web_median": null,
+      "web_median": 883602,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 1413 days old - nothing current to compare against."
+        "Our latest real price is 1414 days old - nothing current to compare against.",
+        "State prices are compared as national prices, converted with that state's measured price gap.",
+        "Only one website - treat the comparison as a hint, not proof."
       ]
     },
     "Wheat": {
@@ -378,7 +409,7 @@
           "url": "https://parrotnigeria.com/2026/11/21/amidst-harvest-prices-of-rice-maize-sorghum-rise/",
           "source_date": "2026-11-21",
           "level": "wholesale",
-          "location": "Dandume/Katsina central market, Katsina State",
+          "location": "Katsina central market, Katsina State",
           "confidence": "medium",
           "not_compared": "one state's price, no measured gap to the national price"
         }
@@ -387,10 +418,10 @@
       "web_median": 850000,
       "gap_pct": null,
       "notes": [
-        "Our latest real price is 223 days old - nothing current to compare against.",
+        "Our latest real price is 224 days old - nothing current to compare against.",
         "1 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared.",
         "Only one website - treat the comparison as a hint, not proof.",
-        "24 web price(s) withdrawn after review are left out (web_prices_withdrawn.csv)."
+        "23 web price(s) withdrawn after review are left out (web_prices_withdrawn.csv)."
       ]
     },
     "Rice (local)": {
@@ -401,24 +432,15 @@
       "our_coverage": "WFP markets in Borno, Yobe (provisional month)",
       "web_prices": [
         {
-          "price": 1216090,
-          "site": "leadership.ng",
-          "url": "https://leadership.ng/2027-voters-demand-improved-standard-of-living-reduction-in-prices-of-food-petrol/",
-          "source_date": "2026-11-15",
-          "level": "wholesale",
-          "location": "Central Market, Kaduna (Kaduna State)",
-          "confidence": "medium",
-          "price_as_found": 1300000,
-          "conversion": "Kaduna price N1,300,000 / 1.069 (measured Kaduna gap, measured_wfp_2019_2023) = N1,216,090 national"
-        },
-        {
-          "price": 1280000,
+          "price": 1089918,
           "site": "dailytrust.com",
-          "url": "https://dailytrust.com/rice-prices-rise-as-foreign-brands-hit-n90000",
-          "source_date": "2026-11-10",
+          "url": "https://dailytrust.com/amidst-harvest-prices-of-rice-maize-sorghum-rise/",
+          "source_date": "2026-11-21",
           "level": "wholesale",
-          "location": "national",
-          "confidence": "medium"
+          "location": "Singer Market, Kano",
+          "confidence": "medium",
+          "price_as_found": 1200000,
+          "conversion": "Kano price N1,200,000 / 1.101 (measured Kano gap, measured_wfp_2019_2023) = N1,089,918 national"
         },
         {
           "price": 1280000,
@@ -432,9 +454,9 @@
       ],
       "other_web_prices": [],
       "status": "agree",
-      "web_median": 1280000,
-      "gap_pct": 13.6,
-      "compared_with": "web prices from 3 site(s)",
+      "web_median": 1184959,
+      "gap_pct": 5.1,
+      "compared_with": "web prices from 2 site(s)",
       "notes": [
         "State prices are compared as national prices, converted with that state's measured price gap.",
         "2 web price(s) withdrawn after review are left out (web_prices_withdrawn.csv)."
@@ -448,15 +470,15 @@
       "our_coverage": "WFP markets in Borno, Yobe (provisional month)",
       "web_prices": [
         {
-          "price": 1015038,
+          "price": 1165414,
           "site": "lagosagric.com",
           "url": "https://lagosagric.com/price-tracker/",
           "source_date": "2026-11-01",
           "level": "wholesale",
-          "location": "Lagos State (official state price tracker, national/state average)",
-          "confidence": "high",
-          "price_as_found": 1080000,
-          "conversion": "Lagos price N1,080,000 / 1.064 (measured Lagos gap, measured_fews_2023_2026) = N1,015,038 national"
+          "location": "Lagos State (market tracker, Lagos)",
+          "confidence": "medium",
+          "price_as_found": 1240000,
+          "conversion": "Lagos price N1,240,000 / 1.064 (measured Lagos gap, measured_fews_2023_2026) = N1,165,414 national"
         },
         {
           "price": 1611729,
@@ -499,7 +521,7 @@
       "compared_with": "web prices from 4 site(s)",
       "notes": [
         "State prices are compared as national prices, converted with that state's measured price gap.",
-        "7 web price(s) withdrawn after review are left out (web_prices_withdrawn.csv)."
+        "6 web price(s) withdrawn after review are left out (web_prices_withdrawn.csv)."
       ]
     },
     "Meat (beef)": {
@@ -510,6 +532,16 @@
       "our_coverage": "WFP markets in Borno, Yobe (provisional month)",
       "web_prices": [],
       "other_web_prices": [
+        {
+          "price": 9500000,
+          "site": "dailynigerian.com",
+          "url": "https://dailynigerian.com/lagos-meat-prices-hit/",
+          "source_date": "2026-10-22",
+          "level": "retail",
+          "location": "Lagos (city-wide, Lagos State Butchers Association)",
+          "confidence": "medium",
+          "not_compared": "one state's price, no measured gap to the national price"
+        },
         {
           "price": 9500000,
           "site": "freedomonline.com.ng",
@@ -536,8 +568,8 @@
       "gap_pct": null,
       "notes": [
         "Our price is a shop (retail) price: WFP publishes no wholesale price for this. Wholesale should normally be below it.",
-        "2 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared.",
-        "3 web price(s) withdrawn after review are left out (web_prices_withdrawn.csv)."
+        "3 web price(s) from one state's markets, with no measured gap to the national price, are listed but not compared.",
+        "2 web price(s) withdrawn after review are left out (web_prices_withdrawn.csv)."
       ]
     },
     "Meat (goat)": {
@@ -594,8 +626,8 @@
           "price": 4000,
           "site": "legit.ng",
           "url": "https://www.legit.ng/business-economy/industry/1739162-dealers-release-prices-eggs-poultry-feed-rates-fall/",
-          "source_date": "2026-11-02",
-          "level": "farm-gate",
+          "source_date": "2026-11-01",
+          "level": "wholesale",
           "location": "Ondo State",
           "confidence": "medium",
           "not_compared": "one state's price, no measured gap to the national price"
