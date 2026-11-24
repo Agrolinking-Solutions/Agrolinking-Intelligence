@@ -356,7 +356,10 @@ def test_field_quotes_become_one_weekly_national_price(tmp_path, monkeypatch):
          "unit": "bag", "price_level": "wholesale", "reported_by": "trader 3", "notes": ""},  # unknown unit: skipped
     ]).to_csv(p, index=False)
     monkeypatch.setitem(ing.PATHS, "raw_field_prices", str(p))
-    out = ing.load_field_prices()
+    # its own master and live file: with the defaults it read the real master and wrote these sample
+    # quotes into outputs/logs/field_live.csv, which the daily run commits (24 Nov 2026)
+    out = ing.load_field_prices(master=pd.DataFrame(columns=["commodity", "date", "price_ngn_mt", "data_source"]),
+                                live_path=str(tmp_path / "field_live.csv"))
     assert len(out) == 1 and out.iloc[0]["price_ngn_mt"] == 710000.0      # median of 700K and 720K
     assert out.iloc[0]["data_source"] == "Agrolinking_primary" and "median of 2" in out.iloc[0]["notes"]
 
