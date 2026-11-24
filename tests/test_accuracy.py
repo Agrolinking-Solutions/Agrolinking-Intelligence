@@ -440,6 +440,24 @@ def test_live_field_quote_far_from_our_price_is_held_back(tmp_path, monkeypatch)
     assert ds.field_live_lines(str(live_path), today="2027-03-01") == []    # old news drops off
 
 
+def test_empty_field_quote_file_loads_nothing_and_does_not_crash(tmp_path, monkeypatch):
+    """The file is header-only most days. On pandas 2.x its empty columns were "object" and
+    .round() raised, stopping the 24 Nov 2026 daily run at step 01."""
+    ing = load("01_ingest")
+    p = tmp_path / "field_prices.csv"
+    p.write_text("date,commodity,market,state,price_ngn,unit,price_level,reported_by,notes\n")
+    monkeypatch.setitem(ing.PATHS, "raw_field_prices", str(p))
+    master = pd.DataFrame({"commodity": ["Wheat"], "date": pd.to_datetime(["2026-11-16"]),
+                           "price_ngn_mt": [737000.0], "source": "x", "data_source": "Agrolinking_validated",
+                           "record_type": "validated_actual"})
+    live_path = tmp_path / "field_live.csv"
+    live = ing.load_field_prices(master=master, live_path=str(live_path))
+    assert live.empty and live_path.exists() and pd.read_csv(live_path).empty
+    checked = ing.check_live_quotes(ing.field_quotes(), master)
+    assert checked.empty and checked["gap_pct"].dtype == float
+    assert ing.field_trial_report(master, path=str(tmp_path / "trial.csv")).empty
+
+
 def test_provisional_months_are_never_scored():
     from config.settings import SCORED_SOURCES, PROVISIONAL_SOURCES, REAL_SOURCES
     assert PROVISIONAL_SOURCES <= REAL_SOURCES and not (PROVISIONAL_SOURCES & SCORED_SOURCES)

@@ -176,8 +176,11 @@ def check_live_quotes(quotes: pd.DataFrame, master: pd.DataFrame) -> pd.DataFram
         else:
             prices.append(np.nan)
             bases.append("no price of ours to compare")
-    out["our_price_ngn_mt"] = prices
-    out["our_basis"] = bases
+    # explicit numeric dtypes: with no quotes these columns are empty, and pandas 2.x
+    # makes an empty column "object", which .round() refuses (daily run, 24 Nov 2026)
+    out["price_ngn_mt"] = pd.to_numeric(out["price_ngn_mt"], errors="coerce").astype(float)
+    out["our_price_ngn_mt"] = pd.Series(prices, index=out.index, dtype=float)
+    out["our_basis"] = pd.Series(bases, index=out.index, dtype=object)
     ratio = out["price_ngn_mt"] / out["our_price_ngn_mt"]
     out["gap_pct"] = ((ratio - 1) * 100).round(1)
     confirmed = out["notes"].fillna("").astype(str).str.contains(r"\bconfirmed\b", case=False, regex=True)
@@ -1094,8 +1097,13 @@ def run_ingestion() -> pd.DataFrame:
 
     agricome_df           = load_agricome()
     wfp_commodity_df, fuel_df = load_wfp()
-    web_df                = pd.concat([load_web_prices(), load_afex_prices(), load_fews_prices(),
-                                       load_field_prices()], ignore_index=True)
+    try:
+        field_df = load_field_prices()
+    except Exception as e:      # one source must not stop the run (a field-quote bug did, 24 Nov 2026)
+        logger.error(f"  FIELD QUOTES NOT LOADED - today's forecasts run without them: {e!r}")
+        field_df = None
+    web_df                = pd.concat([load_web_prices(), load_afex_prices(), load_fews_prices()]
+                                      + ([field_df] if field_df is not None else []), ignore_index=True)
     master_df             = merge_sources(agricome_df, wfp_commodity_df, web_df)
     save_outputs(master_df, fuel_df)
     try:
