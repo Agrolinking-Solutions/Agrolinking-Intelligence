@@ -1,4 +1,4 @@
-## Real-data status - 24 November 2026
+## Real-data status - 25 November 2026
 
 **Run steps:** all 32 ran without an error.
 
@@ -6,14 +6,15 @@
 
 | Still waiting for real data | Last real price | Days ago |
 |---|---|---|
-| Maize (yellow) | 2023-01-09 | 1415 |
-| Wheat | 2026-04-13 | 225 |
+| Maize (yellow) | 2023-01-09 | 1416 |
+| Wheat | 2026-04-13 | 226 |
 
 **Web prices added today: 0**
-- Maize (yellow): 9 found, none used - 5x not a wholesale price (or level not recorded), 2x low confidence (forum, undated list or shop), 2x too far from our yardstick
-- Wheat: 20 found, none used - 11x withdrawn earlier after review, 7x one state's price, no measured gap to national, 1x source too old, 1x big move, only one website
+- Maize (yellow): 8 found, none used - 4x not a wholesale price (or level not recorded), 2x low confidence (forum, undated list or shop), 2x too far from our yardstick
+- Wheat: 19 found, none used - 9x one state's price, no measured gap to national, 8x withdrawn earlier after review, 1x source too old, 1x big move, only one website
 
-**Our prices vs independent web prices:** 7 agree, 1 check, 8 no web price, 2 our price is old
+**Our prices vs independent web prices:** 6 agree, 2 check, 8 no web price, 2 our price is old
+- CHECK: Beans (white) - ours N974,930 (WFP_provisional), web N1,165,386 from 2 site(s), +20%
 - CHECK: Beans (red) - ours N1,090,638 (WFP_provisional), web N1,275,761 from 1 site(s), +17%
 
 **Still shop (retail) prices, waiting for a wholesale source:** Meat (beef), Meat (goat), Fish (dried), Eggs
