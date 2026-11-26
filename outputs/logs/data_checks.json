@@ -1,19 +1,19 @@
 {
-  "run_date": "2026-11-25",
+  "run_date": "2026-11-26",
   "summary": {
-    "ok": 14,
-    "check": 2,
+    "ok": 13,
+    "check": 3,
     "problem": 2
   },
-  "accuracy_1m_mean_pct": 88.4,
+  "accuracy_1m_mean_pct": 88.5,
   "commodities_at_goal": 2,
   "commodities_measured": 16,
-  "accuracy_1w_mean_pct": 91.3,
+  "accuracy_1w_mean_pct": 91.4,
   "commodities_at_goal_1w": 3,
   "headline_vs_fair_test": {
     "check": "headline",
     "status": "ok",
-    "message": "1 week headline 91.3% vs fair test 91.4%; 1 month headline 88.4% vs fair test 88.7%"
+    "message": "1 week headline 91.4% vs fair test 91.4%; 1 month headline 88.5% vs fair test 88.7%"
   },
   "statuses": {
     "ok": "fine",
@@ -22,12 +22,222 @@
   },
   "commodities": {
     "Hibiscus": {
+      "status": "check",
+      "checks": [
+        {
+          "check": "unit",
+          "status": "ok",
+          "message": "Latest real price N2,000,000 (23 Nov 2026, Agricome) is 0.83x the median of the 26 weeks before",
+          "ratio": 0.83
+        },
+        {
+          "check": "spikes",
+          "status": "ok",
+          "message": "No one-off jumps in the last 3 years"
+        },
+        {
+          "check": "sources",
+          "status": "ok",
+          "message": "One real source in the last 3 years (Agricome)"
+        },
+        {
+          "check": "basis",
+          "status": "ok",
+          "message": "Wholesale or exchange prices only"
+        },
+        {
+          "check": "freshness",
+          "status": "ok",
+          "message": "Latest real price 23 Nov 2026 (3 days, Agricome)",
+          "age_days": 3
+        },
+        {
+          "check": "filled_share",
+          "status": "ok",
+          "message": "50% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 50.0
+        },
+        {
+          "check": "start",
+          "status": "ok",
+          "message": "Built from the latest real price N2,000,000 (2026-11-23, Agricome)"
+        },
+        {
+          "check": "sane",
+          "status": "ok",
+          "message": "All horizons valid; 1-month move +0.0%"
+        },
+        {
+          "check": "tested",
+          "status": "ok",
+          "message": "1-week accuracy 92.8%, 1-month 88.0% on real prices (n=54; 86.4% when the latest real price is under 4 weeks old), method naive",
+          "accuracy": 88.0
+        },
+        {
+          "check": "live",
+          "status": "check",
+          "message": "Published 1-month forecasts 82.0% accurate (20 forecasts on 3 real prices since 2026-10-13) - below the tested 88.0%",
+          "accuracy": 82.0
+        },
+        {
+          "check": "cross_check",
+          "status": "ok",
+          "message": "no web price"
+        },
+        {
+          "check": "weather",
+          "status": "ok",
+          "message": "7-day weather for Kano, Jigawa, Katsina, forecast issued 2026-11-26"
+        }
+      ]
+    },
+    "Sesame": {
       "status": "ok",
       "checks": [
         {
           "check": "unit",
           "status": "ok",
-          "message": "Latest real price N2,200,000 (16 Nov 2026, Agricome) is 0.92x the median of the 26 weeks before",
+          "message": "Latest real price N1,500,000 (23 Nov 2026, Agricome) is 1.07x the median of the 26 weeks before",
+          "ratio": 1.07
+        },
+        {
+          "check": "spikes",
+          "status": "ok",
+          "message": "No one-off jumps in the last 3 years"
+        },
+        {
+          "check": "sources",
+          "status": "ok",
+          "message": "One real source in the last 3 years (Agricome)"
+        },
+        {
+          "check": "basis",
+          "status": "ok",
+          "message": "Wholesale or exchange prices only"
+        },
+        {
+          "check": "freshness",
+          "status": "ok",
+          "message": "Latest real price 23 Nov 2026 (3 days, Agricome)",
+          "age_days": 3
+        },
+        {
+          "check": "filled_share",
+          "status": "ok",
+          "message": "50% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 50.0
+        },
+        {
+          "check": "start",
+          "status": "ok",
+          "message": "Built from the latest real price N1,500,000 (2026-11-23, Agricome)"
+        },
+        {
+          "check": "sane",
+          "status": "ok",
+          "message": "All horizons valid; 1-month move +1.1%"
+        },
+        {
+          "check": "tested",
+          "status": "ok",
+          "message": "1-week accuracy 94.6%, 1-month 93.1% on real prices (n=49; 93.9% when the latest real price is under 4 weeks old), method mix",
+          "accuracy": 93.1
+        },
+        {
+          "check": "live",
+          "status": "ok",
+          "message": "Published 1-month forecasts 98.6% accurate (20 forecasts on 3 real prices since 2026-10-13)",
+          "accuracy": 98.6
+        },
+        {
+          "check": "cross_check",
+          "status": "ok",
+          "message": "check (-17%)"
+        },
+        {
+          "check": "weather",
+          "status": "ok",
+          "message": "7-day weather for Nasarawa, Benue, Jigawa, forecast issued 2026-11-26"
+        }
+      ]
+    },
+    "Ginger": {
+      "status": "ok",
+      "checks": [
+        {
+          "check": "unit",
+          "status": "ok",
+          "message": "Latest real price N6,400,000 (23 Nov 2026, Agricome) is 0.80x the median of the 26 weeks before",
+          "ratio": 0.8
+        },
+        {
+          "check": "spikes",
+          "status": "ok",
+          "message": "No one-off jumps in the last 3 years"
+        },
+        {
+          "check": "sources",
+          "status": "ok",
+          "message": "One real source in the last 3 years (Agricome)"
+        },
+        {
+          "check": "basis",
+          "status": "ok",
+          "message": "Wholesale or exchange prices only"
+        },
+        {
+          "check": "freshness",
+          "status": "ok",
+          "message": "Latest real price 23 Nov 2026 (3 days, Agricome)",
+          "age_days": 3
+        },
+        {
+          "check": "filled_share",
+          "status": "ok",
+          "message": "50% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 50.0
+        },
+        {
+          "check": "start",
+          "status": "ok",
+          "message": "Built from the latest real price N6,400,000 (2026-11-23, Agricome)"
+        },
+        {
+          "check": "sane",
+          "status": "ok",
+          "message": "All horizons valid; 1-month move +0.0%"
+        },
+        {
+          "check": "tested",
+          "status": "ok",
+          "message": "1-week accuracy 92.9%, 1-month 88.8% on real prices (n=53; 87.3% when the latest real price is under 4 weeks old), method naive",
+          "accuracy": 88.8
+        },
+        {
+          "check": "live",
+          "status": "ok",
+          "message": "Published 1-month forecasts 87.1% accurate (20 forecasts on 3 real prices since 2026-10-13)",
+          "accuracy": 87.1
+        },
+        {
+          "check": "cross_check",
+          "status": "ok",
+          "message": "no web price"
+        },
+        {
+          "check": "weather",
+          "status": "ok",
+          "message": "7-day weather for Kaduna, Nasarawa, Plateau, forecast issued 2026-11-26"
+        }
+      ]
+    },
+    "Cocoa": {
+      "status": "ok",
+      "checks": [
+        {
+          "check": "unit",
+          "status": "ok",
+          "message": "Latest real price N5,500,000 (23 Nov 2026, Agricome) is 0.92x the median of the 26 weeks before",
           "ratio": 0.92
         },
         {
@@ -48,35 +258,36 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 16 Nov 2026 (9 days, Agricome)",
-          "age_days": 9
+          "message": "Latest real price 23 Nov 2026 (3 days, Agricome)",
+          "age_days": 3
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "55% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 54.8
+          "message": "50% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 50.0
         },
         {
           "check": "start",
           "status": "ok",
-          "message": "Built from the latest real price N2,200,000 (2026-11-16, Agricome), carried to N2,200,375 on 2026-11-23 (+0.0%)"
+          "message": "Built from the latest real price N5,500,000 (2026-11-23, Agricome)"
         },
         {
           "check": "sane",
           "status": "ok",
-          "message": "All horizons valid; 1-month move +0.1%"
+          "message": "All horizons valid; 1-month move -0.1%"
         },
         {
           "check": "tested",
           "status": "ok",
-          "message": "1-week accuracy 92.8%, 1-month 87.9% on real prices (n=53; 86.2% when the latest real price is under 4 weeks old), method mix>infl@0.5",
-          "accuracy": 87.9
+          "message": "1-week accuracy 90.9%, 1-month 85.2% on real prices (n=57; 84.1% when the latest real price is under 4 weeks old), method trend@0.5",
+          "accuracy": 85.2
         },
         {
           "check": "live",
           "status": "ok",
-          "message": "Current method not scored on enough real prices yet; published forecasts so far (mostly the method used until 13 Oct 2026) 89.7% (122 forecasts on 13 real prices)"
+          "message": "Published 1-month forecasts 93.7% accurate (20 forecasts on 3 real prices since 2026-10-13)",
+          "accuracy": 93.7
         },
         {
           "check": "cross_check",
@@ -86,214 +297,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kano, Jigawa, Katsina, forecast issued 2026-11-25"
-        }
-      ]
-    },
-    "Sesame": {
-      "status": "ok",
-      "checks": [
-        {
-          "check": "unit",
-          "status": "ok",
-          "message": "Latest real price N1,400,000 (16 Nov 2026, Agricome) is 1.00x the median of the 26 weeks before",
-          "ratio": 1.0
-        },
-        {
-          "check": "spikes",
-          "status": "ok",
-          "message": "No one-off jumps in the last 3 years"
-        },
-        {
-          "check": "sources",
-          "status": "ok",
-          "message": "One real source in the last 3 years (Agricome)"
-        },
-        {
-          "check": "basis",
-          "status": "ok",
-          "message": "Wholesale or exchange prices only"
-        },
-        {
-          "check": "freshness",
-          "status": "ok",
-          "message": "Latest real price 16 Nov 2026 (9 days, Agricome)",
-          "age_days": 9
-        },
-        {
-          "check": "filled_share",
-          "status": "ok",
-          "message": "55% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 54.8
-        },
-        {
-          "check": "start",
-          "status": "ok",
-          "message": "Built from the latest real price N1,400,000 (2026-11-16, Agricome), carried to N1,402,687 on 2026-11-23 (+0.2%)"
-        },
-        {
-          "check": "sane",
-          "status": "ok",
-          "message": "All horizons valid; 1-month move +0.8%"
-        },
-        {
-          "check": "tested",
-          "status": "ok",
-          "message": "1-week accuracy 94.6%, 1-month 93.0% on real prices (n=48; 93.8% when the latest real price is under 4 weeks old), method mix",
-          "accuracy": 93.0
-        },
-        {
-          "check": "live",
-          "status": "ok",
-          "message": "Current method not scored on enough real prices yet; published forecasts so far (mostly the method used until 13 Oct 2026) 93.1% (122 forecasts on 13 real prices)"
-        },
-        {
-          "check": "cross_check",
-          "status": "ok",
-          "message": "agree (-11%)"
-        },
-        {
-          "check": "weather",
-          "status": "ok",
-          "message": "7-day weather for Nasarawa, Benue, Jigawa, forecast issued 2026-11-25"
-        }
-      ]
-    },
-    "Ginger": {
-      "status": "ok",
-      "checks": [
-        {
-          "check": "unit",
-          "status": "ok",
-          "message": "Latest real price N7,100,000 (16 Nov 2026, Agricome) is 0.89x the median of the 26 weeks before",
-          "ratio": 0.89
-        },
-        {
-          "check": "spikes",
-          "status": "ok",
-          "message": "No one-off jumps in the last 3 years"
-        },
-        {
-          "check": "sources",
-          "status": "ok",
-          "message": "One real source in the last 3 years (Agricome)"
-        },
-        {
-          "check": "basis",
-          "status": "ok",
-          "message": "Wholesale or exchange prices only"
-        },
-        {
-          "check": "freshness",
-          "status": "ok",
-          "message": "Latest real price 16 Nov 2026 (9 days, Agricome)",
-          "age_days": 9
-        },
-        {
-          "check": "filled_share",
-          "status": "ok",
-          "message": "55% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 54.8
-        },
-        {
-          "check": "start",
-          "status": "ok",
-          "message": "Built from the latest real price N7,100,000 (2026-11-16, Agricome), carried to N7,100,000 on 2026-11-23 (+0.0%)"
-        },
-        {
-          "check": "sane",
-          "status": "ok",
-          "message": "All horizons valid; 1-month move +0.0%"
-        },
-        {
-          "check": "tested",
-          "status": "ok",
-          "message": "1-week accuracy 92.9%, 1-month 88.9% on real prices (n=52; 87.3% when the latest real price is under 4 weeks old), method naive",
-          "accuracy": 88.9
-        },
-        {
-          "check": "live",
-          "status": "ok",
-          "message": "Current method not scored on enough real prices yet; published forecasts so far (mostly the method used until 13 Oct 2026) 72.0% (122 forecasts on 13 real prices)"
-        },
-        {
-          "check": "cross_check",
-          "status": "ok",
-          "message": "no web price"
-        },
-        {
-          "check": "weather",
-          "status": "ok",
-          "message": "7-day weather for Kaduna, Nasarawa, Plateau, forecast issued 2026-11-25"
-        }
-      ]
-    },
-    "Cocoa": {
-      "status": "ok",
-      "checks": [
-        {
-          "check": "unit",
-          "status": "ok",
-          "message": "Latest real price N6,100,000 (16 Nov 2026, Agricome) is 1.02x the median of the 26 weeks before",
-          "ratio": 1.02
-        },
-        {
-          "check": "spikes",
-          "status": "ok",
-          "message": "No one-off jumps in the last 3 years"
-        },
-        {
-          "check": "sources",
-          "status": "ok",
-          "message": "One real source in the last 3 years (Agricome)"
-        },
-        {
-          "check": "basis",
-          "status": "ok",
-          "message": "Wholesale or exchange prices only"
-        },
-        {
-          "check": "freshness",
-          "status": "ok",
-          "message": "Latest real price 16 Nov 2026 (9 days, Agricome)",
-          "age_days": 9
-        },
-        {
-          "check": "filled_share",
-          "status": "ok",
-          "message": "55% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 54.8
-        },
-        {
-          "check": "start",
-          "status": "ok",
-          "message": "Built from the latest real price N6,100,000 (2026-11-16, Agricome), carried to N6,110,423 on 2026-11-23 (+0.2%)"
-        },
-        {
-          "check": "sane",
-          "status": "ok",
-          "message": "All horizons valid; 1-month move +0.7%"
-        },
-        {
-          "check": "tested",
-          "status": "ok",
-          "message": "1-week accuracy 90.9%, 1-month 85.1% on real prices (n=56; 84.0% when the latest real price is under 4 weeks old), method trend@0.5",
-          "accuracy": 85.1
-        },
-        {
-          "check": "live",
-          "status": "ok",
-          "message": "Current method not scored on enough real prices yet; published forecasts so far (mostly the method used until 13 Oct 2026) 76.0% (122 forecasts on 13 real prices)"
-        },
-        {
-          "check": "cross_check",
-          "status": "ok",
-          "message": "no web price"
-        },
-        {
-          "check": "weather",
-          "status": "ok",
-          "message": "7-day weather for Ondo, Cross River, Osun, forecast issued 2026-11-25"
+          "message": "7-day weather for Ondo, Cross River, Osun, forecast issued 2026-11-26"
         }
       ]
     },
@@ -303,8 +307,8 @@
         {
           "check": "unit",
           "status": "ok",
-          "message": "Latest real price N590,000 (16 Nov 2026, Agricome) is 0.77x the median of the 26 weeks before",
-          "ratio": 0.77
+          "message": "Latest real price N600,000 (23 Nov 2026, Agricome) is 0.79x the median of the 26 weeks before",
+          "ratio": 0.79
         },
         {
           "check": "spikes",
@@ -324,19 +328,19 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 16 Nov 2026 (9 days, Agricome)",
-          "age_days": 9
+          "message": "Latest real price 23 Nov 2026 (3 days, Agricome)",
+          "age_days": 3
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "55% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 54.8
+          "message": "50% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 50.0
         },
         {
           "check": "start",
           "status": "ok",
-          "message": "Built from the latest real price N590,000 (2026-11-16, Agricome), carried to N590,000 on 2026-11-23 (+0.0%)"
+          "message": "Built from the latest real price N600,000 (2026-11-23, Agricome)"
         },
         {
           "check": "sane",
@@ -346,23 +350,24 @@
         {
           "check": "tested",
           "status": "check",
-          "message": "1-week accuracy 89.8%, 1-month 83.8% on real prices (n=56; 82.5% when the latest real price is under 4 weeks old), method naive",
-          "accuracy": 83.8
+          "message": "1-week accuracy 90.0%, 1-month 84.1% on real prices (n=57; 82.9% when the latest real price is under 4 weeks old), method naive",
+          "accuracy": 84.1
         },
         {
           "check": "live",
           "status": "ok",
-          "message": "Current method not scored on enough real prices yet; published forecasts so far (mostly the method used until 13 Oct 2026) 90.4% (122 forecasts on 13 real prices)"
+          "message": "Published 1-month forecasts 81.2% accurate (20 forecasts on 3 real prices since 2026-10-13)",
+          "accuracy": 81.2
         },
         {
           "check": "cross_check",
           "status": "ok",
-          "message": "agree (+11%)"
+          "message": "agree (+10%)"
         },
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Benue, Kaduna, Niger, forecast issued 2026-11-25"
+          "message": "7-day weather for Benue, Kaduna, Niger, forecast issued 2026-11-26"
         }
       ]
     },
@@ -372,8 +377,8 @@
         {
           "check": "unit",
           "status": "ok",
-          "message": "Latest real price N1,700,000 (16 Nov 2026, Agricome) is 0.89x the median of the 26 weeks before",
-          "ratio": 0.89
+          "message": "Latest real price N1,800,000 (23 Nov 2026, Agricome) is 0.96x the median of the 26 weeks before",
+          "ratio": 0.96
         },
         {
           "check": "spikes",
@@ -393,19 +398,19 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 16 Nov 2026 (9 days, Agricome)",
-          "age_days": 9
+          "message": "Latest real price 23 Nov 2026 (3 days, Agricome)",
+          "age_days": 3
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "55% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 54.8
+          "message": "50% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 50.0
         },
         {
           "check": "start",
           "status": "ok",
-          "message": "Built from the latest real price N1,700,000 (2026-11-16, Agricome), carried to N1,700,000 on 2026-11-23 (+0.0%)"
+          "message": "Built from the latest real price N1,800,000 (2026-11-23, Agricome)"
         },
         {
           "check": "sane",
@@ -415,13 +420,14 @@
         {
           "check": "tested",
           "status": "ok",
-          "message": "1-week accuracy 89.8%, 1-month 87.3% on real prices (n=56; 86.5% when the latest real price is under 4 weeks old), method naive",
-          "accuracy": 87.3
+          "message": "1-week accuracy 89.8%, 1-month 87.5% on real prices (n=57; 86.8% when the latest real price is under 4 weeks old), method naive",
+          "accuracy": 87.5
         },
         {
           "check": "live",
           "status": "ok",
-          "message": "Current method not scored on enough real prices yet; published forecasts so far (mostly the method used until 13 Oct 2026) 91.0% (122 forecasts on 13 real prices)"
+          "message": "Published 1-month forecasts 92.9% accurate (20 forecasts on 3 real prices since 2026-10-13)",
+          "accuracy": 92.9
         },
         {
           "check": "cross_check",
@@ -431,7 +437,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kogi, Oyo, Enugu, forecast issued 2026-11-25"
+          "message": "7-day weather for Kogi, Oyo, Enugu, forecast issued 2026-11-26"
         }
       ]
     },
@@ -441,8 +447,8 @@
         {
           "check": "unit",
           "status": "ok",
-          "message": "Latest real price N365,000 (16 Nov 2026, Agricome) is 1.03x the median of the 26 weeks before",
-          "ratio": 1.03
+          "message": "Latest real price N355,000 (23 Nov 2026, Agricome) is 1.00x the median of the 26 weeks before",
+          "ratio": 1.0
         },
         {
           "check": "spikes",
@@ -462,45 +468,46 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 16 Nov 2026 (9 days, Agricome)",
-          "age_days": 9
+          "message": "Latest real price 23 Nov 2026 (3 days, Agricome)",
+          "age_days": 3
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "45% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 45.2
+          "message": "40% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 40.0
         },
         {
           "check": "start",
           "status": "ok",
-          "message": "Built from the latest real price N365,000 (2026-11-16, Agricome), carried to N365,342 on 2026-11-23 (+0.1%)"
+          "message": "Built from the latest real price N355,000 (2026-11-23, Agricome)"
         },
         {
           "check": "sane",
           "status": "ok",
-          "message": "All horizons valid; 1-month move +0.4%"
+          "message": "All horizons valid; 1-month move +0.1%"
         },
         {
           "check": "tested",
           "status": "ok",
-          "message": "1-week accuracy 92.7%, 1-month 90.0% on real prices (n=65; 89.6% when the latest real price is under 4 weeks old), method trend@0.5",
-          "accuracy": 90.0
+          "message": "1-week accuracy 92.8%, 1-month 90.2% on real prices (n=66; 89.8% when the latest real price is under 4 weeks old), method trend@0.5",
+          "accuracy": 90.2
         },
         {
           "check": "live",
           "status": "ok",
-          "message": "Current method not scored on enough real prices yet; published forecasts so far (mostly the method used until 13 Oct 2026) 81.8% (151 forecasts on 17 real prices)"
+          "message": "Published 1-month forecasts 94.2% accurate (20 forecasts on 3 real prices since 2026-10-13)",
+          "accuracy": 94.2
         },
         {
           "check": "cross_check",
           "status": "ok",
-          "message": "agree (+4%)"
+          "message": "agree (+6%)"
         },
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kano, Katsina, Bauchi, forecast issued 2026-11-25"
+          "message": "7-day weather for Kano, Katsina, Bauchi, forecast issued 2026-11-26"
         }
       ]
     },
@@ -531,14 +538,14 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 09 Nov 2026 (16 days, WFP_provisional)",
-          "age_days": 16
+          "message": "Latest real price 09 Nov 2026 (17 days, WFP_provisional)",
+          "age_days": 17
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "81% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 80.6
+          "message": "80% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 80.0
         },
         {
           "check": "start",
@@ -569,7 +576,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kano, Katsina, Borno, forecast issued 2026-11-25"
+          "message": "7-day weather for Kano, Katsina, Borno, forecast issued 2026-11-26"
         }
       ]
     },
@@ -600,14 +607,14 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 09 Nov 2026 (16 days, WFP_provisional)",
-          "age_days": 16
+          "message": "Latest real price 09 Nov 2026 (17 days, WFP_provisional)",
+          "age_days": 17
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "81% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 80.6
+          "message": "80% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 80.0
         },
         {
           "check": "start",
@@ -638,7 +645,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kano, Katsina, Borno, forecast issued 2026-11-25"
+          "message": "7-day weather for Kano, Katsina, Borno, forecast issued 2026-11-26"
         }
       ]
     },
@@ -669,14 +676,14 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 23 Nov 2026 (2 days, AFEX)",
-          "age_days": 2
+          "message": "Latest real price 23 Nov 2026 (3 days, AFEX)",
+          "age_days": 3
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "16% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 16.1
+          "message": "13% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 13.3
         },
         {
           "check": "start",
@@ -708,7 +715,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kaduna, Niger, Plateau, forecast issued 2026-11-25"
+          "message": "7-day weather for Kaduna, Niger, Plateau, forecast issued 2026-11-26"
         }
       ]
     },
@@ -739,8 +746,8 @@
         {
           "check": "freshness",
           "status": "problem",
-          "message": "Latest real price 09 Jan 2023 (1416 days, WFP)",
-          "age_days": 1416
+          "message": "Latest real price 09 Jan 2023 (1417 days, WFP)",
+          "age_days": 1417
         },
         {
           "check": "filled_share",
@@ -776,7 +783,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kaduna, Niger, Plateau, forecast issued 2026-11-25"
+          "message": "7-day weather for Kaduna, Niger, Plateau, forecast issued 2026-11-26"
         }
       ]
     },
@@ -807,8 +814,8 @@
         {
           "check": "freshness",
           "status": "problem",
-          "message": "Latest real price 13 Apr 2026 (226 days, Agrolinking_primary)",
-          "age_days": 226
+          "message": "Latest real price 13 Apr 2026 (227 days, Agrolinking_primary)",
+          "age_days": 227
         },
         {
           "check": "filled_share",
@@ -844,7 +851,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Jigawa, Kano, Kebbi, forecast issued 2026-11-25"
+          "message": "7-day weather for Jigawa, Kano, Kebbi, forecast issued 2026-11-26"
         }
       ]
     },
@@ -875,14 +882,14 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 09 Nov 2026 (16 days, WFP_provisional)",
-          "age_days": 16
+          "message": "Latest real price 09 Nov 2026 (17 days, WFP_provisional)",
+          "age_days": 17
         },
         {
           "check": "filled_share",
           "status": "ok",
           "message": "77% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 77.4
+          "pct": 76.7
         },
         {
           "check": "start",
@@ -908,12 +915,12 @@
         {
           "check": "cross_check",
           "status": "ok",
-          "message": "agree (+5%)"
+          "message": "agree (+8%)"
         },
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kebbi, Niger, Ebonyi, forecast issued 2026-11-25"
+          "message": "7-day weather for Kebbi, Niger, Ebonyi, forecast issued 2026-11-26"
         }
       ]
     },
@@ -944,14 +951,14 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 09 Nov 2026 (16 days, WFP_provisional)",
-          "age_days": 16
+          "message": "Latest real price 09 Nov 2026 (17 days, WFP_provisional)",
+          "age_days": 17
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "35% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 35.5
+          "message": "33% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 33.3
         },
         {
           "check": "start",
@@ -982,7 +989,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Lagos, forecast issued 2026-11-25"
+          "message": "7-day weather for Lagos, forecast issued 2026-11-26"
         }
       ]
     },
@@ -1013,14 +1020,14 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 09 Nov 2026 (16 days, WFP_provisional)",
-          "age_days": 16
+          "message": "Latest real price 09 Nov 2026 (17 days, WFP_provisional)",
+          "age_days": 17
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "81% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 80.6
+          "message": "80% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 80.0
         },
         {
           "check": "start",
@@ -1051,7 +1058,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kano, Sokoto, Borno, forecast issued 2026-11-25"
+          "message": "7-day weather for Kano, Sokoto, Borno, forecast issued 2026-11-26"
         }
       ]
     },
@@ -1082,14 +1089,14 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 09 Nov 2026 (16 days, WFP_provisional)",
-          "age_days": 16
+          "message": "Latest real price 09 Nov 2026 (17 days, WFP_provisional)",
+          "age_days": 17
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "81% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 80.6
+          "message": "80% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 80.0
         },
         {
           "check": "start",
@@ -1120,7 +1127,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Kano, Sokoto, Borno, forecast issued 2026-11-25"
+          "message": "7-day weather for Kano, Sokoto, Borno, forecast issued 2026-11-26"
         }
       ]
     },
@@ -1151,14 +1158,14 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 09 Nov 2026 (16 days, WFP_provisional)",
-          "age_days": 16
+          "message": "Latest real price 09 Nov 2026 (17 days, WFP_provisional)",
+          "age_days": 17
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "81% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 80.6
+          "message": "80% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 80.0
         },
         {
           "check": "start",
@@ -1189,7 +1196,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Borno, Kebbi, Niger, forecast issued 2026-11-25"
+          "message": "7-day weather for Borno, Kebbi, Niger, forecast issued 2026-11-26"
         }
       ]
     },
@@ -1220,14 +1227,14 @@
         {
           "check": "freshness",
           "status": "ok",
-          "message": "Latest real price 09 Nov 2026 (16 days, WFP_provisional)",
-          "age_days": 16
+          "message": "Latest real price 09 Nov 2026 (17 days, WFP_provisional)",
+          "age_days": 17
         },
         {
           "check": "filled_share",
           "status": "ok",
-          "message": "81% of the last 26 weeks are filled-in or estimated prices",
-          "pct": 80.6
+          "message": "80% of the last 26 weeks are filled-in or estimated prices",
+          "pct": 80.0
         },
         {
           "check": "start",
@@ -1258,7 +1265,7 @@
         {
           "check": "weather",
           "status": "ok",
-          "message": "7-day weather for Ogun, Oyo, Plateau, forecast issued 2026-11-25"
+          "message": "7-day weather for Ogun, Oyo, Plateau, forecast issued 2026-11-26"
         }
       ]
     }
