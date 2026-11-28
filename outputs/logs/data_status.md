@@ -1,4 +1,4 @@
-## Real-data status - 27 November 2026
+## Real-data status - 28 November 2026
 
 **Run steps:** all 32 ran without an error.
 
@@ -6,12 +6,12 @@
 
 | Still waiting for real data | Last real price | Days ago |
 |---|---|---|
-| Maize (yellow) | 2023-01-09 | 1418 |
-| Wheat | 2026-04-13 | 228 |
+| Maize (yellow) | 2023-01-09 | 1419 |
+| Wheat | 2026-04-13 | 229 |
 
 **Web prices added today: 0**
-- Maize (yellow): 10 found, none used - 4x not a wholesale price (or level not recorded), 4x too far from our yardstick, 2x low confidence (forum, undated list or shop)
-- Wheat: 22 found, none used - 15x one state's price, no measured gap to national, 6x withdrawn earlier after review, 1x big move, only one website
+- Maize (yellow): 10 found, none used - 4x not a wholesale price (or level not recorded), 4x too far from our yardstick, 1x low confidence (forum, undated list or shop), 1x website blocked after review - see web_sources_blocked.csv
+- Wheat: 23 found, none used - 18x one state's price, no measured gap to national, 4x withdrawn earlier after review, 1x big move, only one website
 
 **Our prices vs independent web prices:** 6 agree, 2 check, 1 disagree, 7 no web price, 2 our price is old
 - DISAGREE: Cocoa - ours N5,500,000 (Agricome), web N7,500,000 from 1 site(s), +36%
